@@ -12,7 +12,7 @@ export class JulesAPIError extends Error {
 }
 
 export class JulesClient {
-  private baseURL = 'https://jules.googleapis.com/v1';
+  private baseURL = '/api/jules';
   private apiKey: string;
 
   constructor(apiKey: string) {
@@ -23,20 +23,47 @@ export class JulesClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    const url = `${this.baseURL}${endpoint}`;
+    // Build URL with path as query param for our proxy
+    const url = `${this.baseURL}?path=${encodeURIComponent(endpoint)}`;
 
     try {
       const response = await fetch(url, {
         ...options,
         headers: {
           'Content-Type': 'application/json',
-          'X-Goog-Api-Key': this.apiKey,
+          'X-Jules-Api-Key': this.apiKey,
           ...options.headers,
         },
       });
 
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));
+
+        // Handle common HTTP errors with helpful messages
+        if (response.status === 401) {
+          throw new JulesAPIError(
+            'Invalid API key. Please check your Jules API key in settings.',
+            response.status,
+            error
+          );
+        }
+
+        if (response.status === 403) {
+          throw new JulesAPIError(
+            'Access forbidden. Please ensure your API key has the correct permissions.',
+            response.status,
+            error
+          );
+        }
+
+        if (response.status === 404) {
+          throw new JulesAPIError(
+            'Resource not found. The requested endpoint may not exist.',
+            response.status,
+            error
+          );
+        }
+
         throw new JulesAPIError(
           error.message || `Request failed with status ${response.status}`,
           response.status,
@@ -49,9 +76,19 @@ export class JulesClient {
       if (error instanceof JulesAPIError) {
         throw error;
       }
-      // Network or other fetch errors
+
+      // Handle network errors with helpful messages
+      if (error instanceof TypeError && error.message === 'Failed to fetch') {
+        throw new JulesAPIError(
+          'Unable to connect to the server. Please check your internet connection and try again.',
+          undefined,
+          error
+        );
+      }
+
+      // Generic network error
       throw new JulesAPIError(
-        error instanceof Error ? error.message : 'Network request failed',
+        error instanceof Error ? error.message : 'Network request failed. Please try again.',
         undefined,
         error
       );
