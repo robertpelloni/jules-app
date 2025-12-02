@@ -20,6 +20,7 @@ export function ActivityFeed({ session }: ActivityFeedProps) {
   const { client } = useJules();
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -33,14 +34,21 @@ export function ActivityFeed({ session }: ActivityFeedProps) {
   }, [activities]);
 
   const loadActivities = async () => {
-    if (!client) return;
+    if (!client) {
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
+      setError(null);
       const data = await client.listActivities(session.id);
       setActivities(data);
-    } catch (error) {
-      console.error('Failed to load activities:', error);
+    } catch (err) {
+      console.error('Failed to load activities:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load activities';
+      setError(errorMessage);
+      setActivities([]);
     } finally {
       setLoading(false);
     }
@@ -58,14 +66,17 @@ export function ActivityFeed({ session }: ActivityFeedProps) {
 
     try {
       setSending(true);
+      setError(null);
       const newActivity = await client.createActivity({
         sessionId: session.id,
         content: message.trim(),
       });
       setActivities([...activities, newActivity]);
       setMessage('');
-    } catch (error) {
-      console.error('Failed to send message:', error);
+    } catch (err) {
+      console.error('Failed to send message:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to send message';
+      setError(errorMessage);
     } finally {
       setSending(false);
     }
@@ -111,6 +122,17 @@ export function ActivityFeed({ session }: ActivityFeedProps) {
           {formatDistanceToNow(new Date(session.createdAt), { addSuffix: true })}
         </p>
       </div>
+
+      {error && (
+        <div className="border-b bg-destructive/10 p-4">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm text-destructive">{error}</p>
+            <Button variant="outline" size="sm" onClick={loadActivities}>
+              Retry
+            </Button>
+          </div>
+        </div>
+      )}
 
       <ScrollArea ref={scrollRef} className="flex-1 p-4">
         <div className="space-y-4">

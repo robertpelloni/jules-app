@@ -5,6 +5,7 @@ import { useJules } from '@/lib/jules/provider';
 import type { Session } from '@/types/jules';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -17,20 +18,28 @@ export function SessionList({ onSelectSession, selectedSessionId }: SessionListP
   const { client } = useJules();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadSessions();
   }, [client]);
 
   const loadSessions = async () => {
-    if (!client) return;
+    if (!client) {
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
+      setError(null);
       const data = await client.listSessions();
       setSessions(data);
-    } catch (error) {
-      console.error('Failed to load sessions:', error);
+    } catch (err) {
+      console.error('Failed to load sessions:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load sessions';
+      setError(errorMessage);
+      setSessions([]);
     } finally {
       setLoading(false);
     }
@@ -55,6 +64,17 @@ export function SessionList({ onSelectSession, selectedSessionId }: SessionListP
     return (
       <div className="flex items-center justify-center p-8">
         <p className="text-muted-foreground">Loading sessions...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 p-8">
+        <p className="text-destructive text-center">{error}</p>
+        <Button variant="outline" size="sm" onClick={loadSessions}>
+          Retry
+        </Button>
       </div>
     );
   }

@@ -25,25 +25,37 @@ export class JulesClient {
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
 
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': this.apiKey,
-        ...options.headers,
-      },
-    });
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': this.apiKey,
+          ...options.headers,
+        },
+      });
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new JulesAPIError(
+          error.message || `Request failed with status ${response.status}`,
+          response.status,
+          error
+        );
+      }
+
+      return response.json();
+    } catch (error) {
+      if (error instanceof JulesAPIError) {
+        throw error;
+      }
+      // Network or other fetch errors
       throw new JulesAPIError(
-        error.message || `Request failed with status ${response.status}`,
-        response.status,
+        error instanceof Error ? error.message : 'Network request failed',
+        undefined,
         error
       );
     }
-
-    return response.json();
   }
 
   // Sources

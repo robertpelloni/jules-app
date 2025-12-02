@@ -33,6 +33,7 @@ export function NewSessionDialog({ onSessionCreated }: NewSessionDialogProps) {
   const [open, setOpen] = useState(false);
   const [sources, setSources] = useState<Source[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     sourceId: '',
     title: '',
@@ -49,13 +50,16 @@ export function NewSessionDialog({ onSessionCreated }: NewSessionDialogProps) {
     if (!client) return;
 
     try {
+      setError(null);
       const data = await client.listSources();
       setSources(data);
       if (data.length > 0) {
         setFormData((prev) => ({ ...prev, sourceId: data[0].id }));
       }
-    } catch (error) {
-      console.error('Failed to load sources:', error);
+    } catch (err) {
+      console.error('Failed to load sources:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load repositories';
+      setError(errorMessage);
     }
   };
 
@@ -65,6 +69,7 @@ export function NewSessionDialog({ onSessionCreated }: NewSessionDialogProps) {
 
     try {
       setLoading(true);
+      setError(null);
       await client.createSession({
         sourceId: formData.sourceId,
         prompt: formData.prompt,
@@ -72,9 +77,12 @@ export function NewSessionDialog({ onSessionCreated }: NewSessionDialogProps) {
       });
       setOpen(false);
       setFormData({ sourceId: '', title: '', prompt: '' });
+      setError(null);
       onSessionCreated?.();
-    } catch (error) {
-      console.error('Failed to create session:', error);
+    } catch (err) {
+      console.error('Failed to create session:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create session';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -142,6 +150,12 @@ export function NewSessionDialog({ onSessionCreated }: NewSessionDialogProps) {
               required
             />
           </div>
+
+          {error && (
+            <div className="rounded-md bg-destructive/10 p-3">
+              <p className="text-sm text-destructive">{error}</p>
+            </div>
+          )}
 
           <div className="flex gap-2 justify-end">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
