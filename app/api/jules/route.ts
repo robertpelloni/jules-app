@@ -31,14 +31,26 @@ export async function GET(request: NextRequest) {
       });
       console.log('[Jules API Proxy] Activity types:', activityTypes);
 
+      // Look for activities with artifacts
+      const activitiesWithArtifacts = data.activities.filter((a: any) => {
+        return (a.progressUpdated?.artifacts?.length > 0) || (a.sessionCompleted?.artifacts?.length > 0);
+      });
+
+      if (activitiesWithArtifacts.length > 0) {
+        console.log('[Jules API Proxy] Found', activitiesWithArtifacts.length, 'activities with artifacts');
+        activitiesWithArtifacts.forEach((a: any, idx: number) => {
+          const artifacts = a.progressUpdated?.artifacts || a.sessionCompleted?.artifacts || [];
+          console.log(`[Jules API Proxy] Activity ${idx} artifacts:`, JSON.stringify(artifacts, null, 2));
+        });
+      } else {
+        console.log('[Jules API Proxy] No activities with artifacts found');
+      }
+
       // Look for sessionCompleted activities
       const completedActivity = data.activities.find((a: any) => a.sessionCompleted);
       if (completedActivity) {
         console.log('[Jules API Proxy] Found sessionCompleted activity:', JSON.stringify(completedActivity, null, 2));
       }
-
-      // Log first activity for reference
-      console.log('[Jules API Proxy] First activity:', JSON.stringify(data.activities[0], null, 2));
     }
 
     return NextResponse.json(data, { status: response.status });
