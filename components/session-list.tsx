@@ -6,6 +6,7 @@ import type { Session } from '@/types/jules';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { CardSpotlight } from '@/components/ui/card-spotlight';
 import { formatDistanceToNow, isValid, parseISO } from 'date-fns';
 import { getArchivedSessions } from '@/lib/archive';
 
@@ -130,71 +131,63 @@ export function SessionList({ onSelectSession, selectedSessionId }: SessionListP
   const percentage = Math.min((sessionCount / sessionLimit) * 100, 100);
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col bg-zinc-950">
       <ScrollArea className="flex-1">
-        <div className="py-0.5">
+        <div className="p-2 space-y-1">
           {visibleSessions.map((session) => (
-            <button
+            <CardSpotlight
               key={session.id}
-              className={`w-full flex items-start gap-2.5 px-3 py-2 text-left transition-colors duration-150 ${
-                selectedSessionId === session.id
-                  ? 'bg-sidebar-accent border-l-2 border-sidebar-primary'
-                  : 'border-l-2 border-transparent hover:bg-sidebar-accent/50'
+              radius={250}
+              color={selectedSessionId === session.id ? '#a855f7' : '#404040'}
+              className={`relative ${
+                selectedSessionId === session.id ? 'border-purple-500/30' : ''
               }`}
-              onClick={() => onSelectSession(session)}
             >
-              <div className={`flex-shrink-0 mt-0.5 w-4 h-4 rounded-full flex items-center justify-center ${
-                session.status === 'completed'
-                  ? 'bg-sidebar-primary'
-                  : session.status === 'active'
-                  ? 'border-2 border-sidebar-primary/60'
-                  : 'border-2 border-muted-foreground/20'
-              }`}>
-                {session.status === 'completed' && (
-                  <svg className="w-2.5 h-2.5 text-sidebar-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                )}
-              </div>
-              <div className="flex-1 min-w-0 py-0.5">
-                <div className="flex items-center gap-1.5 mb-0.5">
-                  <div className="text-xs font-medium truncate leading-tight text-sidebar-foreground">
-                    {session.title || 'Untitled session'}
+              <button
+                className="w-full flex items-start gap-2.5 px-3 py-2.5 text-left relative z-10"
+                onClick={() => onSelectSession(session)}
+              >
+                <div className={`flex-shrink-0 mt-1 w-2 h-2 rounded-full ${getStatusColor(session.status)}`} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <div className="text-[11px] font-bold truncate leading-tight text-white uppercase tracking-wide">
+                      {session.title || 'Untitled'}
+                    </div>
+                    {session.sourceId && (
+                      <div className="text-[9px] px-1.5 py-0.5 flex-shrink-0 font-mono bg-white/5 border border-white/10 text-white/60 uppercase tracking-wider">
+                        {getRepoShortName(session.sourceId)}
+                      </div>
+                    )}
                   </div>
-                  {session.sourceId && (
-                    <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 flex-shrink-0 font-normal bg-sidebar-accent border-sidebar-border">
-                      {getRepoShortName(session.sourceId)}
-                    </Badge>
-                  )}
+                  <div className="text-[9px] text-white/40 leading-tight font-mono tracking-wide">
+                    {formatDate(session.createdAt)}
+                  </div>
                 </div>
-                <div className="text-[10px] text-sidebar-foreground/50 leading-tight">
-                  {formatDate(session.createdAt)}
-                </div>
-              </div>
-            </button>
+              </button>
+            </CardSpotlight>
           ))}
         </div>
       </ScrollArea>
 
       {/* Session Limit Indicator */}
-      <div className="border-t border-sidebar-border px-3 py-2.5 bg-sidebar-accent/30">
+      <div className="border-t border-white/[0.08] px-3 py-2.5 bg-black/50">
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[10px] font-semibold text-sidebar-foreground/60 uppercase tracking-wider">
-            Daily Sessions
+          <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest">
+            DAILY
           </span>
-          <span className="text-xs font-semibold text-sidebar-foreground">
+          <span className="text-[10px] font-mono font-bold text-white/60">
             {sessionCount}/{sessionLimit}
           </span>
         </div>
-        <div className="w-full h-1.5 bg-sidebar-accent rounded-full overflow-hidden">
+        <div className="w-full h-1 bg-white/5 overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-sidebar-primary to-primary transition-all duration-300"
+            className="h-full bg-white transition-all duration-300"
             style={{ width: `${percentage}%` }}
           />
         </div>
         {sessionCount >= sessionLimit * 0.8 && (
-          <p className="text-[9px] text-sidebar-foreground/50 mt-1 leading-tight">
-            {sessionCount >= sessionLimit ? 'Daily limit reached' : 'Approaching daily limit'}
+          <p className="text-[8px] text-white/30 mt-1 leading-tight uppercase tracking-wider font-mono">
+            {sessionCount >= sessionLimit ? 'LIMIT REACHED' : 'APPROACHING LIMIT'}
           </p>
         )}
       </div>

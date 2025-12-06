@@ -10,7 +10,7 @@ import { NewSessionDialog } from './new-session-dialog';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Menu, LogOut, Settings, LayoutDashboard, MessageSquare, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Menu, LogOut, Settings, BarChart3, MessageSquare, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ThemeToggle } from './theme-toggle';
 
 export function AppLayout() {
@@ -43,10 +43,10 @@ export function AppLayout() {
   };
 
   return (
-    <div className="flex h-screen flex-col bg-background">
+    <div className="flex h-screen flex-col bg-black">
       {/* Header */}
-      <header className="border-b bg-card/50 backdrop-blur-sm">
-        <div className="flex h-12 items-center justify-between px-3">
+      <header className="border-b border-white/[0.08] bg-zinc-950/95 backdrop-blur-sm">
+        <div className="flex h-14 items-center justify-between px-4">
           <div className="flex items-center gap-3">
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
@@ -54,9 +54,9 @@ export function AppLayout() {
                   <Menu className="h-4 w-4" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-[280px] p-0 bg-sidebar">
-                <SheetHeader className="border-b border-sidebar-border px-3 py-2.5">
-                  <SheetTitle className="text-[10px] font-semibold text-sidebar-foreground/60 uppercase tracking-wider">Sessions</SheetTitle>
+              <SheetContent side="left" className="w-[280px] p-0 bg-zinc-950 border-white/[0.08]">
+                <SheetHeader className="border-b border-white/[0.08] px-3 py-2.5">
+                  <SheetTitle className="text-[10px] font-bold text-white/40 uppercase tracking-widest">SESSIONS</SheetTitle>
                 </SheetHeader>
                 <SessionList
                   key={refreshKey}
@@ -65,31 +65,48 @@ export function AppLayout() {
                 />
               </SheetContent>
             </Sheet>
-            <h1 className="text-sm font-semibold tracking-tight">Jules Task Manager</h1>
+            <h1 className="text-sm font-bold tracking-tight text-white">JULES</h1>
           </div>
 
           <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => setView(view === 'analytics' ? 'sessions' : 'analytics')}
-              title={view === 'analytics' ? "Back to Sessions" : "Analytics Dashboard"}
-            >
-              {view === 'analytics' ? <MessageSquare className="h-4 w-4" /> : <LayoutDashboard className="h-4 w-4" />}
-            </Button>
+            {view === 'analytics' ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-3 hover:bg-white/5 text-white/80"
+                onClick={() => setView('sessions')}
+              >
+                <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
+                <span className="text-[10px] font-mono uppercase tracking-wider">Sessions</span>
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-3 hover:bg-white/5 text-white/80"
+                onClick={() => setView('analytics')}
+              >
+                <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
+                <span className="text-[10px] font-mono uppercase tracking-wider">Analytics</span>
+              </Button>
+            )}
             <NewSessionDialog onSessionCreated={handleSessionCreated} />
-            <ThemeToggle />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-white/5 text-white/60">
                   <Settings className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-40">
-                <DropdownMenuItem onClick={handleLogout}>
+              <DropdownMenuContent align="end" className="w-40 bg-zinc-950 border-white/[0.08]">
+                <DropdownMenuItem asChild className="hover:bg-white/5 text-white/80 cursor-pointer">
+                  <div className="flex items-center justify-between w-full">
+                    <span className="text-xs uppercase tracking-wide">Theme</span>
+                    <ThemeToggle />
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout} className="hover:bg-white/5 text-white/80">
                   <LogOut className="mr-2 h-3.5 w-3.5" />
-                  <span className="text-xs">Logout</span>
+                  <span className="text-xs uppercase tracking-wide">Logout</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -100,17 +117,17 @@ export function AppLayout() {
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
         {/* Desktop Sidebar */}
-        <aside className={`hidden md:flex border-r border-sidebar-border flex-col bg-sidebar transition-all duration-200 ${
+        <aside className={`hidden md:flex border-r border-white/[0.08] flex-col bg-zinc-950 transition-all duration-200 ${
           sidebarCollapsed ? 'md:w-12' : 'md:w-64'
         }`}>
-          <div className="px-3 py-2 border-b border-sidebar-border flex items-center justify-between">
+          <div className="px-3 py-2 border-b border-white/[0.08] flex items-center justify-between">
             {!sidebarCollapsed && (
-              <h2 className="text-[10px] font-semibold text-sidebar-foreground/60 uppercase tracking-wider">Sessions</h2>
+              <h2 className="text-[10px] font-bold text-white/40 uppercase tracking-widest">SESSIONS</h2>
             )}
             <Button
               variant="ghost"
               size="icon"
-              className={`h-6 w-6 hover:bg-sidebar-accent ${sidebarCollapsed ? 'mx-auto' : ''}`}
+              className={`h-6 w-6 hover:bg-white/5 text-white/60 ${sidebarCollapsed ? 'mx-auto' : ''}`}
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
             >
               {sidebarCollapsed ? (
@@ -132,19 +149,19 @@ export function AppLayout() {
         </aside>
 
         {/* Main Panel */}
-        <main className="flex-1 overflow-hidden">
+        <main className="flex-1 overflow-hidden bg-black">
           {view === 'analytics' ? (
             <AnalyticsDashboard />
           ) : selectedSession ? (
             <ActivityFeed session={selectedSession} onArchive={handleSessionArchived} />
           ) : (
             <div className="flex h-full items-center justify-center p-8">
-              <div className="text-center space-y-3 max-w-sm">
-                <h2 className="text-lg font-semibold text-muted-foreground">
-                  No session selected
+              <div className="text-center space-y-4 max-w-sm">
+                <h2 className="text-sm font-bold text-white/40 uppercase tracking-widest">
+                  NO SESSION
                 </h2>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Select a session from the sidebar or create a new one to get started
+                <p className="text-[11px] text-white/30 leading-relaxed uppercase tracking-wide font-mono">
+                  Select session or create new
                 </p>
                 <div className="pt-2">
                   <NewSessionDialog onSessionCreated={handleSessionCreated} />

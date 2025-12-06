@@ -230,9 +230,9 @@ export function ActivityFeed({ session, onArchive }: ActivityFeedProps) {
 
   const getActivityIcon = (activity: Activity) => {
     if (activity.role === 'user') {
-      return <AvatarFallback className="bg-primary text-primary-foreground text-[10px] font-semibold">U</AvatarFallback>;
+      return <AvatarFallback className="bg-purple-500 text-white text-[9px] font-bold uppercase tracking-wider">U</AvatarFallback>;
     }
-    return <AvatarFallback className="bg-secondary text-secondary-foreground text-[10px] font-semibold">J</AvatarFallback>;
+    return <AvatarFallback className="bg-white text-black text-[9px] font-bold uppercase tracking-wider">J</AvatarFallback>;
   };
 
   const getActivityTypeColor = (type: Activity['type']) => {
@@ -254,8 +254,8 @@ export function ActivityFeed({ session, onArchive }: ActivityFeedProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-xs text-muted-foreground">Loading activities...</p>
+      <div className="flex items-center justify-center h-full bg-black">
+        <p className="text-[10px] font-mono text-white/40 uppercase tracking-widest">Loading activities...</p>
       </div>
     );
   }
@@ -325,37 +325,37 @@ export function ActivityFeed({ session, onArchive }: ActivityFeedProps) {
   const statusInfo = getStatusInfo();
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="border-b bg-card/30 px-4 py-3">
+    <div className="flex flex-col h-full bg-black">
+      <div className="border-b border-white/[0.08] bg-zinc-950/95 px-4 py-3">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <h2 className="text-sm font-semibold truncate">{session.title}</h2>
-              <div className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium ${statusInfo.bgColor} ${statusInfo.color}`}>
+            <div className="flex items-center gap-2 mb-1.5">
+              <h2 className="text-sm font-bold uppercase tracking-wide truncate text-white">{session.title}</h2>
+              <div className={`flex items-center gap-1 px-2 py-0.5 text-[9px] font-mono font-bold uppercase tracking-wider ${statusInfo.bgColor} ${statusInfo.color}`}>
                 <span>{statusInfo.icon}</span>
                 <span>{statusInfo.label}</span>
               </div>
             </div>
-            <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+            <div className="flex items-center gap-3 text-[9px] font-mono text-white/40 uppercase tracking-wide">
               <span>Started {formatDate(session.createdAt)}</span>
               {session.status === 'active' && (
                 <>
                   <span>•</span>
-                  <span>Running for {sessionDuration}m</span>
+                  <span>Running {sessionDuration}m</span>
                 </>
               )}
             </div>
             {session.status === 'active' && (
-              <div className="mt-2 pt-2 border-t border-border/50">
+              <div className="mt-2 pt-2 border-t border-white/[0.08]">
                 <div className="flex items-center gap-2 mb-1">
-                  <div className="text-[10px] font-semibold text-primary">Latest Activity:</div>
+                  <div className="text-[9px] font-bold uppercase tracking-widest text-purple-400">Latest Activity</div>
                   {latestActivity && (
-                    <div className="text-[9px] text-muted-foreground">
+                    <div className="text-[8px] font-mono text-white/30 tracking-wide">
                       {formatDate(latestActivity.createdAt)}
                     </div>
                   )}
                 </div>
-                <div className="text-xs text-foreground/90 line-clamp-2 leading-relaxed">
+                <div className="text-[11px] text-white/80 line-clamp-2 leading-relaxed font-mono">
                   {latestActivity ? (
                     (() => {
                       try {
@@ -373,7 +373,7 @@ export function ActivityFeed({ session, onArchive }: ActivityFeedProps) {
                       }
                     })()
                   ) : (
-                    <span className="text-muted-foreground italic">Waiting for activity updates...</span>
+                    <span className="text-white/30 uppercase tracking-wide text-[10px]">Waiting for updates...</span>
                   )}
                 </div>
               </div>
@@ -384,7 +384,7 @@ export function ActivityFeed({ session, onArchive }: ActivityFeedProps) {
             size="icon"
             onClick={handleArchive}
             title="Archive session"
-            className="shrink-0 h-7 w-7"
+            className="shrink-0 h-7 w-7 hover:bg-white/5 text-white/60"
           >
             <Archive className="h-3.5 w-3.5" />
           </Button>
@@ -392,10 +392,10 @@ export function ActivityFeed({ session, onArchive }: ActivityFeedProps) {
       </div>
 
       {error && (
-        <div className="border-b bg-destructive/10 px-4 py-3">
+        <div className="border-b border-white/[0.08] bg-red-950/20 px-4 py-3">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-xs text-destructive">{error}</p>
-            <Button variant="outline" size="sm" onClick={() => loadActivities(true)} className="h-7 text-xs">
+            <p className="text-[11px] font-mono text-red-400 uppercase tracking-wide">{error}</p>
+            <Button variant="outline" size="sm" onClick={() => loadActivities(true)} className="h-7 text-[10px] uppercase tracking-wider border-white/10 hover:bg-white/5 text-white/80">
               Retry
             </Button>
           </div>
@@ -407,12 +407,16 @@ export function ActivityFeed({ session, onArchive }: ActivityFeedProps) {
           <div className="p-3 space-y-2.5">
             {activities.length === 0 && !loading && !error && (
               <div className="flex items-center justify-center min-h-[200px]">
-                <p className="text-xs text-muted-foreground text-center leading-relaxed">
-                  No activities yet.
-                  {session.status !== 'completed' && session.status !== 'failed' &&
-                    <span className="block mt-1">This session may be queued or in progress.</span>
-                  }
-                </p>
+                <div className="text-center space-y-2">
+                  <p className="text-[10px] font-mono text-white/40 uppercase tracking-widest">
+                    No activities yet
+                  </p>
+                  {session.status !== 'completed' && session.status !== 'failed' && (
+                    <p className="text-[9px] font-mono text-white/30 uppercase tracking-wide">
+                      Session may be queued or in progress
+                    </p>
+                  )}
+                </div>
               </div>
             )}
             {(() => {
@@ -464,26 +468,26 @@ export function ActivityFeed({ session, onArchive }: ActivityFeedProps) {
                       key={`group-${groupIndex}`}
                       className="flex gap-2.5"
                     >
-                      <Avatar className="h-7 w-7 shrink-0 mt-0.5">
+                      <Avatar className="h-6 w-6 shrink-0 mt-0.5 bg-zinc-900 border border-white/10">
                         {getActivityIcon(firstActivity)}
                       </Avatar>
-                      <Card className="flex-1 border-border/50 bg-card">
+                      <Card className="flex-1 border-white/[0.08] bg-zinc-950/50">
                         <CardContent className="p-3">
                           <div className="flex items-center gap-2 mb-2">
-                            <Badge variant="outline" className="text-[10px] h-5 bg-yellow-500 border-transparent text-white">
+                            <Badge variant="outline" className="text-[9px] h-4 px-1.5 font-mono uppercase tracking-wider bg-yellow-500/90 border-transparent text-black font-bold">
                               progress
                             </Badge>
-                            <span className="text-[10px] text-muted-foreground">
+                            <span className="text-[9px] font-mono text-white/40 tracking-wide">
                               {item.length} update{item.length > 1 ? 's' : ''}
                             </span>
                           </div>
                           <div className="space-y-2">
                             {item.map((activity, activityIndex) => (
-                              <div key={activity.id} className={activityIndex > 0 ? 'pt-2 border-t border-border/30' : ''}>
-                                <div className="text-[9px] text-muted-foreground mb-1">
+                              <div key={activity.id} className={activityIndex > 0 ? 'pt-2 border-t border-white/[0.08]' : ''}>
+                                <div className="text-[8px] font-mono text-white/30 mb-1 uppercase tracking-wide">
                                   {formatDate(activity.createdAt)}
                                 </div>
-                                <div className="text-xs leading-relaxed">{formatContent(activity.content)}</div>
+                                <div className="text-[11px] leading-relaxed text-white/90">{formatContent(activity.content)}</div>
                               </div>
                             ))}
                           </div>
@@ -502,29 +506,29 @@ export function ActivityFeed({ session, onArchive }: ActivityFeedProps) {
                       newActivityIds.has(activity.id) ? 'animate-in fade-in slide-in-from-bottom-2 duration-500' : ''
                     }`}
                   >
-                    <Avatar className="h-7 w-7 shrink-0 mt-0.5">
+                    <Avatar className="h-6 w-6 shrink-0 mt-0.5 bg-zinc-900 border border-white/10">
                       {getActivityIcon(activity)}
                     </Avatar>
-                    <Card className={`flex-1 border-border/50 ${activity.role === 'user' ? 'bg-primary/5 border-primary/20' : 'bg-card'}`}>
+                    <Card className={`flex-1 border-white/[0.08] ${activity.role === 'user' ? 'bg-purple-950/20 border-purple-500/20' : 'bg-zinc-950/50'}`}>
                       <CardContent className="p-3">
                         <div className="flex items-center gap-2 mb-2">
-                          <Badge variant="outline" className={`text-[10px] h-5 ${getActivityTypeColor(activity.type)} border-transparent text-white`}>
+                          <Badge variant="outline" className={`text-[9px] h-4 px-1.5 font-mono uppercase tracking-wider ${getActivityTypeColor(activity.type)} border-transparent text-black font-bold`}>
                             {activity.type}
                           </Badge>
-                          <span className="text-[10px] text-muted-foreground">
+                          <span className="text-[9px] font-mono text-white/40 tracking-wide">
                             {formatDate(activity.createdAt)}
                           </span>
                         </div>
-                        <div className="text-xs leading-relaxed">{formatContent(activity.content)}</div>
+                        <div className="text-[11px] leading-relaxed text-white/90">{formatContent(activity.content)}</div>
                         {activity.type === 'plan' &&
                           activity.metadata?.planGenerated &&
                           !(activity.metadata?.planGenerated as any)?.approved ? (
-                            <div className="mt-3 pt-3 border-t border-border/50">
+                            <div className="mt-3 pt-3 border-t border-white/[0.08]">
                               <Button
                                 onClick={handleApprovePlan}
                                 disabled={approvingPlan}
                                 size="sm"
-                                className="w-full h-8 text-xs"
+                                className="h-7 px-3 text-[9px] font-mono uppercase tracking-widest bg-purple-600 hover:bg-purple-500 text-white border-0"
                               >
                                 {approvingPlan ? 'Approving...' : 'Approve Plan'}
                               </Button>
@@ -541,13 +545,13 @@ export function ActivityFeed({ session, onArchive }: ActivityFeedProps) {
       </div>
 
       {session.status !== 'completed' && session.status !== 'failed' && (
-        <form onSubmit={handleSendMessage} className="border-t bg-card/30 p-3">
+        <form onSubmit={handleSendMessage} className="border-t border-white/[0.08] bg-zinc-950/95 p-3">
           <div className="flex gap-2">
             <Textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Send a message to Jules..."
-              className="min-h-[56px] resize-none text-xs"
+              className="min-h-[56px] resize-none text-[11px] bg-black border-white/[0.08] text-white placeholder:text-white/30 focus:border-purple-500/50"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
@@ -556,15 +560,17 @@ export function ActivityFeed({ session, onArchive }: ActivityFeedProps) {
               }}
               disabled={sending}
             />
-            <Button type="submit" size="icon" disabled={!message.trim() || sending} className="h-9 w-9">
+            <Button type="submit" size="icon" disabled={!message.trim() || sending} className="h-9 w-9 bg-purple-600 hover:bg-purple-500 text-white">
               <Send className="h-3.5 w-3.5" />
             </Button>
           </div>
         </form>
       )}
       {(session.status === 'completed' || session.status === 'failed') && (
-        <div className="border-t bg-card/30 p-3 text-center text-xs text-muted-foreground">
-          This session is {session.status}. You cannot send new messages.
+        <div className="border-t border-white/[0.08] bg-zinc-950/95 p-3 text-center">
+          <p className="text-[10px] font-mono text-white/40 uppercase tracking-widest">
+            Session {session.status} • Cannot send new messages
+          </p>
         </div>
       )}
     </div>
