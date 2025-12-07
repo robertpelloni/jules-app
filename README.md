@@ -127,6 +127,9 @@ npm start
 
 # Run linter
 npm run lint
+
+# Run tests
+npm test
 ```
 
 ## Contributing
