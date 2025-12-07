@@ -2,6 +2,17 @@
   "name": "jules-ui",
   "description": "The modern, developer-first interface for Google's Jules AI agent. Features live code diffs, interactive terminal outputs, analytics, and a streamlined dark mode experience.",
   "version": "0.1.0",
+  "keywords": [
+    "jules-ai",
+    "google-jules",
+    "ai-agent",
+    "developer-tools",
+    "nextjs",
+    "shadcn-ui",
+    "code-viewer",
+    "git-diff",
+    "dashboard"
+  ],
   "private": true,
   "scripts": {
     "dev": "next dev",
