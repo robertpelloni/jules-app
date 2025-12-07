@@ -128,32 +128,6 @@ npm start
 npm run lint
 ```
 
-## Troubleshooting
-
-### "Unable to connect to server" Error
-
-If you see this error, it could be due to:
-
-1. **Invalid API Key** - Verify your API key is correct in Jules web app settings
-2. **Network Issues** - Check your internet connection
-3. **Server Not Running** - Make sure `npm run dev` is running
-4. **API Not Available** - Verify the Jules API endpoint is accessible
-
-Note: This app uses Next.js API routes to proxy requests to Jules API, avoiding CORS issues.
-
-### No Sessions Showing
-
-Make sure you have:
-- Connected at least one GitHub repository in the Jules web app
-- Created a session through the Jules web interface or this app
-- Valid API key with proper permissions
-
-### Other Issues
-
-- Clear your browser's localStorage and re-enter your API key
-- Check the browser console for detailed error messages
-- Verify you're using a supported browser (Chrome, Firefox, Safari, Edge)
-
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
