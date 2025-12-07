@@ -5,7 +5,7 @@ Jules UI is a feature-rich, self-hosted workspace designed to elevate the experi
 It transforms standard agent interactions into a powerful engineering platform, offering real-time visibility into code generation with live diffs, granular inspection of terminal command outputs, and comprehensive session analytics. Engineered for performance and clarity, it serves as a robust command center for managing complex AI-driven development tasks, featuring:
 
 - **Live Code Diffs**: Visualize git patches and code changes instantly.
-- **Interactive Terminal**: Inspect bash outputs and command execution in real-time.
+- **Interactive Terminal**: Inspect bash outputs and execute your own commands (Coming Soon).
 - **Analytics**: Track session success rates, duration, and activity volume.
 - **Enhanced Search**: Quickly find sessions by repository or title.
 
@@ -20,7 +20,7 @@ Built with Next.js 16, TypeScript, and shadcn/ui.
 - **Mobile-First Design** - Fully responsive interface optimized for all devices
 - **Real-Time Updates** - Live activity feed for each Jules session
 - **Code Diff Viewer** - View detailed code changes and git patches directly in the UI
-- **Interactive Terminal** - Inspect bash command outputs with collapsible views (Coming Soon)
+- **Interactive Terminal** - Inspect bash outputs and execute your own commands (Coming Soon)
 - **Session Management** - Create, view, search, and manage multiple Jules sessions
 - **Analytics Dashboard** - Visualize session usage and activity trends
 - **Secure** - API key stored locally in browser localStorage
