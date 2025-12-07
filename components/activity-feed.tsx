@@ -101,25 +101,7 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
     }
   };
 
-  useEffect(() => {
-    loadActivities(true);
-
-    // Auto-poll for new activities every 5 seconds for active sessions
-    if (session.status === 'active') {
-      const interval = setInterval(() => {
-        loadActivities(false); // Don't show loading spinner for polls
-      }, 5000);
-
-      return () => clearInterval(interval);
-    }
-  }, [session.id, session.status, client, loadActivities]);
-
-  // Notify parent when activities change
-  useEffect(() => {
-    onActivitiesChange(activities);
-  }, [activities, onActivitiesChange]);
-
-  const loadActivities = async (isInitialLoad = true) => {
+  const loadActivities = useCallback(async (isInitialLoad = true) => {
     if (!client) {
       setLoading(false);
       return;
@@ -175,7 +157,25 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
         setLoading(false);
       }
     }
-  };
+  }, [client, session.id]);
+
+  useEffect(() => {
+    loadActivities(true);
+
+    // Auto-poll for new activities every 5 seconds for active sessions
+    if (session.status === 'active') {
+      const interval = setInterval(() => {
+        loadActivities(false); // Don't show loading spinner for polls
+      }, 5000);
+
+      return () => clearInterval(interval);
+    }
+  }, [session.id, session.status, loadActivities]);
+
+  // Notify parent when activities change
+  useEffect(() => {
+    onActivitiesChange(activities);
+  }, [activities, onActivitiesChange]);
 
   const handleApprovePlan = async () => {
     if (!client || approvingPlan) return;

@@ -2,17 +2,33 @@ import { NextResponse, NextRequest } from 'next/server';
 
 const JULES_API_BASE = 'https://jules.googleapis.com/v1alpha';
 
+interface Artifact {
+  changeSet?: {
+    gitPatch?: {
+      unidiffPatch?: string;
+    };
+    unidiffPatch?: string;
+    [key: string]: unknown;
+  };
+  bashOutput?: {
+    output?: string;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
 interface Activity {
   name?: string;
   createTime?: string;
   originator?: string;
   id?: string;
   progressUpdated?: {
-    artifacts?: unknown[];
+    artifacts?: Artifact[];
   };
   sessionCompleted?: {
-    artifacts?: unknown[];
+    artifacts?: Artifact[];
   };
+  artifacts?: Artifact[];
   [key: string]: unknown;
 }
 
@@ -55,10 +71,9 @@ export async function GET(request: NextRequest) {
       if (activitiesWithArtifacts.length > 0) {
         console.log('[Jules API Proxy] Found', activitiesWithArtifacts.length, 'activities with artifacts');
         activitiesWithArtifacts.forEach((a: Activity, idx: number) => {
-          // Explicitly cast to any[] for detailed logging to allow flexible access
-          const artifacts = (a.progressUpdated?.artifacts || a.sessionCompleted?.artifacts || a.artifacts || []) as any[]; 
+          const artifacts = (a.progressUpdated?.artifacts || a.sessionCompleted?.artifacts || a.artifacts || []) as Artifact[];
           console.log(`[Jules API Proxy] Activity ${idx} has ${artifacts.length} artifacts`);
-          artifacts.forEach((artifact: any, artifactIdx: number) => {
+          artifacts.forEach((artifact: Artifact, artifactIdx: number) => {
             console.log(`[Jules API Proxy]   Artifact ${artifactIdx}:`, Object.keys(artifact));
             if (artifact.changeSet) {
               console.log(`[Jules API Proxy]     Has changeSet with keys:`, Object.keys(artifact.changeSet));
