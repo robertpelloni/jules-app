@@ -5,6 +5,12 @@ import { useJules } from '@/lib/jules/provider';
 import type { Session } from '@/types/jules';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { CardSpotlight } from '@/components/ui/card-spotlight';
 import { formatDistanceToNow, isValid, parseISO } from 'date-fns';
@@ -131,66 +137,75 @@ export function SessionList({ onSelectSession, selectedSessionId }: SessionListP
   const percentage = Math.min((sessionCount / sessionLimit) * 100, 100);
 
   return (
-    <div className="h-full flex flex-col bg-zinc-950">
-      <ScrollArea className="flex-1">
-        <div className="p-2 space-y-1">
-          {visibleSessions.map((session) => (
-            <CardSpotlight
-              key={session.id}
-              radius={250}
-              color={selectedSessionId === session.id ? '#a855f7' : '#404040'}
-              className={`relative ${
-                selectedSessionId === session.id ? 'border-purple-500/30' : ''
-              }`}
-            >
-              <button
-                className="w-full flex items-start gap-2.5 px-3 py-2.5 text-left relative z-10"
-                onClick={() => onSelectSession(session)}
+    <TooltipProvider>
+      <div className="h-full flex flex-col bg-zinc-950">
+        <ScrollArea className="flex-1">
+          <div className="p-2 space-y-1">
+            {visibleSessions.map((session) => (
+              <CardSpotlight
+                key={session.id}
+                radius={250}
+                color={selectedSessionId === session.id ? '#a855f7' : '#404040'}
+                className={`relative ${
+                  selectedSessionId === session.id ? 'border-purple-500/30' : ''
+                }`}
               >
-                <div className={`flex-shrink-0 mt-1 w-2 h-2 rounded-full ${getStatusColor(session.status)}`} />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <div className="text-[11px] font-bold leading-tight text-white uppercase tracking-wide truncate flex-1 min-w-0">
-                      {session.title || 'Untitled'}
+                <button
+                  className="w-full flex items-start gap-2.5 px-3 py-2.5 text-left relative z-10"
+                  onClick={() => onSelectSession(session)}
+                >
+                  <div className={`flex-shrink-0 mt-1 w-2 h-2 rounded-full ${getStatusColor(session.status)}`} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="text-[11px] font-bold leading-tight text-white uppercase tracking-wide truncate flex-1 min-w-0">
+                            {session.title || 'Untitled'}
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" align="start" className="bg-zinc-900 border-white/10 text-white text-[10px] max-w-[200px] break-words z-[60]">
+                          <p>{session.title || 'Untitled'}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      {session.sourceId && (
+                        <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 min-h-0 font-mono bg-white/5 border-white/10 text-white/60 uppercase tracking-wider hover:bg-white/10 rounded-sm">
+                          {getRepoShortName(session.sourceId)}
+                        </Badge>
+                      )}
                     </div>
-                    {session.sourceId && (
-                      <div className="text-[9px] px-1.5 py-0.5 flex-shrink-0 font-mono bg-white/5 border border-white/10 text-white/60 uppercase tracking-wider">
-                        {getRepoShortName(session.sourceId)}
-                      </div>
-                    )}
+                    <div className="text-[9px] text-white/40 leading-tight font-mono tracking-wide">
+                      {formatDate(session.createdAt)}
+                    </div>
                   </div>
-                  <div className="text-[9px] text-white/40 leading-tight font-mono tracking-wide">
-                    {formatDate(session.createdAt)}
-                  </div>
-                </div>
-              </button>
-            </CardSpotlight>
-          ))}
-        </div>
-      </ScrollArea>
+                </button>
+              </CardSpotlight>
+            ))}
+          </div>
+        </ScrollArea>
 
-      {/* Session Limit Indicator */}
-      <div className="border-t border-white/[0.08] px-3 py-2.5 bg-black/50">
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest">
-            DAILY
-          </span>
-          <span className="text-[10px] font-mono font-bold text-white/60">
-            {sessionCount}/{sessionLimit}
-          </span>
+        {/* Session Limit Indicator */}
+        <div className="border-t border-white/[0.08] px-3 py-2.5 bg-black/50">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest">
+              DAILY
+            </span>
+            <span className="text-[10px] font-mono font-bold text-white/60">
+              {sessionCount}/{sessionLimit}
+            </span>
+          </div>
+          <div className="w-full h-1 bg-white/5 overflow-hidden">
+            <div
+              className="h-full bg-white transition-all duration-300"
+              style={{ width: `${percentage}%` }}
+            />
+          </div>
+          {sessionCount >= sessionLimit * 0.8 && (
+            <p className="text-[8px] text-white/30 mt-1 leading-tight uppercase tracking-wider font-mono">
+              {sessionCount >= sessionLimit ? 'LIMIT REACHED' : 'APPROACHING LIMIT'}
+            </p>
+          )}
         </div>
-        <div className="w-full h-1 bg-white/5 overflow-hidden">
-          <div
-            className="h-full bg-white transition-all duration-300"
-            style={{ width: `${percentage}%` }}
-          />
-        </div>
-        {sessionCount >= sessionLimit * 0.8 && (
-          <p className="text-[8px] text-white/30 mt-1 leading-tight uppercase tracking-wider font-mono">
-            {sessionCount >= sessionLimit ? 'LIMIT REACHED' : 'APPROACHING LIMIT'}
-          </p>
-        )}
       </div>
-    </div>
+    </TooltipProvider>
   );
 }
