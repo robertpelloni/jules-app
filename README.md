@@ -1,6 +1,9 @@
 # Jules UI
 
 ![Build Status](https://github.com/sbhavani/jules-app/actions/workflows/ci.yml/badge.svg)
+![Next.js](https://img.shields.io/badge/Next.js-16.0-black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.0-38bdf8)
 
 Jules UI is a feature-rich, self-hosted workspace designed to elevate the experience of working with **Google's Jules AI agent**.
 
@@ -12,10 +15,6 @@ It transforms standard agent interactions into a powerful engineering platform, 
 - **Enhanced Search**: Quickly find sessions by repository or title.
 
 Built with Next.js 16, TypeScript, and shadcn/ui.
-
-![Next.js](https://img.shields.io/badge/Next.js-16.0-black)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.0-38bdf8)
 
 ## Features
 
