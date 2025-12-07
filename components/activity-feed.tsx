@@ -79,7 +79,7 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
             {parsed.description && <div className="mb-2 text-xs">{parsed.description}</div>}
             {parsed.steps.map((step: PlanStep, index: number) => (
               <div key={index} className="pl-3 border-l-2 border-primary/30">
-                <div className="font-medium text-xs">Step {index + 1}: {step.title || step}</div>
+                <div className="font-medium text-xs">Step {index + 1}: {step.title || (typeof step === 'string' ? step : JSON.stringify(step))}</div>
                 {step.description && <div className="text-muted-foreground text-[11px] mt-0.5 leading-relaxed">{step.description}</div>}
               </div>
             ))}
