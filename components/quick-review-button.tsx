@@ -34,7 +34,7 @@ export function QuickReviewButton({ onSessionCreated }: QuickReviewButtonProps) 
       // 3. Create the session
       await client.createSession({
         sourceId,
-        title: 'Auto Code Review',
+        title: '[Code Review] Auto Code Review',
         prompt: 'Please perform a comprehensive code review of the repository. Look for bugs, security issues, and opportunities for refactoring. Provide a detailed summary of your findings.',
       });
 
