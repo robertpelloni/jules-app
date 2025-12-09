@@ -187,7 +187,7 @@ function FileDiff({ file }: { file: ParsedDiffFile }) {
             className="overflow-hidden"
           >
             <div className="overflow-x-auto">
-              <pre className="text-xs font-mono leading-relaxed m-0">
+              <pre className="text-xs font-mono leading-relaxed m-0 w-fit min-w-full">
                 {file.lines.map((line, idx) => (
                   <div
                     key={idx}
