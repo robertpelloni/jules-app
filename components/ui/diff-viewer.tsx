@@ -82,17 +82,37 @@ function parseDiff(diff: string): ParsedDiffFile[] {
 
 function FileDiff({ file }: { file: ParsedDiffFile }) {
   const [isExpanded, setIsExpanded] = useState(true);
-  const [copied, setCopied] = useState(false);
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle');
 
   const handleCopy = async () => {
     const diffText = file.lines.map(line => line.content).join('\n');
-    if (navigator?.clipboard?.writeText) {
-      await navigator.clipboard.writeText(diffText);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } else {
-      console.warn('Clipboard API not available');
+    
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(diffText);
+        setCopyState('copied');
+      } else {
+        // Fallback for environments where Clipboard API is not available
+        const textArea = document.createElement('textarea');
+        textArea.value = diffText;
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+          document.execCommand('copy');
+          setCopyState('copied');
+        } catch (err) {
+          console.error('Fallback copy failed', err);
+          setCopyState('error');
+        }
+        document.body.removeChild(textArea);
+      }
+    } catch (err) {
+      console.error('Copy failed', err);
+      setCopyState('error');
     }
+
+    setTimeout(() => setCopyState('idle'), 2000);
   };
 
   const addedCount = file.lines.filter(l => l.type === 'add').length;
@@ -124,8 +144,16 @@ function FileDiff({ file }: { file: ParsedDiffFile }) {
             whileTap={{ scale: 0.95 }}
             className="flex items-center gap-1 px-2 py-1 text-[9px] font-mono uppercase tracking-wider rounded bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 hover:text-white/80 transition-colors"
           >
-            {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-            <span>{copied ? 'Copied' : 'Copy'}</span>
+            {copyState === 'copied' ? (
+              <Check className="h-3 w-3" />
+            ) : copyState === 'error' ? (
+              <span className="text-red-400 font-bold">!</span>
+            ) : (
+              <Copy className="h-3 w-3" />
+            )}
+            <span>
+              {copyState === 'copied' ? 'Copied' : copyState === 'error' ? 'Error' : 'Copy'}
+            </span>
           </motion.button>
         </div>
       </div>
