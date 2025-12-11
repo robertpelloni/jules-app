@@ -10,12 +10,18 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow, isValid, parseISO } from 'date-fns';
-import { Send, Archive, Code, Terminal, ChevronDown, ChevronRight, Play, GitBranch, GitPullRequest } from 'lucide-react';
+import { Send, Archive, Code, Terminal, ChevronDown, ChevronRight, Play, GitBranch, GitPullRequest, MoreVertical } from 'lucide-react';
 import { archiveSession } from '@/lib/archive';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { BashOutput } from '@/components/ui/bash-output';
 import { NewSessionDialog } from './new-session-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface ActivityFeedProps {
   session: Session;
@@ -478,38 +484,6 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
             )}
           </div>
           <div className="flex items-center gap-1 shrink-0">
-            {session.status === 'active' && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleQuickReview}
-                title="Start Code Review"
-                className="h-7 w-7 hover:bg-white/5 text-white/60 hover:text-purple-400"
-                disabled={sending}
-              >
-                <Play className="h-3.5 w-3.5" />
-              </Button>
-            )}
-            {session.status === 'completed' && hasDiffs && (
-              <NewSessionDialog
-                trigger={
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    title="Review & Create PR"
-                    className="h-7 w-7 hover:bg-white/5 text-white/60 hover:text-blue-400"
-                  >
-                    <GitPullRequest className="h-3.5 w-3.5" />
-                  </Button>
-                }
-                initialValues={{
-                  sourceId: session.sourceId ? `sources/github/${session.sourceId}` : undefined,
-                  title: outputBranch ? `Review: ${outputBranch}` : 'PR Review',
-                  prompt: 'Review the changes in this branch. Verify they meet the requirements, check for bugs, and draft a Pull Request description.',
-                  startingBranch: outputBranch || undefined
-                }}
-              />
-            )}
             {hasDiffs && (
               <Button
                 variant="ghost"
@@ -521,15 +495,42 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
                 <Code className="h-3.5 w-3.5" />
               </Button>
             )}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleArchive}
-              title="Archive session"
-              className="h-7 w-7 hover:bg-white/5 text-white/60"
-            >
-              <Archive className="h-3.5 w-3.5" />
-            </Button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-white/5 text-white/60">
+                  <MoreVertical className="h-3.5 w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48 bg-zinc-950 border-white/10 text-white/80">
+                {session.status === 'active' && (
+                  <DropdownMenuItem onClick={handleQuickReview} disabled={sending} className="focus:bg-white/10 focus:text-white text-xs cursor-pointer">
+                    <Play className="mr-2 h-3.5 w-3.5" />
+                    <span>Start Code Review</span>
+                  </DropdownMenuItem>
+                )}
+                {session.status === 'completed' && hasDiffs && (
+                  <NewSessionDialog
+                    trigger={
+                      <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="focus:bg-white/10 focus:text-white text-xs cursor-pointer">
+                        <GitPullRequest className="mr-2 h-3.5 w-3.5" />
+                        <span>Review & Create PR</span>
+                      </DropdownMenuItem>
+                    }
+                    initialValues={{
+                      sourceId: session.sourceId ? `sources/github/${session.sourceId}` : undefined,
+                      title: outputBranch ? `Review: ${outputBranch}` : 'PR Review',
+                      prompt: 'Review the changes in this branch. Verify they meet the requirements, check for bugs, and draft a Pull Request description.',
+                      startingBranch: outputBranch || undefined
+                    }}
+                  />
+                )}
+                <DropdownMenuItem onClick={handleArchive} className="focus:bg-white/10 focus:text-white text-xs cursor-pointer text-red-400 focus:text-red-400">
+                  <Archive className="mr-2 h-3.5 w-3.5" />
+                  <span>Archive Session</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
