@@ -544,20 +544,50 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
                   </>
                 )}
                 {session.status === 'completed' && hasDiffs && (
-                  <NewSessionDialog
-                    trigger={
-                      <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="focus:bg-white/10 focus:text-white text-xs cursor-pointer">
-                        <GitPullRequest className="mr-2 h-3.5 w-3.5" />
-                        <span>Review & Create PR</span>
-                      </DropdownMenuItem>
-                    }
-                    initialValues={{
-                      sourceId: session.sourceId ? `sources/github/${session.sourceId}` : undefined,
-                      title: outputBranch ? `Review: ${outputBranch}` : 'PR Review',
-                      prompt: 'Review the changes in this branch. Verify they meet the requirements, check for bugs, and draft a Pull Request description.',
-                      startingBranch: outputBranch || undefined
-                    }}
-                  />
+                  <>
+                    <NewSessionDialog
+                      trigger={
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="focus:bg-white/10 focus:text-white text-xs cursor-pointer">
+                          <CloudUpload className="mr-2 h-3.5 w-3.5" />
+                          <span>Publish Branch</span>
+                        </DropdownMenuItem>
+                      }
+                      initialValues={{
+                        sourceId: session.sourceId ? `sources/github/${session.sourceId}` : undefined,
+                        title: outputBranch ? `Publish: ${outputBranch}` : 'Publish Branch',
+                        prompt: 'Please push the current branch to the remote repository.',
+                        startingBranch: outputBranch || undefined
+                      }}
+                    />
+                    <NewSessionDialog
+                      trigger={
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="focus:bg-white/10 focus:text-white text-xs cursor-pointer">
+                          <GitPullRequest className="mr-2 h-3.5 w-3.5" />
+                          <span>Create PR</span>
+                        </DropdownMenuItem>
+                      }
+                      initialValues={{
+                        sourceId: session.sourceId ? `sources/github/${session.sourceId}` : undefined,
+                        title: outputBranch ? `PR: ${outputBranch}` : 'Create PR',
+                        prompt: 'Please create a pull request for the current branch.',
+                        startingBranch: outputBranch || undefined
+                      }}
+                    />
+                    <NewSessionDialog
+                      trigger={
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="focus:bg-white/10 focus:text-white text-xs cursor-pointer">
+                          <Play className="mr-2 h-3.5 w-3.5" />
+                          <span>Review & Create PR</span>
+                        </DropdownMenuItem>
+                      }
+                      initialValues={{
+                        sourceId: session.sourceId ? `sources/github/${session.sourceId}` : undefined,
+                        title: outputBranch ? `Review: ${outputBranch}` : 'PR Review',
+                        prompt: 'Review the changes in this branch. Verify they meet the requirements, check for bugs, and draft a Pull Request description.',
+                        startingBranch: outputBranch || undefined
+                      }}
+                    />
+                  </>
                 )}
                 <DropdownMenuItem onClick={handleArchive} className="focus:bg-white/10 focus:text-white text-xs cursor-pointer text-red-400 focus:text-red-400">
                   <Archive className="mr-2 h-3.5 w-3.5" />
