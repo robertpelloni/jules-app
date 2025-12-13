@@ -42,35 +42,43 @@ export function IntegratedTerminal({
       const { io } = await import('socket.io-client')
       await import('@xterm/xterm/css/xterm.css')
 
-      // Initialize xterm.js
+      // Initialize xterm.js with Ubuntu theme
       terminal = new Terminal({
         cursorBlink: true,
         fontSize: 14,
-        fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+        fontFamily: '"Ubuntu Mono", "Courier New", Courier, monospace',
         theme: {
-          background: '#1e1e1e',
-          foreground: '#d4d4d4',
+          // Ubuntu's signature purple background
+          background: '#300a24',
+          foreground: '#ffffff',
           cursor: '#ffffff',
-          selection: '#264f78',
-          black: '#000000',
-          red: '#cd3131',
-          green: '#0dbc79',
-          yellow: '#e5e510',
-          blue: '#2472c8',
-          magenta: '#bc3fbc',
-          cyan: '#11a8cd',
-          white: '#e5e5e5',
-          brightBlack: '#666666',
-          brightRed: '#f14c4c',
-          brightGreen: '#23d18b',
-          brightYellow: '#f5f543',
-          brightBlue: '#3b8eea',
-          brightMagenta: '#d670d6',
-          brightCyan: '#29b8db',
-          brightWhite: '#e5e5e5'
+          cursorAccent: '#300a24',
+          selection: 'rgba(255, 255, 255, 0.3)',
+
+          // Ubuntu ANSI color palette
+          black: '#2e3436',
+          red: '#cc0000',
+          green: '#4e9a06',
+          yellow: '#c4a000',
+          blue: '#3465a4',
+          magenta: '#75507b',
+          cyan: '#06989a',
+          white: '#d3d7cf',
+
+          // Bright colors
+          brightBlack: '#555753',
+          brightRed: '#ef2929',
+          brightGreen: '#8ae234',
+          brightYellow: '#fce94f',
+          brightBlue: '#729fcf',
+          brightMagenta: '#ad7fa8',
+          brightCyan: '#34e2e2',
+          brightWhite: '#eeeeec'
         },
         scrollback: 1000,
-        allowProposedApi: true
+        allowProposedApi: true,
+        cursorStyle: 'block',
+        cursorInactiveStyle: 'outline'
       })
 
       fitAddon = new FitAddon()
@@ -165,14 +173,14 @@ export function IntegratedTerminal({
 
   if (!isMounted) {
     return (
-      <div className={`relative ${className} flex items-center justify-center bg-gray-900`}>
+      <div className={`relative ${className} flex items-center justify-center bg-[#300a24]`}>
         <div className="text-gray-400">Loading terminal...</div>
       </div>
     )
   }
 
   return (
-    <div className={`relative ${className} bg-[#1e1e1e]`}>
+    <div className={`relative ${className} bg-[#300a24]`}>
       <div className="absolute top-2 right-2 z-10">
         <div
           className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}

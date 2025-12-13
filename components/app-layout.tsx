@@ -144,7 +144,7 @@ export function AppLayout() {
               <Button
                 variant="ghost"
                 size="sm"
-                className={`h-8 px-3 hover:bg-white/5 ${terminalOpen ? 'text-green-500' : 'text-white/80'}`}
+                className={`h-8 px-3 hover:bg-white/5 ${terminalOpen ? 'text-orange-500' : 'text-white/80'}`}
                 onClick={handleToggleTerminal}
                 title="Toggle Terminal (Ctrl+`)"
               >
