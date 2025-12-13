@@ -1,16 +1,16 @@
-FROM node:20-alpine
+FROM nvcr.io/nvidia/pytorch:25.11-py3
 
-# Install bash, git, and other common dev tools
-RUN apk add --no-cache \
+# Install Node.js 20 and common tools
+# The base image is Ubuntu-based, so we use apt-get
+RUN apt-get update && apt-get install -y curl build-essential \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
+    && apt-get install -y \
     bash \
     git \
-    curl \
     vim \
     nano \
-    python3 \
-    py3-pip \
-    build-base \
-    linux-headers
+    && rm -rf /var/lib/apt/lists/*
 
 # Create app directory
 WORKDIR /app
