@@ -13,10 +13,12 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Menu, LogOut, Settings, BarChart3, MessageSquare, ChevronLeft, ChevronRight, Terminal as TerminalIcon } from 'lucide-react';
 import { TerminalPanel } from './terminal-panel';
+import { useTerminalAvailable } from '@/hooks/use-terminal-available';
 
 
 export function AppLayout() {
   const { clearApiKey } = useJules();
+  const { isAvailable: terminalAvailable } = useTerminalAvailable();
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [view, setView] = useState<'sessions' | 'analytics'>('sessions');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -140,7 +142,7 @@ export function AppLayout() {
                 <span className="text-[10px] font-mono uppercase tracking-wider">Analytics</span>
               </Button>
             )}
-            {selectedSession && (
+            {selectedSession && terminalAvailable && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -280,7 +282,7 @@ export function AppLayout() {
       </div>
 
       {/* Terminal Panel */}
-      {selectedSession && (
+      {selectedSession && terminalAvailable && (
         <TerminalPanel
           sessionId={selectedSession.id}
           repositoryPath=""

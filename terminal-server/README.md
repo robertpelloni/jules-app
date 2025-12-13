@@ -23,11 +23,22 @@ npm install
 
 ## Usage
 
-### Development
+### Standalone (Development)
+
+Run the terminal server independently:
 
 ```bash
-npm run dev
+npm install
+npm start
 ```
+
+The server will start on `http://localhost:8080`. The Jules UI will automatically detect and connect to it.
+
+**Note:** When running standalone, create a `workspace` directory in the parent folder or set `WORKSPACE_DIR` environment variable.
+
+### With Docker Compose (Recommended)
+
+See the main project README for full Docker Compose setup.
 
 ### Production
 

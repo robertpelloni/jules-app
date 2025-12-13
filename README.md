@@ -23,7 +23,9 @@
 
 **Prerequisites:** Node.js 18+, Jules API key from [jules.google.com](https://jules.google.com), and a connected GitHub repository.
 
-### Standard Mode
+### Option 1: Standalone Mode (No Terminal)
+
+Run just the Next.js app without the integrated terminal feature:
 
 ```bash
 # Clone and install
@@ -35,7 +37,11 @@ npm install
 npm run dev
 ```
 
-### With Integrated Terminal (Docker Compose)
+Open [http://localhost:3000](http://localhost:3000) - the Terminal button will be hidden.
+
+### Option 2: With Docker Compose (Recommended)
+
+Run both the Next.js app AND the terminal server together:
 
 ```bash
 # Clone and install
@@ -45,13 +51,30 @@ cd jules-ui
 # Configure your repository path
 echo "REPO_PATH=/path/to/your/repo" > .env.local
 
-# Start all services
+# Start all services (frontend + terminal server)
 docker-compose up
 ```
 
-Open [http://localhost:3000](http://localhost:3000) and enter your Jules API key when prompted. Your key is stored securely in browser localStorage.
+Open [http://localhost:3000](http://localhost:3000) - the Terminal button will appear when available.
 
-**See [docs/TERMINAL.md](docs/TERMINAL.md) for terminal setup and usage.**
+### Option 3: Run Services Independently
+
+Run the terminal server and Next.js app separately (useful for development):
+
+```bash
+# Terminal 1: Start the terminal server
+cd terminal-server
+npm install
+npm start
+
+# Terminal 2: Start the Next.js app
+npm install
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) - the Terminal button will appear automatically.
+
+**Note:** Your Jules API key is stored securely in browser localStorage. See [docs/TERMINAL.md](docs/TERMINAL.md) for detailed terminal setup and usage.
 
 ## 📸 More Screenshots
 
