@@ -42,20 +42,21 @@ export function IntegratedTerminal({
       const { io } = await import('socket.io-client')
       await import('@xterm/xterm/css/xterm.css')
 
-      // Initialize xterm.js with Ubuntu theme
+      // Initialize xterm.js with dark theme blended for Jules app
       terminal = new Terminal({
         cursorBlink: true,
-        fontSize: 14,
+        fontSize: 12,
         fontFamily: '"Ubuntu Mono", "Courier New", Courier, monospace',
+        lineHeight: 1.2,
         theme: {
-          // Ubuntu's signature purple background
-          background: '#300a24',
-          foreground: '#ffffff',
+          // Dark background to match Jules app (zinc-950 with subtle purple tint)
+          background: '#0a0a0f',
+          foreground: '#e5e5e5',
           cursor: '#ffffff',
-          cursorAccent: '#300a24',
-          selection: 'rgba(255, 255, 255, 0.3)',
+          cursorAccent: '#0a0a0f',
+          selection: 'rgba(255, 255, 255, 0.2)',
 
-          // Ubuntu ANSI color palette
+          // Ubuntu ANSI color palette (official colors)
           black: '#2e3436',
           red: '#cc0000',
           green: '#4e9a06',
@@ -173,14 +174,14 @@ export function IntegratedTerminal({
 
   if (!isMounted) {
     return (
-      <div className={`relative ${className} flex items-center justify-center bg-[#300a24]`}>
-        <div className="text-gray-400">Loading terminal...</div>
+      <div className={`relative ${className} flex items-center justify-center bg-[#0a0a0f]`}>
+        <div className="text-white/40 text-xs font-mono">Loading terminal...</div>
       </div>
     )
   }
 
   return (
-    <div className={`relative ${className} bg-[#300a24]`}>
+    <div className={`relative ${className} bg-[#0a0a0f]`}>
       <div className="absolute top-2 right-2 z-10">
         <div
           className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}

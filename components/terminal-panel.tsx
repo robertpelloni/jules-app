@@ -101,18 +101,18 @@ export function TerminalPanel({
     >
       {/* Resize Handle */}
       <div
-        className="h-1 cursor-row-resize bg-transparent hover:bg-orange-500/50 transition-colors"
+        className="h-1 cursor-row-resize bg-transparent hover:bg-white/[0.12] transition-colors"
         onMouseDown={startResizing}
       />
 
       {/* Terminal Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-white/[0.08] bg-[#2c0922]">
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-white/[0.08] bg-zinc-950/95">
         <div className="flex items-center gap-2">
-          <Terminal className="h-3.5 w-3.5 text-orange-500" />
-          <h3 className="text-[10px] font-bold text-white/80 uppercase tracking-widest">
+          <Terminal className="h-3 w-3 text-white/60" />
+          <h3 className="text-[10px] font-bold text-white/40 uppercase tracking-widest">
             Terminal
           </h3>
-          <span className="text-[9px] text-orange-400/70 font-mono">
+          <span className="text-[9px] text-white/30 font-mono">
             ~/workspace
           </span>
         </div>
@@ -121,7 +121,7 @@ export function TerminalPanel({
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-6 hover:bg-orange-500/20 text-white/80 hover:text-white"
+            className="h-6 w-6 hover:bg-white/5 text-white/60 hover:text-white/80"
             onClick={() => setHeight(200)}
             title="Minimize"
           >
@@ -130,7 +130,7 @@ export function TerminalPanel({
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-6 hover:bg-orange-500/20 text-white/80 hover:text-white"
+            className="h-6 w-6 hover:bg-white/5 text-white/60 hover:text-white/80"
             onClick={handleMaximize}
             title={isMaximized ? 'Restore' : 'Maximize'}
           >
@@ -143,7 +143,7 @@ export function TerminalPanel({
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-6 hover:bg-orange-500/20 text-white/80 hover:text-white"
+            className="h-6 w-6 hover:bg-white/5 text-white/60 hover:text-white/80"
             onClick={onToggle}
             title="Close Terminal (Ctrl+`)"
           >
