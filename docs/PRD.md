@@ -99,6 +99,11 @@ A powerful, self-hosted web application for managing Jules AI agent sessions wit
   - Semantic commit message generation.
 
 #### Advanced Features (P2)
+- **SESSION-009**: Kanban Board View _(New)_
+  - Visualize sessions as cards on a board, grouped by status (Active, Paused, Completed).
+  - Drag-and-drop interface for managing session lifecycle.
+  - Modern, fluid animations inspired by Vibe Kanban.
+
 - **ACTIVITY-003**: Rich Message Formatting ([#15](https://github.com/sbhavani/jules-app/issues/15)) 🟡 _In Progress_
   - ✅ Markdown rendering with ReactMarkdown
   - ✅ Syntax highlighting for code blocks
@@ -455,14 +460,15 @@ All features are tracked as GitHub issues. Use this table for quick reference:
 | [#28](https://github.com/sbhavani/jules-app/issues/28) | ORCH-001 | "The Architect" Plan Review | 🟡 Open | Feature |
 | [#29](https://github.com/sbhavani/jules-app/issues/29) | ORCH-002 | "The Auditor" Security Analysis | 🟡 Open | Feature |
 | [#30](https://github.com/sbhavani/jules-app/issues/30) | ORCH-003 | "The Librarian" Auto-Docs | 🟡 Open | Feature |
+| _New_ | SESSION-009 | Kanban Board View | 🟡 Open | Feature |
 
 **Summary Statistics:**
-- ✅ Closed: 9 issues (33%)
-- 🟡 Open: 18 issues (67%)
+- ✅ Closed: 9 issues (32%)
+- 🟡 Open: 19 issues (68%)
 - P0 Critical: 6 issues (4 closed, 2 open)
 - P1 Important: 6 issues (4 closed, 2 open)
 - P2 Nice to Have: 4 issues (1 closed, 3 open)
-- Feature requests: 7 issues (0 closed, 7 open)
+- Feature requests: 8 issues (0 closed, 8 open)
 
 ### Technology Evaluations
 
