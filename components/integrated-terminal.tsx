@@ -180,14 +180,17 @@ export function IntegratedTerminal({
 
     // Cleanup
     return () => {
-      if (resizeObserver && terminalRef.current) {
+      const currentSocket = socketRef.current;
+      const currentXterm = xtermRef.current;
+
+      if (resizeObserver && terminalRef.current) { // eslint-disable-line react-hooks/exhaustive-deps
         resizeObserver.disconnect()
       }
-      if (socketRef.current) {
-        socketRef.current.disconnect()
+      if (currentSocket) {
+        currentSocket.disconnect()
       }
-      if (xtermRef.current) {
-        xtermRef.current.dispose()
+      if (currentXterm) {
+        currentXterm.dispose()
       }
       // Note: window event listener cleanup is handled inside initTerminal
     }

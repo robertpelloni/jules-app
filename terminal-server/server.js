@@ -1,8 +1,8 @@
-const http = require('http');
-const { Server } = require('socket.io');
-const pty = require('node-pty');
-const path = require('path');
-const fs = require('fs');
+import http from 'http';
+import { Server } from 'socket.io';
+import pty from 'node-pty';
+import path from 'path';
+import fs from 'fs';
 
 const server = http.createServer();
 const io = new Server(server, {

@@ -18,17 +18,15 @@ export function TerminalPanel({
   isOpen,
   onToggle
 }: TerminalPanelProps) {
-  const [height, setHeight] = useState(400)
-  const [isResizing, setIsResizing] = useState(false)
-  const [isMaximized, setIsMaximized] = useState(false)
-
-  // Load saved height from localStorage
-  useEffect(() => {
-    const savedHeight = localStorage.getItem('terminal-panel-height')
-    if (savedHeight) {
-      setHeight(parseInt(savedHeight, 10))
+  const [height, setHeight] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const savedHeight = localStorage.getItem('terminal-panel-height');
+      return savedHeight ? parseInt(savedHeight, 10) : 400; // Default to 400 if not found
     }
-  }, [])
+    return 400; // Default for SSR
+  });
+  const [isResizing, setIsResizing] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(false);
 
   // Save height to localStorage
   useEffect(() => {
