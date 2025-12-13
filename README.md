@@ -13,15 +13,17 @@
 
 - 🔄 **Real-Time Updates** - Live activity feed with auto-polling
 - 📊 **Code Diff Viewer** - Visualize git patches and changes instantly
-- 💻 **Terminal Inspector** - Detailed bash output analysis (execution coming soon)
+- 💻 **Integrated Terminal** - Full web-based terminal with local machine access
 - 📈 **Analytics Dashboard** - Track session metrics and trends
 - 🔍 **Smart Search** - Find sessions by repository or title
 - 📱 **Mobile-First** - Fully responsive design
-- 🔒 **Secure** - API keys stored locally in browser
+- 🔒 **Secure** - Container isolation and API keys stored locally
 
 ## 🚀 Quick Start
 
 **Prerequisites:** Node.js 18+, Jules API key from [jules.google.com](https://jules.google.com), and a connected GitHub repository.
+
+### Standard Mode
 
 ```bash
 # Clone and install
@@ -33,7 +35,23 @@ npm install
 npm run dev
 ```
 
+### With Integrated Terminal (Docker Compose)
+
+```bash
+# Clone and install
+git clone <your-repo-url>
+cd jules-ui
+
+# Configure your repository path
+echo "REPO_PATH=/path/to/your/repo" > .env.local
+
+# Start all services
+docker-compose up
+```
+
 Open [http://localhost:3000](http://localhost:3000) and enter your Jules API key when prompted. Your key is stored securely in browser localStorage.
+
+**See [docs/TERMINAL.md](docs/TERMINAL.md) for terminal setup and usage.**
 
 ## 📸 More Screenshots
 
@@ -42,7 +60,11 @@ Open [http://localhost:3000](http://localhost:3000) and enter your Jules API key
 
 ## 🛠️ Tech Stack
 
-Built with [Next.js 16](https://nextjs.org/), [TypeScript](https://www.typescriptlang.org/), [Tailwind CSS](https://tailwindcss.com/), and [shadcn/ui](https://ui.shadcn.com/).
+**Frontend:** [Next.js 16](https://nextjs.org/), [TypeScript](https://www.typescriptlang.org/), [Tailwind CSS](https://tailwindcss.com/), [shadcn/ui](https://ui.shadcn.com/), [xterm.js](https://xtermjs.org/)
+
+**Terminal Server:** [Node.js](https://nodejs.org/), [Socket.io](https://socket.io/), [node-pty](https://github.com/microsoft/node-pty)
+
+**Infrastructure:** [Docker](https://www.docker.com/), [Docker Compose](https://docs.docker.com/compose/)
 
 ## 🔧 Development
 

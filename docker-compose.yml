@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  # Jules Frontend (Next.js)
+  jules-ui:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_TERMINAL_WS_URL=ws://localhost:8080
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - terminal-server
+    networks:
+      - jules-network
+
+  # Terminal Server (Node.js + node-pty + Socket.io)
+  terminal-server:
+    build:
+      context: ./terminal-server
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=development
+      - ALLOWED_ORIGINS=http://localhost:3000
+    volumes:
+      # Mount user's repository into container
+      - ${REPO_PATH:-./workspace}:/workspace:rw
+      # Preserve command history
+      - terminal-history:/root/.bash_history
+      # Mount git config for git commands (conditional, comment out if not needed)
+      # - ~/.gitconfig:/root/.gitconfig:ro
+      # - ~/.ssh:/root/.ssh:ro
+    networks:
+      - jules-network
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+
+volumes:
+  terminal-history:
+
+networks:
+  jules-network:
+    driver: bridge
