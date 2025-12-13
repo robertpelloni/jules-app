@@ -6,6 +6,7 @@ import { JulesClient } from './client';
 interface JulesContextType {
   client: JulesClient | null;
   apiKey: string | null;
+  isLoading: boolean;
   setApiKey: (key: string) => void;
   clearApiKey: () => void;
 }
@@ -15,6 +16,7 @@ const JulesContext = createContext<JulesContextType | undefined>(undefined);
 export function JulesProvider({ children }: { children: ReactNode }) {
   const [apiKey, setApiKeyState] = useState<string | null>(null);
   const [client, setClient] = useState<JulesClient | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const stored = localStorage.getItem('jules-api-key');
@@ -23,6 +25,7 @@ export function JulesProvider({ children }: { children: ReactNode }) {
       setApiKeyState(stored);
       setClient(new JulesClient(stored));
     }
+    setIsLoading(false);
   }, []);
 
   const setApiKey = (key: string) => {
@@ -38,7 +41,7 @@ export function JulesProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <JulesContext.Provider value={{ client, apiKey, setApiKey, clearApiKey }}>
+    <JulesContext.Provider value={{ client, apiKey, isLoading, setApiKey, clearApiKey }}>
       {children}
     </JulesContext.Provider>
   );
