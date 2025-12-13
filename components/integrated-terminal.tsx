@@ -109,6 +109,17 @@ export function IntegratedTerminal({
         terminal.write('\r\n\x1b[32m*** Connected to terminal ***\x1b[0m\r\n\r\n')
       })
 
+      socket.on('connect_error', (error) => {
+        console.log('Failed to connect to terminal server:', error.message)
+        setIsConnected(false)
+        terminal.write('\r\n\x1b[33m*** Terminal Server Not Available ***\x1b[0m\r\n')
+        terminal.write('\x1b[90mTo enable terminal:\x1b[0m\r\n')
+        terminal.write('\x1b[90m  1. Docker Compose: docker-compose up\x1b[0m\r\n')
+        terminal.write('\x1b[90m  2. Standalone: cd terminal-server && npm start\x1b[0m\r\n')
+        terminal.write('\x1b[90m\x1b[0m\r\n')
+        terminal.write('\x1b[90mSee README.md for details.\x1b[0m\r\n')
+      })
+
       socket.on('disconnect', () => {
         console.log('Disconnected from terminal server')
         setIsConnected(false)
