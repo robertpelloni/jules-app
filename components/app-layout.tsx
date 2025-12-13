@@ -142,7 +142,7 @@ export function AppLayout() {
                 <span className="text-[10px] font-mono uppercase tracking-wider">Analytics</span>
               </Button>
             )}
-            {selectedSession && terminalAvailable && (
+            {terminalAvailable && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -282,9 +282,9 @@ export function AppLayout() {
       </div>
 
       {/* Terminal Panel */}
-      {selectedSession && terminalAvailable && (
+      {terminalAvailable && (
         <TerminalPanel
-          sessionId={selectedSession.id}
+          sessionId={selectedSession?.id || 'global'}
           repositoryPath=""
           isOpen={terminalOpen}
           onToggle={handleToggleTerminal}
