@@ -372,3 +372,73 @@ docker volume inspect jules-app_terminal-history
 - [ ] Custom themes and color schemes
 - [ ] File upload/download via drag-and-drop
 - [ ] Split-pane terminal support
+
+## 🤝 The "Handover" Protocol: From Jules to Terminal
+
+This workflow maximizes efficiency by treating **Jules as your Lead Engineer** (Planning & Architecture) and **Gemini as your Pair Programmer** (Execution & Fixes).
+
+### Phase 1: Planning (Jules Web UI)
+
+Ask Jules to analyze the backlog and create a plan.
+
+**User:** "Look at the backlog. Find the top 3 'Dataset' bugs. For the hardest one, create a reproduction plan and a draft fix."
+
+**Jules:**
+1. **Plan:** "Issue #402 (race condition in `indexed_dataset`)."
+2. **Repro Code:** Provides a Python script block.
+3. **Draft Fix:** Suggests a patch for `dataset.py`.
+
+### Phase 2: Context Sync (Terminal)
+
+Create a temporary context file in your terminal to hold Jules' instructions. This acts as the source of truth for the Gemini CLI.
+
+```bash
+nano task_context.md
+# Paste Jules' entire plan (Repro script + Draft logic) here
+```
+
+### Phase 3: Execution (Terminal + Gemini)
+
+**1. Extract & Run Repro:**
+Use Gemini to parse the context file and extract the code.
+
+```bash
+# Extract the script
+cat task_context.md | gemini "Extract the python reproduction script from these notes and save it to repro_402.py" > repro_402.py
+
+# Run it
+python3 repro_402.py
+```
+
+**2. Apply Logic:**
+Pipe the context and the target file to Gemini to apply the fix.
+
+```bash
+# Apply the fix
+cat task_context.md megatron/data/indexed_dataset.py | gemini "Apply the fix suggested in the task notes to the python file. Output only the full python code." > megatron/data/indexed_dataset.py
+```
+
+### Phase 4: Verification (Terminal)
+
+Run the repro script again.
+
+```bash
+python3 repro_402.py
+```
+
+*   **Pass:** Commit and push.
+*   **Fail:** Pipe the error back to Gemini:
+    ```bash
+    python3 repro_402.py 2>&1 | gemini "The fix didn't work. Here is the error. Fix the code."
+    ```
+
+### Best Practice: Jules-Created Branches
+
+If Jules has GitHub access:
+1.  Ask Jules to **create a branch** (e.g., `fix/issue-402`) and **commit the failing test**.
+2.  In your terminal:
+    ```bash
+    git fetch origin
+    git checkout fix/issue-402
+    ```
+    Now you have the repro file immediately—no copy-pasting required.
