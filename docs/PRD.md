@@ -83,17 +83,17 @@ A powerful, self-hosted web application for managing Jules AI agent sessions wit
   - ✅ Average session duration
 
 #### AI Orchestration (P2 - Future)
-- **ORCH-001**: "The Architect" - Pre-implementation Plan Review _(New)_
+- **ORCH-001**: "The Architect" - Pre-implementation Plan Review ([#28](https://github.com/sbhavani/jules-app/issues/28)) 🟡 _Open_
   - Leverage a high-reasoning model (e.g., Gemini 1.5 Pro) to critique proposed plans.
   - Checks against architectural constraints and best practices before code generation.
   - Reduces wasted iterations by catching structural flaws early.
 
-- **ORCH-002**: "The Auditor" - Automated Security & Logic Analysis _(New)_
+- **ORCH-002**: "The Auditor" - Automated Security & Logic Analysis ([#29](https://github.com/sbhavani/jules-app/issues/29)) 🟡 _Open_
   - specific post-generation analysis workflow using security-focused prompts.
   - Scans generated diffs for common vulnerabilities (OWASP) and edge cases.
   - Auto-comments on PRs with security warnings.
 
-- **ORCH-003**: "The Librarian" - Dynamic Context & Auto-Documentation _(New)_
+- **ORCH-003**: "The Librarian" - Dynamic Context & Auto-Documentation ([#30](https://github.com/sbhavani/jules-app/issues/30)) 🟡 _Open_
   - Use large-context models to dynamically select the most relevant files (Smart RAG).
   - Automatically generates and updates `README.md`, API docs, and inline comments based on changes.
   - Semantic commit message generation.
@@ -452,9 +452,9 @@ All features are tracked as GitHub issues. Use this table for quick reference:
 | [#22](https://github.com/sbhavani/jules-app/issues/22) | SESSION-007 | Plan Approval Configuration | 🟡 Open | Feature |
 | [#23](https://github.com/sbhavani/jules-app/issues/23) | NOTIF-002 | Native Browser Notifications | 🟡 Open | Feature |
 | [#24](https://github.com/sbhavani/jules-app/issues/24) | SESSION-008 | Post-Session PR Review Workflow | 🟡 Open | Feature |
-| _New_ | ORCH-001 | "The Architect" Plan Review | 🟡 Open | Feature |
-| _New_ | ORCH-002 | "The Auditor" Security Analysis | 🟡 Open | Feature |
-| _New_ | ORCH-003 | "The Librarian" Auto-Docs | 🟡 Open | Feature |
+| [#28](https://github.com/sbhavani/jules-app/issues/28) | ORCH-001 | "The Architect" Plan Review | 🟡 Open | Feature |
+| [#29](https://github.com/sbhavani/jules-app/issues/29) | ORCH-002 | "The Auditor" Security Analysis | 🟡 Open | Feature |
+| [#30](https://github.com/sbhavani/jules-app/issues/30) | ORCH-003 | "The Librarian" Auto-Docs | 🟡 Open | Feature |
 
 **Summary Statistics:**
 - ✅ Closed: 9 issues (33%)
