@@ -82,12 +82,12 @@ A powerful, self-hosted web application for managing Jules AI agent sessions wit
   - ✅ Success rate metrics
   - ✅ Average session duration
 
-- **ANALYTICS-002**: Code Impact Metrics _(New)_
+- **ANALYTICS-002**: Code Impact Metrics ([#32](https://github.com/sbhavani/jules-app/issues/32)) 🟡 _Open_
   - Analyze activity diffs to calculate lines added/removed/modified.
   - Visualize "Code Churn" per session and repository.
   - Track complexity trends over time.
 
-- **ANALYTICS-004**: Session Health Monitoring _(New)_
+- **ANALYTICS-004**: Session Health Monitoring ([#33](https://github.com/sbhavani/jules-app/issues/33)) 🟡 _Open_
   - Detect "stalled" sessions (active but no recent updates).
   - Calculate session health scores based on error rate vs. progress.
   - Alert users to interventions needed for stuck agents.
@@ -471,8 +471,8 @@ All features are tracked as GitHub issues. Use this table for quick reference:
 | [#29](https://github.com/sbhavani/jules-app/issues/29) | ORCH-002 | "The Auditor" Security Analysis | 🟡 Open | Feature |
 | [#30](https://github.com/sbhavani/jules-app/issues/30) | ORCH-003 | "The Librarian" Auto-Docs | 🟡 Open | Feature |
 | [#31](https://github.com/sbhavani/jules-app/issues/31) | SESSION-009 | Kanban Board View | 🟡 Open | Feature |
-| _New_ | ANALYTICS-002 | Code Impact Metrics | 🟡 Open | Feature |
-| _New_ | ANALYTICS-004 | Session Health Monitoring | 🟡 Open | Feature |
+| [#32](https://github.com/sbhavani/jules-app/issues/32) | ANALYTICS-002 | Code Impact Metrics | 🟡 Open | Feature |
+| [#33](https://github.com/sbhavani/jules-app/issues/33) | ANALYTICS-004 | Session Health Monitoring | 🟡 Open | Feature |
 
 **Summary Statistics:**
 - ✅ Closed: 9 issues (30%)
