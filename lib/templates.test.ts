@@ -70,11 +70,12 @@ describe('Templates Utility', () => {
   describe('getTemplates', () => {
     it('should return prebuilt templates when localStorage is empty', () => {
       const templates = getTemplates();
-      expect(templates.length).toBeGreaterThan(3);
+      expect(templates.length).toBeGreaterThan(4);
       expect(templates.some(t => t.id === 'bolt-performance-agent')).toBe(true);
       expect(templates.some(t => t.id === 'palette-ux-agent')).toBe(true);
       expect(templates.some(t => t.id === 'sentinel-security-agent')).toBe(true);
       expect(templates.some(t => t.id === 'guardian-test-agent')).toBe(true);
+      expect(templates.some(t => t.id === 'echo-reproduction-agent')).toBe(true);
     });
 
     it('should return parsed templates sorted by updatedAt desc', () => {
@@ -107,14 +108,15 @@ describe('Templates Utility', () => {
       expect(result.updatedAt).toBeDefined();
 
       const stored = JSON.parse(localStorageMock.getItem(TEMPLATES_KEY)!);
-      // Should have at least 5: Bolt + Palette + Sentinel + Guardian + New
-      expect(stored.length).toBeGreaterThan(4);
+      // Should have at least 6: Bolt + Palette + Sentinel + Guardian + Echo + New
+      expect(stored.length).toBeGreaterThan(5);
       expect(stored).toEqual(expect.arrayContaining([
         expect.objectContaining({ id: 'test-uuid' }),
         expect.objectContaining({ id: 'bolt-performance-agent' }),
         expect.objectContaining({ id: 'palette-ux-agent' }),
         expect.objectContaining({ id: 'sentinel-security-agent' }),
-        expect.objectContaining({ id: 'guardian-test-agent' })
+        expect.objectContaining({ id: 'guardian-test-agent' }),
+        expect.objectContaining({ id: 'echo-reproduction-agent' })
       ]));
     });
 
