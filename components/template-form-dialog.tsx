@@ -28,7 +28,8 @@ export function TemplateFormDialog({ open, onOpenChange, template, onSave, initi
     name: '',
     description: '',
     prompt: '',
-    title: ''
+    title: '',
+    tags: '' // Storing as string for input, will parse to array on save
   });
 
   useEffect(() => {
@@ -39,17 +40,19 @@ export function TemplateFormDialog({ open, onOpenChange, template, onSave, initi
           name: template.name,
           description: template.description,
           prompt: template.prompt,
-          title: template.title || ''
+          title: template.title || '',
+          tags: template.tags?.join(', ') || '' // Convert array to comma-separated string
         });
       } else if (initialValues) {
         setFormData({
           name: initialValues.name || '',
           description: initialValues.description || '',
           prompt: initialValues.prompt || '',
-          title: initialValues.title || ''
+          title: initialValues.title || '',
+          tags: initialValues.tags?.join(', ') || ''
         });
       } else {
-        setFormData({ name: '', description: '', prompt: '', title: '' });
+        setFormData({ name: '', description: '', prompt: '', title: '', tags: '' });
       }
     }
   }, [open, template, initialValues]);
@@ -57,9 +60,14 @@ export function TemplateFormDialog({ open, onOpenChange, template, onSave, initi
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const parsedTags = formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag !== '');
       saveTemplate({
         id: template?.id,
-        ...formData
+        name: formData.name,
+        description: formData.description,
+        prompt: formData.prompt,
+        title: formData.title,
+        tags: parsedTags,
       });
       onSave();
       onOpenChange(false);
@@ -110,6 +118,17 @@ export function TemplateFormDialog({ open, onOpenChange, template, onSave, initi
               value={formData.title}
               onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
               placeholder="e.g., Refactor Component"
+              className="h-9 text-xs"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="tags" className="text-xs font-semibold">Tags (comma-separated, optional)</Label>
+            <Input
+              id="tags"
+              value={formData.tags}
+              onChange={(e) => setFormData(prev => ({ ...prev, tags: e.target.value }))}
+              placeholder="e.g., frontend, refactor, react"
               className="h-9 text-xs"
             />
           </div>

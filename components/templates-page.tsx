@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { SessionTemplate } from '@/types/jules';
-import { getTemplates, deleteTemplate } from '@/lib/templates';
+import { getTemplates, deleteTemplate, saveTemplate } from '@/lib/templates';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Plus, Trash2, Edit2, Play, LayoutTemplate } from 'lucide-react';
+import { Badge } from '@/components/ui/badge'; // Import Badge
+import { Plus, Trash2, Edit2, Play, LayoutTemplate, Star } from 'lucide-react'; // Import Star
 import { TemplateFormDialog } from './template-form-dialog';
 
 interface TemplatesPageProps {
@@ -31,6 +32,14 @@ export function TemplatesPage({ onStartSession }: TemplatesPageProps) {
       deleteTemplate(id);
       loadTemplates();
     }
+  };
+
+  const handleToggleFavorite = (template: SessionTemplate) => {
+    saveTemplate({
+      ...template,
+      isFavorite: !template.isFavorite,
+    });
+    loadTemplates();
   };
 
   return (
@@ -74,6 +83,14 @@ export function TemplatesPage({ onStartSession }: TemplatesPageProps) {
                       <Button 
                         variant="ghost" 
                         size="icon" 
+                        className={`h-6 w-6 ${template.isFavorite ? 'text-yellow-400' : 'text-white/40'} hover:text-yellow-300 hover:bg-white/10`} 
+                        onClick={() => handleToggleFavorite(template)}
+                      >
+                        <Star className="h-3 w-3 fill-current" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
                         className="h-6 w-6 text-white/40 hover:text-white hover:bg-white/10" 
                         onClick={() => setEditingTemplate(template)}
                       >
@@ -92,6 +109,15 @@ export function TemplatesPage({ onStartSession }: TemplatesPageProps) {
                   <CardDescription className="text-[10px] text-white/40 font-mono leading-relaxed line-clamp-3">
                     {template.description}
                   </CardDescription>
+                  {template.tags && template.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {template.tags.map((tag, index) => (
+                        <Badge key={index} className="text-[8px] font-mono uppercase px-1 py-0 h-4 bg-white/10 text-white/60 border-transparent">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                 </CardHeader>
                 <CardFooter className="p-4 pt-2 mt-auto">
                   <Button 
