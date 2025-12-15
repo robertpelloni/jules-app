@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/tooltip';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { CardSpotlight } from '@/components/ui/card-spotlight';
-import { formatDistanceToNow, isValid, parseISO } from 'date-fns';
+import { formatDistanceToNow, isValid, parseISO, isToday } from 'date-fns';
 import { getArchivedSessions } from '@/lib/archive';
 
 function truncateText(text: string, maxLength: number) {
@@ -152,8 +152,16 @@ export function SessionList({ onSelectSession, selectedSessionId }: SessionListP
   }
 
   const sessionLimit = 100;
-  const sessionCount = visibleSessions.length;
-  const percentage = Math.min((sessionCount / sessionLimit) * 100, 100);
+  // Calculate usage based on sessions created today, regardless of search/archive status
+  const dailySessionCount = sessions.filter(session => {
+    if (!session.createdAt) return false;
+    try {
+      return isToday(parseISO(session.createdAt));
+    } catch {
+      return false;
+    }
+  }).length;
+  const percentage = Math.min((dailySessionCount / sessionLimit) * 100, 100);
 
   return (
     <TooltipProvider>
@@ -230,7 +238,7 @@ export function SessionList({ onSelectSession, selectedSessionId }: SessionListP
               DAILY
             </span>
             <span className="text-[10px] font-mono font-bold text-white/60">
-              {sessionCount}/{sessionLimit}
+              {dailySessionCount}/{sessionLimit}
             </span>
           </div>
           <div className="w-full h-1 bg-white/5 overflow-hidden">
@@ -239,9 +247,9 @@ export function SessionList({ onSelectSession, selectedSessionId }: SessionListP
               style={{ width: `${percentage}%` }}
             />
           </div>
-          {sessionCount >= sessionLimit * 0.8 && (
+          {dailySessionCount >= sessionLimit * 0.8 && (
             <p className="text-[8px] text-white/30 mt-1 leading-tight uppercase tracking-wider font-mono">
-              {sessionCount >= sessionLimit ? 'LIMIT REACHED' : 'APPROACHING LIMIT'}
+              {dailySessionCount >= sessionLimit ? 'LIMIT REACHED' : 'APPROACHING LIMIT'}
             </p>
           )}
         </div>
