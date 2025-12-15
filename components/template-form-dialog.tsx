@@ -121,7 +121,7 @@ export function TemplateFormDialog({ open, onOpenChange, template, onSave, initi
               value={formData.prompt}
               onChange={(e) => setFormData(prev => ({ ...prev, prompt: e.target.value }))}
               placeholder="Enter the detailed instructions for Jules..."
-              className="min-h-[200px] text-xs font-mono"
+              className="min-h-[100px] h-[200px] max-h-[300px] overflow-y-auto text-xs font-mono"
               required
             />
           </div>

@@ -11,7 +11,7 @@ import { NewSessionDialog } from './new-session-dialog';
 import { TemplatesPage } from './templates-page';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Menu, LogOut, Settings, BarChart3, MessageSquare, ChevronLeft, ChevronRight, Terminal as TerminalIcon, LayoutTemplate, Plus } from 'lucide-react';
 import { TerminalPanel } from './terminal-panel';
 import { useTerminalAvailable } from '@/hooks/use-terminal-available';
@@ -158,16 +158,6 @@ export function AppLayout() {
             <Button
               variant="ghost"
               size="sm"
-              className={`h-8 px-3 hover:bg-white/5 ${view === 'templates' ? 'text-white' : 'text-white/60'}`}
-              onClick={() => setView('templates')}
-            >
-              <LayoutTemplate className="h-3.5 w-3.5 mr-1.5" />
-              <span className="text-[10px] font-mono uppercase tracking-wider">Templates</span>
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
               className={`h-8 px-3 hover:bg-white/5 ${view === 'analytics' ? 'text-white' : 'text-white/60'}`}
               onClick={() => setView('analytics')}
             >
@@ -210,7 +200,13 @@ export function AppLayout() {
                   <Settings className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-40 bg-zinc-950 border-white/[0.08]">
+              <DropdownMenuContent align="end" className="w-48 bg-zinc-950 border-white/[0.08]">
+                <DropdownMenuItem onClick={() => setView('templates')} className="hover:bg-white/5 text-white/80">
+                  <LayoutTemplate className="mr-2 h-3.5 w-3.5" />
+                  <span className="text-xs uppercase tracking-wide">Manage Templates</span>
+                </DropdownMenuItem>
+                
+                <DropdownMenuSeparator className="bg-white/10" />
 
                 <DropdownMenuItem onClick={handleLogout} className="hover:bg-white/5 text-white/80">
                   <LogOut className="mr-2 h-3.5 w-3.5" />
