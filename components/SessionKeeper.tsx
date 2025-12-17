@@ -133,6 +133,15 @@ export function SessionKeeper() {
       try {
         addLog('Checking sessions...', 'info');
         const currentSessions = await client.listSessions();
+
+        // Debug Log
+        console.log('[SessionKeeper] Checking sessions:', currentSessions.map(s => ({
+          id: s.id,
+          status: s.status,
+          rawState: s.rawState,
+          lastActivityAt: s.lastActivityAt
+        })));
+
         const now = new Date();
         const archived = getArchivedSessions();
 
