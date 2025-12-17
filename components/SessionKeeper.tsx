@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useJules } from '@/lib/jules/provider';
-import { Settings, RotateCw } from 'lucide-react';
+import { Settings, RotateCw, Brain, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -26,12 +26,19 @@ import { getArchivedSessions } from '@/lib/archive';
 // Types for configuration
 export interface SessionKeeperConfig {
   isEnabled: boolean;
-  autoSwitch: boolean; // Automatically navigate to the active session
-  checkIntervalSeconds: number; // How often to check sessions (in seconds)
-  inactivityThresholdMinutes: number; // How long before sending a nudge (in minutes)
-  activeWorkThresholdMinutes: number; // Threshold for sessions IN_PROGRESS
-  messages: string[]; // Global list of messages
-  customMessages: Record<string, string[]>; // Map of sessionId -> messages
+  autoSwitch: boolean;
+  checkIntervalSeconds: number;
+  inactivityThresholdMinutes: number;
+  activeWorkThresholdMinutes: number;
+  messages: string[]; // Fallback messages
+  customMessages: Record<string, string[]>;
+
+  // Smart Auto-Pilot Settings
+  smartPilotEnabled: boolean;
+  supervisorProvider: 'openai' | 'anthropic' | 'gemini';
+  supervisorApiKey: string;
+  supervisorModel: string;
+  contextMessageCount: number;
 }
 
 // Default configuration
@@ -40,7 +47,7 @@ const DEFAULT_CONFIG: SessionKeeperConfig = {
   autoSwitch: true,
   checkIntervalSeconds: 30,
   inactivityThresholdMinutes: 1,
-  activeWorkThresholdMinutes: 30, // Default 30 minutes for IN_PROGRESS
+  activeWorkThresholdMinutes: 30,
   messages: [
     "Great! Please keep going as you advise!",
     "Yes! Please continue to proceed as you recommend!",
@@ -49,11 +56,17 @@ const DEFAULT_CONFIG: SessionKeeperConfig = {
     "Looks good to me. Continue.",
   ],
   customMessages: {},
+  smartPilotEnabled: false,
+  supervisorProvider: 'openai',
+  supervisorApiKey: '',
+  supervisorModel: '', // Will default based on provider
+  contextMessageCount: 10,
 };
 
 export function SessionKeeper() {
   const { client, apiKey } = useJules();
   const router = useRouter();
+  const pathname = usePathname();
   const [config, setConfig] = useState<SessionKeeperConfig>(DEFAULT_CONFIG);
   const [logs, setLogs] = useState<{ time: string; message: string; type: 'info' | 'action' | 'error' | 'skip' }[]>([]);
   const [sessions, setSessions] = useState<{ id: string; title: string }[]>([]);
@@ -62,6 +75,7 @@ export function SessionKeeper() {
   // Refs for interval and preventing race conditions
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const processingRef = useRef(false);
+  const hasSwitchedRef = useRef(false);
 
   // Load config from local storage on mount
   useEffect(() => {
@@ -69,6 +83,7 @@ export function SessionKeeper() {
     if (savedConfig) {
       try {
         const parsed = JSON.parse(savedConfig);
+        // Merge to ensure new fields exist
         setConfig({ ...DEFAULT_CONFIG, ...parsed });
       } catch (e) {
         console.error('Failed to parse session keeper config', e);
@@ -104,6 +119,7 @@ export function SessionKeeper() {
     const runLoop = async () => {
       if (processingRef.current) return;
       processingRef.current = true;
+      hasSwitchedRef.current = false;
 
       try {
         addLog('Checking sessions...', 'info');
@@ -112,45 +128,46 @@ export function SessionKeeper() {
         const archived = getArchivedSessions();
 
         for (const session of currentSessions) {
-          // Skip archived sessions
-          if (archived.has(session.id)) {
-            continue;
-          }
+          if (archived.has(session.id)) continue;
 
-          // Handle Paused/Completed/Failed -> Resume
+          // Helper to switch session safely
+          const safeSwitch = (targetId: string) => {
+            const cleanId = targetId.replace('sessions/', '');
+            const targetPath = `/sessions/${cleanId}`;
+            if (config.autoSwitch && !hasSwitchedRef.current && pathname !== targetPath) {
+              router.push(targetPath);
+              hasSwitchedRef.current = true;
+            }
+          };
+
+          // 1. Resume Paused/Completed/Failed
           if (session.status === 'paused' || session.status === 'completed' || session.status === 'failed') {
              addLog(`Resuming ${session.status} session ${session.id.substring(0, 8)}...`, 'action');
-             if (config.autoSwitch) {
-               router.push(`/sessions/${session.id}`);
-             }
+             safeSwitch(session.id);
              await client.resumeSession(session.id);
              addLog(`Resumed ${session.id.substring(0, 8)}`, 'action');
              continue;
           }
 
-          // 1. Check for Plan Approval
+          // 2. Approve Plans
           if (session.status === 'awaiting_approval' || session.rawState === 'AWAITING_PLAN_APPROVAL') {
             addLog(`Approving plan for session ${session.id.substring(0, 8)}...`, 'action');
-            if (config.autoSwitch) {
-              router.push(`/sessions/${session.id}`);
-            }
+            safeSwitch(session.id);
             await client.approvePlan(session.id);
             addLog(`Plan approved for ${session.id.substring(0, 8)}`, 'action');
             continue;
           }
 
-          // 2. Check for Inactivity
+          // 3. Check for Inactivity & Nudge
           const lastActivityTime = session.lastActivityAt ? new Date(session.lastActivityAt) : new Date(session.updatedAt);
           const diffMs = now.getTime() - lastActivityTime.getTime();
           const diffMinutes = diffMs / 60000;
 
           // Determine threshold
           let threshold = config.inactivityThresholdMinutes;
-
-          // If IN_PROGRESS, use the active work threshold (usually longer)
           if (session.rawState === 'IN_PROGRESS') {
              threshold = config.activeWorkThresholdMinutes;
-             // If actively working (e.g. < 30s), always skip
+             // Guard: If actively working (<30s), always skip
              if (diffMs < 30000) {
                addLog(`Skipped ${session.id.substring(0, 8)}: Working (Active < 30s)`, 'skip');
                continue;
@@ -158,36 +175,70 @@ export function SessionKeeper() {
           }
 
           if (diffMinutes > threshold) {
-            // Select Message
-            let messages = config.messages;
-            if (config.customMessages && config.customMessages[session.id] && config.customMessages[session.id].length > 0) {
-              messages = config.customMessages[session.id];
+            safeSwitch(session.id);
+            let messageToSend = '';
+
+            // SMART AUTO-PILOT LOGIC
+            if (config.smartPilotEnabled && config.supervisorApiKey) {
+              try {
+                addLog(`Asking Supervisor (${config.supervisorProvider}) for guidance...`, 'info');
+
+                // Fetch recent activities for context
+                const activities = await client.listActivities(session.id);
+                // Filter and sort
+                const history = activities
+                  .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+                  .slice(-config.contextMessageCount) // Last N messages
+                  .map(a => ({ role: a.role, content: a.content }));
+
+                // Call our Proxy API
+                const response = await fetch('/api/supervisor', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    messages: history,
+                    provider: config.supervisorProvider,
+                    apiKey: config.supervisorApiKey,
+                    model: config.supervisorModel
+                  })
+                });
+
+                if (response.ok) {
+                  const data = await response.json();
+                  if (data.content) {
+                    messageToSend = data.content;
+                    addLog(`Supervisor says: "${messageToSend.substring(0, 30)}..."`, 'action');
+                  }
+                } else {
+                  addLog('Supervisor failed, falling back to static messages.', 'error');
+                }
+              } catch (err) {
+                console.error('Supervisor Error:', err);
+                addLog('Supervisor error, using fallback.', 'error');
+              }
             }
 
-            if (messages.length === 0) {
-              addLog(`Skipped ${session.id.substring(0, 8)}: No messages configured`, 'skip');
-              continue;
-            }
+            // Fallback if smart pilot disabled or failed
+            if (!messageToSend) {
+              let messages = config.messages;
+              if (config.customMessages && config.customMessages[session.id] && config.customMessages[session.id].length > 0) {
+                messages = config.customMessages[session.id];
+              }
 
-            const message = messages[Math.floor(Math.random() * messages.length)];
+              if (messages.length === 0) {
+                addLog(`Skipped ${session.id.substring(0, 8)}: No messages configured`, 'skip');
+                continue;
+              }
+              messageToSend = messages[Math.floor(Math.random() * messages.length)];
+            }
 
             addLog(`Sending nudge to ${session.id.substring(0, 8)} (${Math.round(diffMinutes)}m inactive)`, 'action');
-
-            if (config.autoSwitch) {
-              router.push(`/sessions/${session.id}`);
-            }
-
             await client.createActivity({
               sessionId: session.id,
-              content: message,
+              content: messageToSend,
               type: 'message'
             });
-            addLog(`Nudge sent to ${session.id.substring(0, 8)}: "${message.substring(0, 20)}..."`, 'action');
-          } else {
-             // Log why we skipped if it's notable
-             if (diffMinutes > 1) {
-               addLog(`Skipped ${session.id.substring(0, 8)}: Not inactive enough (${Math.round(diffMinutes * 10) / 10}m < ${threshold}m)`, 'skip');
-             }
+            addLog(`Nudge sent`, 'action');
           }
         }
       } catch (error) {
@@ -206,7 +257,7 @@ export function SessionKeeper() {
         clearInterval(intervalRef.current);
       }
     };
-  }, [config, client, apiKey, router]);
+  }, [config, client, apiKey, router, pathname]);
 
   const addLog = (message: string, type: 'info' | 'action' | 'error' | 'skip') => {
     if (type === 'info') return;
@@ -246,21 +297,23 @@ export function SessionKeeper() {
           className={`fixed bottom-4 right-4 z-50 rounded-full shadow-lg h-12 w-12 border-2 ${config.isEnabled ? 'bg-green-100 dark:bg-green-900 border-green-500 animate-pulse' : 'bg-background'}`}
           title="Session Keeper Auto-Pilot"
         >
-          {config.isEnabled ? <RotateCw className="h-6 w-6 animate-spin-slow" /> : <Settings className="h-6 w-6" />}
+          {config.smartPilotEnabled && config.isEnabled ? <Brain className="h-6 w-6 animate-pulse text-purple-500" /> :
+           config.isEnabled ? <RotateCw className="h-6 w-6 animate-spin-slow" /> : <Settings className="h-6 w-6" />}
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="w-[400px] sm:w-[540px] overflow-y-auto">
+      <SheetContent side="right" className="w-[400px] sm:w-[600px] overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
-            <RotateCw className={`h-5 w-5 ${config.isEnabled ? 'animate-spin' : ''}`} />
+            {config.smartPilotEnabled ? <Brain className="h-5 w-5 text-purple-500" /> : <RotateCw className={`h-5 w-5 ${config.isEnabled ? 'animate-spin' : ''}`} />}
             Session Keeper Auto-Pilot
           </SheetTitle>
           <SheetDescription>
-            Automatically monitors sessions to keep them active and approve plans.
+            Automatically monitors sessions, resumes work, and provides guidance.
           </SheetDescription>
         </SheetHeader>
 
         <div className="grid gap-6 py-6">
+          {/* Main Controls */}
           <div className="flex flex-col gap-4 border p-4 rounded-lg bg-muted/20">
             <div className="flex items-center justify-between">
               <Label htmlFor="keeper-enabled" className="flex flex-col">
@@ -275,9 +328,7 @@ export function SessionKeeper() {
                 onCheckedChange={(c) => setConfig({ ...config, isEnabled: c })}
               />
             </div>
-
             <Separator />
-
             <div className="flex items-center justify-between">
               <Label htmlFor="auto-switch" className="flex flex-col">
                 <span className="font-medium">Auto-Switch Session</span>
@@ -293,6 +344,75 @@ export function SessionKeeper() {
             </div>
           </div>
 
+          {/* Smart Supervisor Settings */}
+          <div className="flex flex-col gap-4 border p-4 rounded-lg border-purple-500/20 bg-purple-500/5">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="smart-pilot" className="flex flex-col">
+                <span className="font-semibold text-base flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-purple-500" />
+                  Smart Supervisor
+                </span>
+                <span className="font-normal text-xs text-muted-foreground">
+                  Use AI to generate context-aware guidance
+                </span>
+              </Label>
+              <Switch
+                id="smart-pilot"
+                checked={config.smartPilotEnabled}
+                onCheckedChange={(c) => setConfig({ ...config, smartPilotEnabled: c })}
+              />
+            </div>
+
+            {config.smartPilotEnabled && (
+              <div className="grid gap-4 pt-2">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Provider</Label>
+                    <Select
+                      value={config.supervisorProvider}
+                      onValueChange={(v: 'openai' | 'anthropic' | 'gemini') => setConfig({ ...config, supervisorProvider: v })}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="openai">OpenAI (GPT-4)</SelectItem>
+                        <SelectItem value="anthropic">Anthropic (Claude)</SelectItem>
+                        <SelectItem value="gemini">Google (Gemini)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Model (Optional)</Label>
+                    <Input
+                      placeholder="e.g. gpt-4o"
+                      value={config.supervisorModel}
+                      onChange={(e) => setConfig({ ...config, supervisorModel: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>API Key</Label>
+                  <Input
+                    type="password"
+                    placeholder={`Enter ${config.supervisorProvider} API Key`}
+                    value={config.supervisorApiKey}
+                    onChange={(e) => setConfig({ ...config, supervisorApiKey: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Context History (Messages)</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={50}
+                    value={config.contextMessageCount}
+                    onChange={(e) => setConfig({ ...config, contextMessageCount: parseInt(e.target.value) || 10 })}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Timings */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="interval">Check Frequency (s)</Label>
@@ -317,28 +437,29 @@ export function SessionKeeper() {
             </div>
           </div>
 
+          {/* Working Threshold */}
           <div className="space-y-2 border p-4 rounded-lg bg-muted/20">
-            <Label>Working Session Threshold</Label>
-             <div className="space-y-2 mt-2">
-              <div className="flex justify-between items-center">
-                <span className="text-xs text-muted-foreground">Threshold for &quot;In Progress&quot; sessions (minutes)</span>
-                <Input
-                  className="w-20 h-8"
-                  type="number"
-                  min={1}
-                  value={config.activeWorkThresholdMinutes}
-                  onChange={(e) => setConfig({ ...config, activeWorkThresholdMinutes: parseFloat(e.target.value) || 30 })}
-                />
-              </div>
-              <p className="text-[10px] text-muted-foreground">
-                Sessions marked &quot;In Progress&quot; by the API will only be nudged after this many minutes of silence.
-              </p>
+            <div className="flex justify-between items-center">
+              <Label>Working Session Threshold (m)</Label>
+              <Input
+                className="w-20 h-8"
+                type="number"
+                min={1}
+                value={config.activeWorkThresholdMinutes}
+                onChange={(e) => setConfig({ ...config, activeWorkThresholdMinutes: parseFloat(e.target.value) || 30 })}
+              />
             </div>
+            <p className="text-[10px] text-muted-foreground">
+              Wait time for sessions marked &quot;In Progress&quot; before interrupting.
+            </p>
           </div>
 
+          {/* Fallback Messages */}
           <div className="space-y-4">
              <div className="flex justify-between items-center">
-               <Label>Encouragement Messages</Label>
+               <Label>
+                 {config.smartPilotEnabled ? 'Fallback Messages' : 'Encouragement Messages'}
+               </Label>
                <Select value={selectedSessionId} onValueChange={setSelectedSessionId}>
                   <SelectTrigger className="w-[180px] h-8 text-xs">
                     <SelectValue placeholder="Select context" />
@@ -356,13 +477,11 @@ export function SessionKeeper() {
               className="min-h-[100px] font-mono text-xs"
               value={currentMessages.join('\n')}
               onChange={(e) => updateMessages(selectedSessionId, e.target.value.split('\n').filter(line => line.trim() !== ''))}
-              placeholder={selectedSessionId === 'global' ? "Enter one message per line..." : "Enter custom messages for this session (leave empty to use global)..."}
+              placeholder={selectedSessionId === 'global' ? "Enter one message per line..." : "Enter custom messages..."}
             />
-            {selectedSessionId !== 'global' && currentMessages.length === 0 && (
-               <p className="text-[10px] text-muted-foreground italic">Using global messages for this session.</p>
-            )}
           </div>
 
+          {/* Logs */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label>Live Activity Log</Label>
