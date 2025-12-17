@@ -279,11 +279,18 @@ export class JulesClient {
   }
 
   private mapState(state: string): Session['status'] {
+    // Maps API states to our internal Session status type
+    // API States from Python SDK:
+    // STATE_UNSPECIFIED, QUEUED, PLANNING, AWAITING_PLAN_APPROVAL,
+    // AWAITING_USER_FEEDBACK, IN_PROGRESS, PAUSED, FAILED, COMPLETED
     const stateMap: Record<string, Session['status']> = {
       'COMPLETED': 'completed',
-      'ACTIVE': 'active',
+      'ACTIVE': 'active', // Legacy/Simplified
       'PLANNING': 'active',
       'QUEUED': 'active',
+      'IN_PROGRESS': 'active',
+      'AWAITING_USER_FEEDBACK': 'active',
+      'AWAITING_PLAN_APPROVAL': 'awaiting_approval', // New status for plan approval
       'FAILED': 'failed',
       'PAUSED': 'paused'
     };
@@ -310,7 +317,7 @@ export class JulesClient {
         }
       },
       title: data.title || 'Untitled Session',
-      requirePlanApproval: false // Auto-approve plans by default
+      requirePlanApproval: true // Enable plan approval as per requirements
     };
 
     console.log('[Jules Client] Creating session with:', requestBody);

@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { JulesClient } from './client';
+import { SessionKeeper } from '@/components/SessionKeeper';
 
 interface JulesContextType {
   client: JulesClient | null;
@@ -43,6 +44,7 @@ export function JulesProvider({ children }: { children: ReactNode }) {
   return (
     <JulesContext.Provider value={{ client, apiKey, isLoading, setApiKey, clearApiKey }}>
       {children}
+      <SessionKeeper />
     </JulesContext.Provider>
   );
 }

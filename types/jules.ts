@@ -9,7 +9,7 @@ export interface Session {
   id: string;
   sourceId: string;
   title: string;
-  status: 'active' | 'completed' | 'failed' | 'paused';
+  status: 'active' | 'completed' | 'failed' | 'paused' | 'awaiting_approval';
   createdAt: string;
   updatedAt: string;
   lastActivityAt?: string;
