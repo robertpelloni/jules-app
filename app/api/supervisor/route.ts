@@ -166,10 +166,10 @@ export async function POST(req: Request) {
       const lastMsg = msgData.data.filter((m: { role: string }) => m.role === 'assistant')[0];
       const content = lastMsg?.content?.[0]?.text?.value || '';
 
-      return NextResponse.json({
-        content,
-        threadId: activeThreadId,
-        assistantId: activeAssistantId
+      return NextResponse.json({ 
+        content, 
+        threadId: activeThreadId, 
+        assistantId: activeAssistantId 
       });
     }
 
