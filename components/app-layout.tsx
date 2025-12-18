@@ -254,23 +254,6 @@ export function AppLayout() {
               }
             />
 
-            {/* Session Keeper Toggle (Sidebar - Optional now) */}
-            <SessionKeeperSettings />
-            {/*
-               We can keep the sidebar toggle if users still want the vertical view
-               or if there are controls there not in the log panel.
-               For now, I'll keep it but maybe we can deprecate it later.
-            */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className={`h-8 w-8 hover:bg-white/5 ${!keeperSidebarCollapsed ? 'text-purple-500' : 'text-white/60'}`}
-              onClick={() => setKeeperSidebarCollapsed(!keeperSidebarCollapsed)}
-              title="Toggle Auto-Pilot Sidebar"
-            >
-              <RotateCw className={`h-4 w-4 ${!keeperSidebarCollapsed ? 'animate-spin-slow' : ''}`} />
-            </Button>
-
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-white/5 text-white/60">
@@ -335,7 +318,7 @@ export function AppLayout() {
           {/* Top Panel: Dashboard + Keeper Sidebar */}
           <ResizablePanel defaultSize={isLogPanelOpen ? 75 : 100}>
             <ResizablePanelGroup direction="horizontal" className="flex-1">
-              <ResizablePanel defaultSize={!keeperSidebarCollapsed ? 50 : 100} minSize={30}>
+              <ResizablePanel defaultSize={100} minSize={30}>
                 {/* Main Panel Content */}
                 <div className="flex h-full w-full flex-row">
                   <main className="flex-1 overflow-hidden bg-black flex flex-col min-w-0">
@@ -420,15 +403,6 @@ export function AppLayout() {
                   )}
                 </div>
               </ResizablePanel>
-
-              {!keeperSidebarCollapsed && (
-                <>
-                  <ResizableHandle withHandle />
-                  <ResizablePanel defaultSize={40} minSize={30} maxSize={90} className="min-w-[320px]">
-                     <SessionKeeper isSidebar={true} onClose={() => setKeeperSidebarCollapsed(true)} />
-                  </ResizablePanel>
-                </>
-              )}
             </ResizablePanelGroup>
           </ResizablePanel>
 
