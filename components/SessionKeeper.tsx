@@ -316,14 +316,14 @@ export function SessionKeeper({ onClose }: { isSidebar?: boolean, onClose?: () =
               if (config.customMessages && config.customMessages[session.id] && config.customMessages[session.id].length > 0) {
                 messages = config.customMessages[session.id];
               }
-
+              
               if (messages.length === 0) {
                 addLog(`Skipped ${session.id.substring(0, 8)}: No messages configured`, 'skip');
                 continue;
               }
               messageToSend = messages[Math.floor(Math.random() * messages.length)];
             }
-
+            
             addLog(`Sending nudge to ${session.id.substring(0, 8)} (${Math.round(diffMinutes)}m inactive)`, 'action');
             await client.createActivity({
               sessionId: session.id,
