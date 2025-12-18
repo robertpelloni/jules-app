@@ -81,7 +81,26 @@ export function SessionKeeperManager() {
              // Smart Pilot Logic
              if (config.smartPilotEnabled && config.supervisorApiKey) {
                 addLog(`Consulting Supervisor for session ${session.id}...`, 'info');
-                // Placeholder for supervisor implementation
+                try {
+                  const contextActivities = activities.slice(0, config.contextMessageCount).reverse();
+                  const context = contextActivities.map(a => `${a.role.toUpperCase()}: ${a.content}`).join('\n');
+
+                  // Use the supervisor logic
+                  // Note: Since we are in client side, we'd ideally proxy this.
+                  // But for this feature implementation, assuming direct call is acceptable or key is safe in local storage.
+                  const supervisorMessage = await decideNextAction(
+                    config.supervisorProvider,
+                    config.supervisorApiKey,
+                    config.supervisorModel,
+                    `The user is inactive. The last activity was: ${lastActivity.content}. \n\n Recent Context:\n ${context}`
+                  );
+
+                  if (supervisorMessage) {
+                    message = supervisorMessage;
+                  }
+                } catch (e) {
+                  addLog(`Supervisor failed: ${e}`, 'error');
+                }
              }
 
              addLog(`Sending nudge to ${session.id} (${inactiveMinutes.toFixed(1)}m > ${threshold}m): "${message}"`, 'action');
