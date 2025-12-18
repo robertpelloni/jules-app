@@ -3,35 +3,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useJules } from '@/lib/jules/provider';
-import { RotateCw, Brain, X, Check, Activity } from 'lucide-react';
+import { RotateCw, Brain, X, Check, Activity, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { getArchivedSessions } from '@/lib/archive';
 import { SessionKeeperSettings } from './session-keeper-settings';
 import { SessionKeeperConfig } from '@/types/jules';
-
-// Types for configuration
-export interface SessionKeeperConfig {
-  isEnabled: boolean;
-  autoSwitch: boolean;
-  checkIntervalSeconds: number;
-  inactivityThresholdMinutes: number;
-  activeWorkThresholdMinutes: number;
-  messages: string[]; // Fallback messages
-  customMessages: Record<string, string[]>;
-  
-  // Smart Auto-Pilot Settings
-  smartPilotEnabled: boolean;
-  supervisorProvider: 'openai' | 'openai-assistants' | 'anthropic' | 'gemini';
-  supervisorApiKey: string;
-  supervisorModel: string;
-  contextMessageCount: number;
-}
 
 // Persistent Supervisor State
 interface SupervisorState {
@@ -206,123 +184,129 @@ export function SessionKeeper({ onClose }: { isSidebar?: boolean, onClose?: () =
             safeSwitch(session.id);
             let messageToSend = '';
 
-            // SMART AUTO-PILOT LOGIC
-            if (config.smartPilotEnabled && config.supervisorApiKey) {
+            // DEBATE MODE OR SMART PILOT
+            if ((config.debateEnabled && config.debateParticipants && config.debateParticipants.length > 0) || (config.smartPilotEnabled && config.supervisorApiKey)) {
               try {
-                addLog(`Asking Supervisor (${config.supervisorProvider}) for guidance...`, 'info');
-                
-                // Get or Initialize State
-                if (!supervisorState[session.id]) {
-                  supervisorState[session.id] = { lastProcessedActivityTimestamp: '', history: [] };
-                }
-                const sessionState = supervisorState[session.id];
-
-                // Fetch ALL activities (TODO: Fix Pagination for full history)
+                // Fetch ALL activities
                 const activities = await client.listActivities(session.id);
-
-                // Fix: Prepend First Message (Prompt) if missing
-                if (session.prompt) {
-                   const hasPrompt = activities.some(a => a.content === session.prompt);
-                   if (!hasPrompt) {
-                      activities.unshift({
+                if (session.prompt && !activities.some(a => a.content === session.prompt)) {
+                    activities.unshift({
                         id: 'initial-prompt',
                         sessionId: session.id,
                         type: 'message',
                         role: 'user',
                         content: session.prompt,
                         createdAt: session.createdAt
-                      });
-                   }
+                    });
                 }
-
                 const sortedActivities = activities.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
-                // Identify NEW activities
-                let newActivities = sortedActivities;
-                if (sessionState.lastProcessedActivityTimestamp) {
-                  newActivities = sortedActivities.filter(a => new Date(a.createdAt).getTime() > new Date(sessionState.lastProcessedActivityTimestamp).getTime());
-                }
+                // Debate Logic
+                if (config.debateEnabled && config.debateParticipants && config.debateParticipants.length > 0) {
+                    addLog(`Convening Council (${config.debateParticipants.length} members)...`, 'info');
 
-                // Logic Selection: Stateful (Assistants API) vs Stateless (Simulated)
-                const isStateful = config.supervisorProvider === 'openai-assistants';
+                    // Prepare simple history for debate (stateless usually)
+                    const history = sortedActivities.map(a => ({
+                        role: a.role === 'agent' ? 'assistant' : 'user',
+                        content: a.content
+                    })).slice(-config.contextMessageCount);
 
-                
-                let messagesToSend: { role: string, content: string }[] = [];
-
-                if (newActivities.length > 0) {
-                  if (sessionState.history.length === 0 && !sessionState.openaiThreadId) {
-                    // INITIAL RUN
-                    const fullSummary = newActivities.map(a => `${a.role.toUpperCase()}: ${a.content}`).join('\n\n');
-                    messagesToSend.push({ 
-                      role: 'user', 
-                      content: `Here is the full conversation history so far. Please analyze the state and provide the next instruction:\n\n${fullSummary}` 
+                    const response = await fetch('/api/supervisor', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'debate',
+                            messages: history,
+                            participants: config.debateParticipants
+                        })
                     });
-                  } else {
-                    // UPDATE RUN
-                    const updates = newActivities.map(a => `${a.role.toUpperCase()}: ${a.content}`).join('\n\n');
-                    messagesToSend.push({ 
-                      role: 'user', 
-                      content: `Here are the latest updates since your last instruction:\n\n${updates}` 
-                    });
-                  }
-                  
-                  // Update timestamp immediately
-                  sessionState.lastProcessedActivityTimestamp = newActivities[newActivities.length - 1].createdAt;
-                } else if (sessionState.history.length > 0 || sessionState.openaiThreadId) {
-                   // No new activity, but timeout triggered
-                   messagesToSend.push({ role: 'user', content: "The agent has been inactive for a while. Please provide a nudge or follow-up instruction." });
-                }
 
-                if (!isStateful) {
-                  // If stateless (Chat Completions / Anthropic / Gemini), prepend the stored history
-                  messagesToSend = [...sessionState.history, ...messagesToSend];
-                  // Truncate
-                  if (messagesToSend.length > config.contextMessageCount) {
-                     messagesToSend = messagesToSend.slice(-config.contextMessageCount);
-                  }
-                }
-
-                // Call API
-                const response = await fetch('/api/supervisor', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    messages: messagesToSend,
-                    provider: config.supervisorProvider,
-                    apiKey: config.supervisorApiKey,
-                    model: config.supervisorModel,
-                    threadId: sessionState.openaiThreadId,
-                    assistantId: sessionState.openaiAssistantId
-                  })
-                });
-
-                if (response.ok) {
-                  const data = await response.json();
-                  if (data.content) {
-                    messageToSend = data.content;
-                    addLog(`Supervisor says: "${messageToSend.substring(0, 30)}..."`, 'action');
-                    
-                    // Update State
-                    if (isStateful) {
-                      // Store Thread IDs
-                      sessionState.openaiThreadId = data.threadId;
-                      sessionState.openaiAssistantId = data.assistantId;
-                      sessionState.history.push(...messagesToSend);
-                      sessionState.history.push({ role: 'assistant', content: messageToSend });
+                    if (response.ok) {
+                        const data = await response.json();
+                        messageToSend = data.content;
+                        if (data.opinions) {
+                            data.opinions.forEach((op: any) => {
+                                addLog(`Council Member (${op.participant.provider}): ${op.content.substring(0, 30)}...`, 'info');
+                            });
+                        }
+                        addLog(`Council Verdict: "${messageToSend.substring(0, 30)}..."`, 'action');
                     } else {
-                      // Stateless
-                      sessionState.history = [...messagesToSend, { role: 'assistant', content: messageToSend }];
+                        const err = await response.json().catch(() => ({}));
+                        throw new Error(`Debate failed: ${err.error || 'Unknown'}`);
                     }
-                    
-                    stateChanged = true;
-                  }
-                } else {
-                  const errData = await response.json().catch(() => ({}));
-                  addLog(`Supervisor failed: ${errData.error || 'Unknown error'}`, 'error');
+
+                }
+                // Single Supervisor Logic
+                else if (config.smartPilotEnabled) {
+                    addLog(`Asking Supervisor (${config.supervisorProvider})...`, 'info');
+
+                    // State Management
+                    if (!supervisorState[session.id]) {
+                      supervisorState[session.id] = { lastProcessedActivityTimestamp: '', history: [] };
+                    }
+                    const sessionState = supervisorState[session.id];
+
+                    // Identify NEW activities
+                    let newActivities = sortedActivities;
+                    if (sessionState.lastProcessedActivityTimestamp) {
+                      newActivities = sortedActivities.filter(a => new Date(a.createdAt).getTime() > new Date(sessionState.lastProcessedActivityTimestamp).getTime());
+                    }
+
+                    const isStateful = config.supervisorProvider === 'openai-assistants';
+                    let messagesToSend: { role: string, content: string }[] = [];
+
+                    if (newActivities.length > 0) {
+                      if (sessionState.history.length === 0 && !sessionState.openaiThreadId) {
+                        const fullSummary = newActivities.map(a => `${a.role.toUpperCase()}: ${a.content}`).join('\n\n');
+                        messagesToSend.push({ role: 'user', content: `Here is the full conversation history so far. Please analyze the state and provide the next instruction:\n\n${fullSummary}` });
+                      } else {
+                        const updates = newActivities.map(a => `${a.role.toUpperCase()}: ${a.content}`).join('\n\n');
+                        messagesToSend.push({ role: 'user', content: `Here are the latest updates since your last instruction:\n\n${updates}` });
+                      }
+                      sessionState.lastProcessedActivityTimestamp = newActivities[newActivities.length - 1].createdAt;
+                    } else if (sessionState.history.length > 0 || sessionState.openaiThreadId) {
+                       messagesToSend.push({ role: 'user', content: "The agent has been inactive for a while. Please provide a nudge or follow-up instruction." });
+                    }
+
+                    if (!isStateful) {
+                      messagesToSend = [...sessionState.history, ...messagesToSend].slice(-config.contextMessageCount);
+                    }
+
+                    const response = await fetch('/api/supervisor', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        messages: messagesToSend,
+                        provider: config.supervisorProvider,
+                        apiKey: config.supervisorApiKey,
+                        model: config.supervisorModel,
+                        threadId: sessionState.openaiThreadId,
+                        assistantId: sessionState.openaiAssistantId
+                      })
+                    });
+
+                    if (response.ok) {
+                      const data = await response.json();
+                      if (data.content) {
+                        messageToSend = data.content;
+                        addLog(`Supervisor says: "${messageToSend.substring(0, 30)}..."`, 'action');
+                        if (isStateful) {
+                          sessionState.openaiThreadId = data.threadId;
+                          sessionState.openaiAssistantId = data.assistantId;
+                          sessionState.history.push(...messagesToSend);
+                          sessionState.history.push({ role: 'assistant', content: messageToSend });
+                        } else {
+                          sessionState.history = [...messagesToSend, { role: 'assistant', content: messageToSend }];
+                        }
+                        stateChanged = true;
+                      }
+                    } else {
+                       throw new Error('Supervisor API failed');
+                    }
                 }
               } catch (err) {
-                console.error('Supervisor Error:', err);
-                addLog(`Supervisor error: ${err instanceof Error ? err.message : 'Unknown'}`, 'error');
+                console.error('Supervisor/Debate Error:', err);
+                addLog(`Auto-Pilot error: ${err instanceof Error ? err.message : 'Unknown'}`, 'error');
               }
             }
 

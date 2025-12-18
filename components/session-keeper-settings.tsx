@@ -23,8 +23,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Brain, Sparkles, Trash2, Settings, Loader2, Download } from 'lucide-react';
+import { Brain, Sparkles, Trash2, Settings, Loader2, Download, Users, Plus } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
 
 interface SessionKeeperSettingsProps {
   config: SessionKeeperConfig;
@@ -38,6 +39,9 @@ export function SessionKeeperSettings({ config, onConfigChange, sessions, onClea
   const [selectedSessionId, setSelectedSessionId] = useState<string>('global');
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [loadingModels, setLoadingModels] = useState(false);
+
+  // New Participant State
+  const [newPart, setNewPart] = useState({ provider: 'openai', model: '', apiKey: '', role: 'Advisor' });
 
   const updateMessages = (sessionId: string, newMessages: string[]) => {
     if (sessionId === 'global') {
@@ -53,8 +57,10 @@ export function SessionKeeperSettings({ config, onConfigChange, sessions, onClea
     }
   };
 
-  const handleLoadModels = async () => {
-    if (!config.supervisorApiKey || !config.supervisorProvider) return;
+  const handleLoadModels = async (provider?: string, apiKey?: string) => {
+    const p = provider || config.supervisorProvider;
+    const k = apiKey || config.supervisorApiKey;
+    if (!k || !p) return;
 
     setLoadingModels(true);
     try {
@@ -63,8 +69,8 @@ export function SessionKeeperSettings({ config, onConfigChange, sessions, onClea
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'list_models',
-          provider: config.supervisorProvider,
-          apiKey: config.supervisorApiKey
+          provider: p,
+          apiKey: k
         })
       });
 
@@ -72,9 +78,10 @@ export function SessionKeeperSettings({ config, onConfigChange, sessions, onClea
         const data = await response.json();
         if (data.models && Array.isArray(data.models)) {
           setAvailableModels(data.models);
-          // Auto-select first if current is empty
-          if (!config.supervisorModel && data.models.length > 0) {
-            onConfigChange({ ...config, supervisorModel: data.models[0] });
+          if (!provider) { // Main Supervisor
+             if (!config.supervisorModel && data.models.length > 0) {
+               onConfigChange({ ...config, supervisorModel: data.models[0] });
+             }
           }
         }
       }
@@ -83,6 +90,26 @@ export function SessionKeeperSettings({ config, onConfigChange, sessions, onClea
     } finally {
       setLoadingModels(false);
     }
+  };
+
+  const addParticipant = () => {
+      const participants = config.debateParticipants || [];
+      onConfigChange({
+          ...config,
+          debateParticipants: [
+              ...participants,
+              { ...newPart, id: crypto.randomUUID() }
+          ]
+      });
+      setNewPart({ provider: 'openai', model: '', apiKey: '', role: 'Advisor' });
+  };
+
+  const removeParticipant = (index: number) => {
+      const participants = config.debateParticipants || [];
+      onConfigChange({
+          ...config,
+          debateParticipants: participants.filter((_, i) => i !== index)
+      });
   };
 
   const currentMessages = selectedSessionId === 'global'
@@ -264,6 +291,97 @@ export function SessionKeeperSettings({ config, onConfigChange, sessions, onClea
                      </div>
                   </div>
                 </div>
+              )}
+            </div>
+
+            {/* Multi-Agent Debate Settings */}
+            <div className="flex flex-col gap-4 border border-blue-500/20 p-4 rounded-lg bg-blue-500/5">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="debate-mode" className="flex flex-col gap-1">
+                  <span className="font-semibold text-sm flex items-center gap-2 text-blue-400">
+                    <Users className="h-4 w-4" />
+                    Multi-Agent Debate
+                  </span>
+                  <span className="font-normal text-xs text-white/40">
+                    Convene a council of models to debate the plan
+                  </span>
+                </Label>
+                <Switch
+                  id="debate-mode"
+                  checked={config.debateEnabled}
+                  onCheckedChange={(c) => onConfigChange({ ...config, debateEnabled: c })}
+                />
+              </div>
+
+              {config.debateEnabled && (
+                  <div className="space-y-4 pt-2">
+                      {/* List existing participants */}
+                      {(config.debateParticipants || []).length > 0 && (
+                        <div className="grid gap-2">
+                            {config.debateParticipants!.map((p, index) => (
+                                <div key={p.id} className="flex gap-2 items-center p-2 border border-white/10 rounded bg-black/20">
+                                    <Badge variant="outline" className="w-20 shrink-0 justify-center border-blue-500/30 text-blue-400">{p.provider}</Badge>
+                                    <div className="flex-1 text-xs overflow-hidden">
+                                        <div className="font-bold truncate text-white/90">{p.role}</div>
+                                        <div className="text-white/40 truncate font-mono text-[10px]">{p.model}</div>
+                                    </div>
+                                    <Button size="icon" variant="ghost" className="h-6 w-6 text-red-400 hover:bg-red-500/10" onClick={() => removeParticipant(index)}>
+                                        <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                </div>
+                            ))}
+                        </div>
+                      )}
+
+                      {/* Add New Participant Form */}
+                      <div className="border-t border-white/10 pt-3 space-y-3">
+                          <Label className="text-xs text-white/60 uppercase tracking-wider font-bold">Add Council Member</Label>
+                          <div className="grid grid-cols-2 gap-2">
+                              <Select
+                                value={newPart.provider}
+                                onValueChange={(v) => setNewPart({ ...newPart, provider: v })}
+                              >
+                                <SelectTrigger className="h-7 text-xs bg-black/50 border-white/10"><SelectValue /></SelectTrigger>
+                                <SelectContent className="bg-zinc-900 border-white/10 text-white">
+                                  <SelectItem value="openai">OpenAI</SelectItem>
+                                  <SelectItem value="anthropic">Anthropic</SelectItem>
+                                  <SelectItem value="gemini">Gemini</SelectItem>
+                                  <SelectItem value="qwen">Qwen</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <Input
+                                className="h-7 text-xs bg-black/50 border-white/10"
+                                placeholder="Role (e.g. Security)"
+                                value={newPart.role}
+                                onChange={(e) => setNewPart({ ...newPart, role: e.target.value })}
+                              />
+                          </div>
+                          <Input
+                            className="h-7 text-xs bg-black/50 border-white/10 font-mono"
+                            type="password"
+                            placeholder="API Key"
+                            value={newPart.apiKey}
+                            onChange={(e) => setNewPart({ ...newPart, apiKey: e.target.value })}
+                          />
+                          <div className="flex gap-2">
+                              <Input
+                                className="h-7 text-xs bg-black/50 border-white/10 flex-1"
+                                placeholder="Model (e.g. gpt-4o)"
+                                value={newPart.model}
+                                onChange={(e) => setNewPart({ ...newPart, model: e.target.value })}
+                              />
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                className="h-7 text-xs"
+                                onClick={addParticipant}
+                                disabled={!newPart.apiKey || !newPart.model}
+                              >
+                                <Plus className="h-3 w-3 mr-1" /> Add
+                              </Button>
+                          </div>
+                      </div>
+                  </div>
               )}
             </div>
 

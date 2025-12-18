@@ -72,4 +72,14 @@ export interface SessionKeeperConfig {
   supervisorApiKey: string;
   supervisorModel: string;
   contextMessageCount: number;
+
+  // Debate Configuration
+  debateEnabled?: boolean;
+  debateParticipants?: {
+      id: string;
+      provider: string;
+      model: string;
+      apiKey: string;
+      role: string;
+  }[];
 }

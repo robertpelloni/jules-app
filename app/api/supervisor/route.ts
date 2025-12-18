@@ -1,40 +1,51 @@
 import { NextResponse } from 'next/server';
+import { getProvider } from '@/lib/orchestration/providers';
+import { runDebate } from '@/lib/orchestration/debate';
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { messages, provider, apiKey, model, threadId, assistantId, action } = body;
+    const { messages, provider, apiKey, model, threadId, assistantId, action, participants } = body;
 
+    // 1. List Models
     if (action === 'list_models') {
        if (!apiKey || !provider) {
          return NextResponse.json({ error: 'Missing apiKey or provider' }, { status: 400 });
        }
-
+       const p = getProvider(provider);
+       if (!p) {
+           // Fallback for OpenAI Assistants or others not in provider list yet
+           if (provider.startsWith('openai')) {
+               const pOpenAI = getProvider('openai');
+               if (pOpenAI) {
+                   try {
+                       const models = await pOpenAI.listModels(apiKey);
+                       return NextResponse.json({ models });
+                   } catch (e) { /* ignore */ }
+               }
+           }
+           return NextResponse.json({ error: 'Invalid provider' }, { status: 400 });
+       }
        try {
-         let models: string[] = [];
-         if (provider.startsWith('openai')) {
-           const resp = await fetch('https://api.openai.com/v1/models', {
-             headers: { 'Authorization': `Bearer ${apiKey}` }
-           });
-           if (!resp.ok) throw new Error('Failed to fetch OpenAI models');
-           const data = await resp.json();
-           models = data.data.map((m: any) => m.id).sort();
-         } else if (provider === 'anthropic') {
-           // Anthropic doesn't have a simple public models endpoint that returns IDs easily without a key,
-           // but let's try if the key is provided.
-           // Actually Anthropic API doesn't have a "list models" endpoint like OpenAI yet.
-           // We'll return a static list of known models for now to avoid errors, or try to fetch if they added it.
-           models = [
-             'claude-3-5-sonnet-20240620',
-             'claude-3-opus-20240229',
-             'claude-3-sonnet-20240229',
-             'claude-3-haiku-20240307'
-           ];
-         }
+         const models = await p.listModels(apiKey);
          return NextResponse.json({ models });
        } catch (e) {
          return NextResponse.json({ error: e instanceof Error ? e.message : 'Failed to list models' }, { status: 500 });
        }
+    }
+
+    // 2. Debate
+    if (action === 'debate') {
+        if (!participants || !Array.isArray(participants)) {
+            return NextResponse.json({ error: 'Invalid participants' }, { status: 400 });
+        }
+        try {
+            const result = await runDebate({ history: messages, participants });
+            return NextResponse.json(result);
+        } catch (e) {
+            console.error("Debate Error", e);
+            return NextResponse.json({ error: e instanceof Error ? e.message : 'Debate failed' }, { status: 500 });
+        }
     }
 
     if (!messages || !provider || !apiKey) {
@@ -162,98 +173,19 @@ export async function POST(req: Request) {
       });
     }
 
-    // 2. Stateless Logic (Simulated State via Client History)
-    let generatedContent = '';
-
-    if (provider === 'openai') {
-      // Standard Chat Completions API
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: model || 'gpt-4o',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are a project supervisor. Your goal is to keep the AI agent "Jules" on track. Read the conversation history provided by the user. Identify if the agent is stuck, off-track, or needs guidance. Provide a concise, direct instruction or feedback to the agent. Do not be conversational. Be directive but polite. Focus on the next task.'
-            },
-            ...messages.map((m: { role: string; content: string }) => ({
-              role: m.role === 'user' ? 'user' : 'assistant', // Map role
-              content: m.content
-            }))
-          ],
-          max_tokens: 150,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(`OpenAI API error: ${error.error?.message || response.statusText}`);
-      }
-
-      const data = await response.json();
-      generatedContent = data.choices[0]?.message?.content || '';
-
-    } else if (provider === 'anthropic') {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01'
-        },
-        body: JSON.stringify({
-          model: model || 'claude-3-5-sonnet-20240620',
-          system: 'You are a project supervisor. Your goal is to keep the AI agent "Jules" on track. Read the conversation history. Identify if the agent is stuck, off-track, or needs guidance. Provide a concise, direct instruction or feedback to the agent. Do not be conversational. Be directive but polite. Focus on the next task.',
-          messages: messages.map((m: { role: string; content: string }) => ({
-            role: m.role === 'user' ? 'user' : 'assistant',
-            content: m.content
-          })),
-          max_tokens: 150,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(`Anthropic API error: ${error.error?.message || response.statusText}`);
-      }
-
-      const data = await response.json();
-      generatedContent = data.content[0]?.text || '';
-
-    } else if (provider === 'gemini') {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model || 'gemini-1.5-flash'}:generateContent?key=${apiKey}`;
-      
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          systemInstruction: {
-            parts: [{ text: 'You are a project supervisor. Your goal is to keep the AI agent "Jules" on track. Read the conversation history. Identify if the agent is stuck, off-track, or needs guidance. Provide a concise, direct instruction or feedback to the agent. Do not be conversational. Be directive but polite. Focus on the next task.' }]
-          },
-          contents: messages.map((m: { role: string; content: string }) => ({
-            role: m.role === 'user' ? 'user' : 'model',
-            parts: [{ text: m.content }]
-          })),
-          generationConfig: { maxOutputTokens: 150 }
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(`Gemini API error: ${error.error?.message || response.statusText}`);
-      }
-
-      const data = await response.json();
-      generatedContent = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    } else if (provider !== 'openai-assistants') {
-      return NextResponse.json({ error: 'Invalid provider' }, { status: 400 });
+    // 2. Stateless Logic (Using Library)
+    const p = getProvider(provider);
+    if (p) {
+        const result = await p.complete({
+            messages,
+            apiKey,
+            model,
+            systemPrompt: 'You are a project supervisor. Your goal is to keep the AI agent "Jules" on track. Read the conversation history. Identify if the agent is stuck, off-track, or needs guidance. Provide a concise, direct instruction or feedback to the agent. Do not be conversational. Be directive but polite. Focus on the next task.'
+        });
+        return NextResponse.json({ content: result.content });
     }
 
-    return NextResponse.json({ content: generatedContent });
+    return NextResponse.json({ error: 'Invalid provider' }, { status: 400 });
 
   } catch (error) {
     console.error('Supervisor API Error:', error);
