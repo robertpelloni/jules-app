@@ -61,6 +61,9 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
   };
 
   const formatContent = (content: string) => {
+    if (content === '[userMessaged]') return <span className="text-white/50 italic">Message sent</span>;
+    if (content === '[agentMessaged]') return <span className="text-white/50 italic">Agent working...</span>;
+
     try {
       const parsed = JSON.parse(content);
       if (Array.isArray(parsed) || (parsed.steps && Array.isArray(parsed.steps))) {
@@ -282,11 +285,11 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
     const content = activity.content?.trim();
     if (!content) return false;
 
-    // Filter specific system messages
-    if (content === '[agentMessaged]' || content === '[userMessaged]') return false;
-    if (content === '{}' || content === '[]') return false;
+    // Aggressive filter for empty JSON/Arrays (including whitespace)
+    const cleanContent = content.replace(/\s/g, '');
+    if (cleanContent === '{}' || cleanContent === '[]') return false;
 
-    // Filter empty JSON objects/arrays that might have slipped through
+    // Filter empty parsed JSON objects
     if (content.startsWith('{') || content.startsWith('[')) {
       try {
         const parsed = JSON.parse(content);
