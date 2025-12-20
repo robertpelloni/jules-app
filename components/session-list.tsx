@@ -202,7 +202,20 @@ export function SessionList({ onSelectSession, selectedSessionId }: SessionListP
                     }
                   }}
                 >
-                  <div className={`flex-shrink-0 mt-1 w-2 h-2 rounded-full ${getStatusColor(session.status)}`} />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div
+                        role="img"
+                        className={`flex-shrink-0 mt-1 w-2 h-2 rounded-full ${getStatusColor(
+                          session.status
+                        )}`}
+                        aria-label={`Status: ${session.status}`}
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      <p className="capitalize">{session.status}</p>
+                    </TooltipContent>
+                  </Tooltip>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5 w-full min-w-0">
                       <Tooltip>
