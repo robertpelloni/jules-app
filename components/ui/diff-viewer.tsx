@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Check,
   Copy,
@@ -277,7 +277,7 @@ export function DiffViewer({
   repoUrl,
   branch,
 }: DiffViewerProps) {
-  const files = parseDiff(diff);
+  const files = useMemo(() => parseDiff(diff), [diff]);
 
   if (files.length === 0) {
     return (

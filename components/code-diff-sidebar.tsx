@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DiffViewer } from "@/components/ui/diff-viewer";
 import type { Activity } from "@/types/jules";
@@ -12,7 +13,9 @@ interface CodeDiffSidebarProps {
 
 export function CodeDiffSidebar({ activities, repoUrl }: CodeDiffSidebarProps) {
   // Get only the final diff (last activity with a diff)
-  const finalDiff = activities.filter((activity) => activity.diff).slice(-1);
+  const finalDiff = useMemo(() => {
+    return activities.filter((activity) => activity.diff).slice(-1);
+  }, [activities]);
 
   if (finalDiff.length === 0) {
     return (

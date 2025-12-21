@@ -7,3 +7,7 @@
 ## 2025-12-20 - Synchronous LocalStorage in Render Loop
 **Learning:** `SessionList` calls `getArchivedSessions` (which reads `localStorage` and parses JSON) on every render cycle. This blocks the main thread and causes jank, especially during interactions like typing in the search box.
 **Action:** Move `localStorage` reads to `useEffect` or `useState` initialization. Treat `localStorage` as an external side effect, not a derived value for rendering.
+
+## 2025-12-20 - Expensive Diff Parsing during Layout Resize
+**Learning:** `AppLayout` updates state during drag-resizing of the sidebar. This triggers re-renders of children. `CodeDiffSidebar` and `DiffViewer` were recalculating filters and parsing text diffs on every frame of the resize, causing jank.
+**Action:** Memoize expensive data derivations (`filter`, `parseDiff`) using `useMemo` to ensure they only run when data actually changes, not when unrelated parent state (layout dimensions) changes.
