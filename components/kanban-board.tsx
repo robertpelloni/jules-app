@@ -83,19 +83,37 @@ export function KanbanBoard({ onSelectSession }: KanbanBoardProps) {
       })) as SessionKanbanItem[];
   }, [sessions, archivedSessionIds]);
 
-  const handleDataChange = (newData: SessionKanbanItem[]) => {
-    // In a real app, we would update the session status on the server here.
-    // For now, we update local state if status changed.
-    const updatedSessions = newData.map(item => {
-        if (item.session.status !== item.column) {
-            return { ...item.session, status: item.column as Session["status"] };
-        }
-        return item.session;
+  const columnCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    COLUMNS.forEach(col => {
+      counts[col.id] = kanbanData.filter(d => d.column === col.id).length;
     });
-    setSessions(updatedSessions);
+    return counts;
+  }, [kanbanData]);
+
+  const handleDataChange = (newData: SessionKanbanItem[]) => {
+    // Merge updated kanban items back into the full sessions list to preserve archived/filtered sessions
+    setSessions(prevSessions => {
+      const updatedSessions = [...prevSessions];
+      
+      newData.forEach(item => {
+        const index = updatedSessions.findIndex(s => s.id === item.id);
+        if (index !== -1) {
+          // Only update if status (column) actually changed
+          if (updatedSessions[index].status !== item.column) {
+            updatedSessions[index] = { 
+              ...updatedSessions[index], 
+              status: item.column as Session["status"] 
+            };
+          }
+        }
+      });
+      
+      return updatedSessions;
+    });
     
-    // Note: If we had an updateSession API, we'd call it here for the item that moved.
-    console.log("Kanban data changed. In a real app, this would persist status changes.");
+    // TODO: Implement backend persistence (updateSession API) here.
+    // Status changes are currently local-only and will be lost on refresh.
   };
 
   if (loading) {
@@ -124,8 +142,13 @@ export function KanbanBoard({ onSelectSession }: KanbanBoardProps) {
     <div className="h-full w-full bg-black flex flex-col overflow-hidden">
       <header className="px-6 py-4 border-b border-white/[0.08] flex items-center justify-between shrink-0">
         <div>
-          <h2 className="text-sm font-bold text-white uppercase tracking-widest">Control Tower</h2>
-          <p className="text-[10px] text-white/40 uppercase tracking-wider mt-0.5">Manage session lifecycle</p>
+          <div className="flex items-center gap-3">
+            <h2 className="text-sm font-bold text-white uppercase tracking-widest">Control Tower</h2>
+            <Badge variant="outline" className="h-4 px-1.5 text-[8px] border-amber-500/20 bg-amber-500/5 text-amber-500/60 font-mono uppercase tracking-tighter">
+              Persistence Pending
+            </Badge>
+          </div>
+          <p className="text-[10px] text-white/40 uppercase tracking-wider mt-0.5">Manage session lifecycle (Local changes only)</p>
         </div>
         <Button 
           variant="ghost" 
@@ -150,7 +173,7 @@ export function KanbanBoard({ onSelectSession }: KanbanBoardProps) {
               <KanbanHeader className="border-b border-white/[0.08] flex items-center justify-between px-3 py-2 bg-black/40">
                 <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest">{column.name}</span>
                 <Badge variant="outline" className="h-4 px-1.5 text-[9px] border-white/10 bg-white/5 text-white/40">
-                    {kanbanData.filter(d => d.column === column.id).length}
+                    {columnCounts[column.id] || 0}
                 </Badge>
               </KanbanHeader>
               <KanbanCards<SessionKanbanItem> id={column.id} className="bg-transparent gap-3 p-3">
