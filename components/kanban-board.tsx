@@ -28,7 +28,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { formatDistanceToNow, parseISO, isValid, format } from "date-fns";
-import { ExternalLink, GitBranch, Clock, RefreshCw, Filter } from "lucide-react";
+import { ExternalLink, GitBranch, Clock, RefreshCw, Filter, Inbox } from "lucide-react";
 import { getArchivedSessions } from "@/lib/archive";
 
 interface SessionKanbanItem extends KanbanItemProps {
@@ -158,6 +158,36 @@ export function KanbanBoard({ onSelectSession }: KanbanBoardProps) {
     // Status changes are currently local-only and will be lost on refresh.
   };
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "active":
+        return "bg-green-500";
+      case "completed":
+        return "bg-blue-500";
+      case "failed":
+        return "bg-red-500";
+      case "paused":
+        return "bg-yellow-500";
+      default:
+        return "bg-gray-500";
+    }
+  };
+
+  const getStatusRingColor = (status: string) => {
+    switch (status) {
+      case "active":
+        return "ring-green-500/50";
+      case "completed":
+        return "ring-blue-500/50";
+      case "failed":
+        return "ring-red-500/50";
+      case "paused":
+        return "ring-yellow-500/50";
+      default:
+        return "ring-white/20";
+    }
+  };
+
   if (loading) {
     return (
       <div className="h-full w-full bg-black flex items-center justify-center" role="status" aria-live="polite">
@@ -186,20 +216,23 @@ export function KanbanBoard({ onSelectSession }: KanbanBoardProps) {
         <div>
           <div className="flex items-center gap-3">
             <h2 className="text-sm font-bold text-white uppercase tracking-widest">Control Tower</h2>
+            <Badge variant="outline" className="h-4 px-1.5 text-[9px] border-white/10 bg-white/5 text-white/40 font-mono">
+              {sessions.filter(s => !archivedSessionIds.has(s.id)).length} TOTAL
+            </Badge>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Badge variant="outline" className="h-4 px-1.5 text-[8px] border-destructive/50 bg-destructive/10 text-destructive font-mono uppercase tracking-tighter animate-pulse cursor-help">
-                    Persistence Disabled
+                  <Badge variant="outline" className="h-4 px-1.5 text-[8px] border-purple-500/30 bg-purple-500/10 text-purple-400 font-mono uppercase tracking-tighter cursor-help">
+                    Beta
                   </Badge>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="bg-zinc-900 border-white/10 text-white text-[10px] max-w-[200px]">
-                  <p>Kanban status changes are currently local-only and will be lost on page refresh. Persistence is coming soon.</p>
+                  <p>Status changes are currently local-only and will be lost on page refresh. Persistence is coming soon.</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </div>
-          <p className="text-[10px] text-white/40 uppercase tracking-wider mt-0.5">Manage session lifecycle (Status updates are local-only)</p>
+          <p className="text-[10px] text-white/40 uppercase tracking-wider mt-0.5">Manage session lifecycle</p>
         </div>
         <div className="flex items-center gap-2">
           {availableRepos.length > 0 && (
@@ -253,9 +286,17 @@ export function KanbanBoard({ onSelectSession }: KanbanBoardProps) {
             className="h-full"
           >
             {(column) => (
-              <KanbanBoardRoot key={column.id} id={column.id} className="bg-zinc-950 border-white/[0.08] rounded-none">
-                <KanbanHeader className="border-b border-white/[0.08] flex items-center justify-between px-3 py-2 bg-black/40">
-                  <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest">{column.name}</span>
+              <KanbanBoardRoot 
+                key={column.id} 
+                id={column.id} 
+                className="bg-zinc-950 border-white/[0.08] rounded-none"
+                isOverClassName={getStatusRingColor(column.id)}
+              >
+                <KanbanHeader className="border-b border-white/[0.08] flex items-center justify-between px-3 py-2.5 bg-black/40">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-1.5 h-1.5 rounded-full ${getStatusColor(column.id)}`} />
+                    <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest">{column.name}</span>
+                  </div>
                   <Badge variant="outline" className="h-4 px-1.5 text-[9px] border-white/10 bg-white/5 text-white/40">
                       {columnCounts[column.id] || 0}
                   </Badge>
@@ -265,6 +306,7 @@ export function KanbanBoard({ onSelectSession }: KanbanBoardProps) {
                   className="bg-transparent gap-3 p-3"
                   emptyContent={
                     <div className="flex flex-col items-center justify-center h-24 border border-dashed border-white/5 rounded-lg opacity-20">
+                      <Inbox className="h-4 w-4 mb-2 text-white" />
                       <p className="text-[9px] font-mono uppercase tracking-widest text-white">No {column.name} Sessions</p>
                     </div>
                   }
@@ -276,7 +318,11 @@ export function KanbanBoard({ onSelectSession }: KanbanBoardProps) {
                       className="bg-zinc-900 border-white/10 hover:border-white/20 focus-visible:ring-1 focus-visible:ring-white/20 transition-all p-0 overflow-hidden group cursor-pointer"
                       onClick={() => onSelectSession(item.session)}
                     >
-                      <SessionCardContent session={item.session} onSelect={onSelectSession} />
+                      <SessionCardContent 
+                        session={item.session} 
+                        onSelect={onSelectSession} 
+                        statusColorClass={getStatusColor(item.session.status)}
+                      />
                     </KanbanCard>
                   )}
                 </KanbanCards>
@@ -291,10 +337,12 @@ export function KanbanBoard({ onSelectSession }: KanbanBoardProps) {
 
 function SessionCardContent({ 
   session, 
-  onSelect 
+  onSelect,
+  statusColorClass
 }: { 
   session: Session; 
-  onSelect: (session: Session) => void 
+  onSelect: (session: Session) => void;
+  statusColorClass: string;
 }) {
   const getRelativeDate = (dateString?: string) => {
     if (!dateString) return "Unknown";
@@ -321,9 +369,12 @@ function SessionCardContent({
   return (
     <div className="p-3.5 space-y-3">
       <div className="space-y-1.5">
-        <h4 className="text-[11px] font-bold text-white leading-snug line-clamp-2 uppercase tracking-wide">
-          {session.title || "Untitled Session"}
-        </h4>
+        <div className="flex items-start gap-2">
+          <div className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${statusColorClass}`} />
+          <h4 className="text-[11px] font-bold text-white leading-snug line-clamp-2 uppercase tracking-wide">
+            {session.title || "Untitled Session"}
+          </h4>
+        </div>
         {session.sourceId && (
           <Tooltip>
             <TooltipTrigger asChild>

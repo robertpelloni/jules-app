@@ -45,6 +45,10 @@
 **Learning:** While relative dates (e.g., "2 days ago") are cleaner for scanning, users often need the precision of exact timestamps. Tooltips provide the perfect mechanism for this "progressive disclosure"—keeping the interface clean while making detailed data available on demand.
 **Action:** Use relative time for display and exact timestamp in tooltips.
 
+## 2025-12-21 - [Visual Consistency in Kanban]
+**Learning:** Visual cues like status colors and icons shouldn't just be in list views. Bringing status-colored dots and consistent typography to Kanban cards and column headers creates a unified "system" feeling. Also, using dynamic drag-over highlights that match the column's status reinforces the user's action and the data's destination.
+**Action:** Synchronize status colors across all views (Lists, Kanban, Dashboards) and use them for interactive feedback (drag-over highlights).
+
 ## 2025-12-21 - [Kanban Empty States & Filter Context]
 **Learning:** Kanban columns without an explicit empty state can look broken or "unfinished" to users. Additionally, providing counts within filter dropdowns (e.g., repository counts) offers valuable context before the user even makes a selection, reducing trial-and-error filtering.
 **Action:** Implement dashed-border empty states for list/grid containers and include counts in data-dense filters.
