@@ -35,6 +35,8 @@ export function IntegratedTerminal({
     let fitAddon: FitAddon;
     let socket: Socket;
     let resizeObserver: ResizeObserver;
+    let handleWindowResize: (() => void) | null = null;
+    let isCancelled = false;
 
     // Dynamic imports for browser-only libraries
     const initTerminal = async () => {
@@ -42,6 +44,8 @@ export function IntegratedTerminal({
       const { FitAddon } = await import("@xterm/addon-fit");
       const { io } = await import("socket.io-client");
       await import("@xterm/xterm/css/xterm.css");
+
+      if (isCancelled) return;
 
       // Initialize xterm.js with dark theme blended for Jules app
       terminal = new Terminal({
@@ -85,8 +89,11 @@ export function IntegratedTerminal({
 
       fitAddon = new FitAddon();
       terminal.loadAddon(fitAddon);
-      terminal.open(terminalRef.current!);
-      fitAddon.fit();
+      
+      if (terminalRef.current) {
+        terminal.open(terminalRef.current);
+        fitAddon.fit();
+      }
 
       xtermRef.current = terminal;
       fitAddonRef.current = fitAddon;
@@ -113,8 +120,10 @@ export function IntegratedTerminal({
 
       socket.on("connect", () => {
         console.log("Connected to terminal server");
-        setIsConnected(true);
-        errorShownRef.current = false;
+        if (!isCancelled) {
+          setIsConnected(true);
+          errorShownRef.current = false;
+        }
         terminal.write(
           "\r\n\x1b[32m*** Connected to terminal ***\x1b[0m\r\n\r\n",
         );
@@ -122,7 +131,9 @@ export function IntegratedTerminal({
 
       socket.on("connect_error", (error) => {
         console.log("Failed to connect to terminal server:", error.message);
-        setIsConnected(false);
+        if (!isCancelled) {
+          setIsConnected(false);
+        }
 
         if (!errorShownRef.current) {
           errorShownRef.current = true;
@@ -143,7 +154,9 @@ export function IntegratedTerminal({
 
       socket.on("disconnect", () => {
         console.log("Disconnected from terminal server");
-        setIsConnected(false);
+        if (!isCancelled) {
+          setIsConnected(false);
+        }
         terminal.write(
           "\r\n\x1b[31m*** Disconnected from terminal ***\x1b[0m\r\n",
         );
@@ -164,7 +177,7 @@ export function IntegratedTerminal({
       });
 
       // Handle terminal resize
-      const handleResize = () => {
+      handleWindowResize = () => {
         fitAddon.fit();
         socket.emit("terminal.resize", {
           cols: terminal.cols,
@@ -172,17 +185,21 @@ export function IntegratedTerminal({
         });
       };
 
-      window.addEventListener("resize", handleResize);
+      window.addEventListener("resize", handleWindowResize);
 
       // Also add a resize observer to detect parent container size changes
       resizeObserver = new ResizeObserver(() => {
         // Small delay to ensure DOM is updated
         setTimeout(() => {
-          fitAddon.fit();
-          socket.emit("terminal.resize", {
-            cols: terminal.cols,
-            rows: terminal.rows,
-          });
+          if (!isCancelled && fitAddon) {
+            fitAddon.fit();
+            if (terminal) {
+               socket.emit("terminal.resize", {
+                cols: terminal.cols,
+                rows: terminal.rows,
+              });
+            }
+          }
         }, 0);
       });
 
@@ -195,11 +212,15 @@ export function IntegratedTerminal({
 
     // Cleanup
     return () => {
+      isCancelled = true;
       const currentSocket = socketRef.current;
       const currentXterm = xtermRef.current;
-      const currentTerminalElement = terminalRef.current;
+      
+      if (handleWindowResize) {
+        window.removeEventListener("resize", handleWindowResize);
+      }
 
-      if (resizeObserver && currentTerminalElement) {
+      if (resizeObserver) {
         resizeObserver.disconnect();
       }
       if (currentSocket) {
@@ -208,7 +229,6 @@ export function IntegratedTerminal({
       if (currentXterm) {
         currentXterm.dispose();
       }
-      // Note: window event listener cleanup is handled inside initTerminal
     };
   }, [sessionId, workingDir, isMounted]);
 

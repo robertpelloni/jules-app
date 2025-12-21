@@ -11,3 +11,7 @@
 ## 2025-12-20 - Expensive Diff Parsing during Layout Resize
 **Learning:** `AppLayout` updates state during drag-resizing of the sidebar. This triggers re-renders of children. `CodeDiffSidebar` and `DiffViewer` were recalculating filters and parsing text diffs on every frame of the resize, causing jank.
 **Action:** Memoize expensive data derivations (`filter`, `parseDiff`) using `useMemo` to ensure they only run when data actually changes, not when unrelated parent state (layout dimensions) changes.
+
+## 2025-12-20 - Memory Leak in Terminal Component
+**Learning:** `IntegratedTerminal` added a window "resize" event listener inside an async initialization function but failed to remove it in the cleanup function. This caused a memory leak of the Terminal instance, Socket connection, and FitAddon on every unmount/remount (e.g. toggling terminal).
+**Action:** Ensure all event listeners added, even in async callbacks, are accessible and removed in the `useEffect` cleanup. Use a `cancelled` flag to prevent async setup from running if the component unmounts before setup completes.
