@@ -3,128 +3,275 @@
 import { useEffect, useRef } from 'react';
 import { useJules } from '@/lib/jules/provider';
 import { useSessionKeeperStore } from '@/lib/stores/session-keeper';
-import { decideNextAction } from '@/lib/orchestration/supervisor';
-import { DebateManager } from '@/lib/orchestration/debate';
+
+// Persistent Supervisor State
+interface SupervisorState {
+  [sessionId: string]: {
+    lastProcessedActivityTimestamp: string;
+    history: { role: string; content: string }[];
+    openaiThreadId?: string;
+    openaiAssistantId?: string;
+  };
+}
 
 export function SessionKeeperManager() {
   const { client, apiKey } = useJules();
   const { config, addLog, setStatusSummary } = useSessionKeeperStore();
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const processingRef = useRef(false);
 
   useEffect(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
     if (!config.isEnabled || !client) {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
+      setStatusSummary({
+        monitoringCount: 0,
+        lastAction: 'Disabled',
+        nextCheckIn: 0
+      });
       return;
     }
 
-    const checkSessions = async () => {
+    const runLoop = async () => {
+      if (processingRef.current) return;
+      processingRef.current = true;
+
       try {
         const sessions = await client.listSessions();
-
-        // Resume all states including failed/completed, excluding archived (if that state existed).
-        // Since we don't have an explicit 'archived' state in our type yet, we assume all listed sessions are valid candidates.
-        // If we need to filter archived, we would check a specific flag.
+        // Filter out archived if we had a way to check, for now assume all returned are relevant
         const monitoredSessions = sessions;
 
         setStatusSummary({
           monitoringCount: monitoredSessions.length,
           lastAction: 'Checked ' + new Date().toLocaleTimeString(),
-          nextCheckIn: config.checkIntervalSeconds
+          nextCheckIn: Date.now() + (config.checkIntervalSeconds * 1000)
         });
 
-        // Loop through sessions and act
+        // Load Supervisor State
+        const savedState = localStorage.getItem('jules_supervisor_state');
+        const supervisorState: SupervisorState = savedState ? JSON.parse(savedState) : {};
+        let stateChanged = false;
+
+        const generateMessage = async (session: any) => {
+            let messageToSend = '';
+
+            // DEBATE MODE OR SMART PILOT
+            if ((config.debateEnabled && config.debateParticipants && config.debateParticipants.length > 0) || (config.smartPilotEnabled && config.supervisorApiKey)) {
+              try {
+                // Fetch ALL activities
+                const activities = await client.listActivities(session.id);
+                if (session.prompt && !activities.some((a: any) => a.content === session.prompt)) {
+                    activities.unshift({
+                        id: 'initial-prompt',
+                        sessionId: session.id,
+                        type: 'message',
+                        role: 'user',
+                        content: session.prompt,
+                        createdAt: session.createdAt
+                    } as any);
+                }
+                const sortedActivities = activities.sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+                // Debate / Conference Logic
+                if (config.debateEnabled && config.debateParticipants && config.debateParticipants.length > 0) {
+                    const mode = config.supervisorMode === 'conference' ? 'conference' : 'debate';
+                    addLog(`Convening ${mode === 'conference' ? 'Conference' : 'Council'} (${config.debateParticipants.length} members)...`, 'info');
+
+                    // Prepare simple history for debate (stateless usually)
+                    const history = sortedActivities.map((a: any) => ({
+                        role: a.role === 'agent' ? 'assistant' : 'user',
+                        content: a.content
+                    })).slice(-config.contextMessageCount);
+
+                    const response = await fetch('/api/supervisor', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: mode,
+                            messages: history,
+                            participants: config.debateParticipants
+                        })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        messageToSend = data.content;
+                        if (data.opinions) {
+                            data.opinions.forEach((op: any) => {
+                                addLog(`Member (${op.participant.provider}): ${op.content.substring(0, 30)}...`, 'info');
+                            });
+                        }
+                        addLog(`${mode === 'conference' ? 'Conference' : 'Council'} Result: "${messageToSend.substring(0, 30)}..."`, 'action');
+                    } else {
+                        const err = await response.json().catch(() => ({}));
+                        throw new Error(`${mode} failed: ${err.error || 'Unknown'}`);
+                    }
+
+                }
+                // Single Supervisor Logic
+                else if (config.smartPilotEnabled) {
+                    addLog(`Asking Supervisor (${config.supervisorProvider})...`, 'info');
+
+                    // State Management
+                    if (!supervisorState[session.id]) {
+                      supervisorState[session.id] = { lastProcessedActivityTimestamp: '', history: [] };
+                    }
+                    const sessionState = supervisorState[session.id];
+
+                    // Identify NEW activities
+                    let newActivities = sortedActivities;
+                    if (sessionState.lastProcessedActivityTimestamp) {
+                      newActivities = sortedActivities.filter((a: any) => new Date(a.createdAt).getTime() > new Date(sessionState.lastProcessedActivityTimestamp).getTime());
+                    }
+
+                    const isStateful = config.supervisorProvider === 'openai-assistants';
+                    let messagesToSend: { role: string, content: string }[] = [];
+
+                    if (newActivities.length > 0) {
+                      if (sessionState.history.length === 0 && !sessionState.openaiThreadId) {
+                        const fullSummary = newActivities.map((a: any) => `${a.role.toUpperCase()}: ${a.content}`).join('\n\n');
+                        messagesToSend.push({ role: 'user', content: `Here is the full conversation history so far. Please analyze the state and provide the next instruction:\n\n${fullSummary}` });
+                      } else {
+                        const updates = newActivities.map((a: any) => `${a.role.toUpperCase()}: ${a.content}`).join('\n\n');
+                        messagesToSend.push({ role: 'user', content: `Here are the latest updates since your last instruction:\n\n${updates}` });
+                      }
+                      sessionState.lastProcessedActivityTimestamp = newActivities[newActivities.length - 1].createdAt;
+                    } else if (sessionState.history.length > 0 || sessionState.openaiThreadId) {
+                       messagesToSend.push({ role: 'user', content: "The agent has been inactive for a while. Please provide a nudge or follow-up instruction." });
+                    }
+
+                    if (!isStateful) {
+                      messagesToSend = [...sessionState.history, ...messagesToSend].slice(-config.contextMessageCount);
+                    }
+
+                    const response = await fetch('/api/supervisor', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        messages: messagesToSend,
+                        provider: config.supervisorProvider,
+                        apiKey: config.supervisorApiKey,
+                        model: config.supervisorModel,
+                        threadId: sessionState.openaiThreadId,
+                        assistantId: sessionState.openaiAssistantId
+                      })
+                    });
+
+                    if (response.ok) {
+                      const data = await response.json();
+                      if (data.content) {
+                        messageToSend = data.content;
+                        addLog(`Supervisor says: "${messageToSend.substring(0, 30)}..."`, 'action');
+                        if (isStateful) {
+                          sessionState.openaiThreadId = data.threadId;
+                          sessionState.openaiAssistantId = data.assistantId;
+                          sessionState.history.push(...messagesToSend);
+                          sessionState.history.push({ role: 'assistant', content: messageToSend });
+                        } else {
+                          sessionState.history = [...messagesToSend, { role: 'assistant', content: messageToSend }];
+                        }
+                        stateChanged = true;
+                      }
+                    } else {
+                       throw new Error('Supervisor API failed');
+                    }
+                }
+              } catch (err) {
+                console.error('Supervisor/Debate Error:', err);
+                addLog(`Auto-Pilot error: ${err instanceof Error ? err.message : 'Unknown'}`, 'error');
+              }
+            }
+
+            // Fallback if smart pilot disabled or failed
+            if (!messageToSend) {
+              let messages = config.messages;
+              if (config.customMessages && config.customMessages[session.id] && config.customMessages[session.id].length > 0) {
+                messages = config.customMessages[session.id];
+              }
+              
+              if (messages.length === 0) {
+                return "Please resume working on this task.";
+              }
+              messageToSend = messages[Math.floor(Math.random() * messages.length)];
+            }
+            return messageToSend;
+        };
+
         for (const session of monitoredSessions) {
-          // Get activities to determine state
-          const activities = await client.listActivities(session.id);
-          if (activities.length === 0) continue;
-
-          const lastActivity = activities[0]; // Assuming sorted desc
-          const lastActivityTime = new Date(lastActivity.createdAt).getTime();
-          const now = Date.now();
-          const inactiveMinutes = (now - lastActivityTime) / (1000 * 60);
-
-          // Determine threshold based on session state
-          // "In Progress" sessions should be interrupted less frequently (use activeWorkThresholdMinutes)
-          let threshold = config.inactivityThresholdMinutes;
-
-          const isWorking = session.rawState === 'IN_PROGRESS' || session.rawState === 'PLANNING' || session.rawState === 'ACTIVE';
-
-          if (isWorking) {
-             threshold = config.activeWorkThresholdMinutes;
-          }
-
-          // Check if plan needs approval (High Priority)
-          if (lastActivity.type === 'plan' && !lastActivity.metadata?.planApproved) {
-             addLog(`Approving plan for session ${session.id}`, 'action');
-             await client.approvePlan(session.id);
+          // 1. Resume Paused/Completed/Failed
+          if (session.status === 'paused' || session.status === 'completed' || session.status === 'failed') {
+             addLog(`Resuming ${session.status} session ${session.id.substring(0, 8)}...`, 'action');
+             
+             const message = await generateMessage(session);
+             await client.resumeSession(session.id, message);
+             
+             addLog(`Resumed ${session.id.substring(0, 8)}`, 'action');
              continue;
           }
 
-          // Check for inactivity
-          if (inactiveMinutes > threshold) {
-             // Send a nudge
-             let message = config.messages[Math.floor(Math.random() * config.messages.length)];
-
-             // Check custom messages
-             if (config.customMessages[session.id]) {
-                message = config.customMessages[session.id];
-             }
-
-             // If completed or failed, force resume message
-             if (session.status === 'completed' || session.status === 'failed') {
-                message = "Please resume working on this task.";
-             }
-
-             // Smart Pilot Logic
-             if (config.smartPilotEnabled && config.supervisorApiKey) {
-                addLog(`Consulting Supervisor for session ${session.id}...`, 'info');
-                try {
-                  const contextActivities = activities.slice(0, config.contextMessageCount).reverse();
-                  const context = contextActivities.map(a => `${a.role.toUpperCase()}: ${a.content}`).join('\n');
-
-                  // Use the supervisor logic
-                  // Note: Since we are in client side, we'd ideally proxy this.
-                  // But for this feature implementation, assuming direct call is acceptable or key is safe in local storage.
-                  const supervisorMessage = await decideNextAction(
-                    config.supervisorProvider,
-                    config.supervisorApiKey,
-                    config.supervisorModel,
-                    `The user is inactive. The last activity was: ${lastActivity.content}. \n\n Recent Context:\n ${context}`
-                  );
-
-                  if (supervisorMessage) {
-                    message = supervisorMessage;
-                  }
-                } catch (e) {
-                  addLog(`Supervisor failed: ${e}`, 'error');
-                }
-             }
-
-             addLog(`Sending nudge to ${session.id} (${inactiveMinutes.toFixed(1)}m > ${threshold}m): "${message}"`, 'action');
-             await client.createActivity({
-               sessionId: session.id,
-               content: message,
-               type: 'message'
-             });
+          // 2. Approve Plans
+          if (session.status === 'awaiting_approval' || session.rawState === 'AWAITING_PLAN_APPROVAL') {
+            addLog(`Approving plan for session ${session.id.substring(0, 8)}...`, 'action');
+            await client.approvePlan(session.id);
+            addLog(`Plan approved for ${session.id.substring(0, 8)}`, 'action');
+            continue;
           }
+
+          // 3. Check for Inactivity & Nudge
+          const lastActivityTime = session.lastActivityAt ? new Date(session.lastActivityAt) : new Date(session.updatedAt);
+          const diffMs = Date.now() - lastActivityTime.getTime();
+          const diffMinutes = diffMs / 60000;
+
+          // Determine threshold
+          let threshold = config.inactivityThresholdMinutes;
+          if (session.rawState === 'IN_PROGRESS') {
+             threshold = config.activeWorkThresholdMinutes;
+             // Guard: If actively working (<30s), always skip
+             if (diffMs < 30000) {
+               continue;
+             }
+          }
+
+          if (diffMinutes > threshold) {
+            const messageToSend = await generateMessage(session);
+            if (!messageToSend) {
+                addLog(`Skipped ${session.id.substring(0, 8)}: No messages configured`, 'skip');
+                continue;
+            }
+            
+            addLog(`Sending nudge to ${session.id.substring(0, 8)} (${Math.round(diffMinutes)}m inactive)`, 'action');
+            await client.createActivity({
+              sessionId: session.id,
+              content: messageToSend,
+              type: 'message'
+            });
+            addLog(`Nudge sent`, 'action');
+          }
+        }
+
+        // Save State if changed
+        if (stateChanged) {
+          localStorage.setItem('jules_supervisor_state', JSON.stringify(supervisorState));
         }
 
       } catch (error) {
         addLog(`Error checking sessions: ${error}`, 'error');
+      } finally {
+        processingRef.current = false;
       }
     };
 
     // Initial check
-    checkSessions();
-    intervalRef.current = setInterval(checkSessions, config.checkIntervalSeconds * 1000);
+    runLoop();
+    intervalRef.current = setInterval(runLoop, config.checkIntervalSeconds * 1000);
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [config, client, addLog, setStatusSummary]);
+  }, [config, client, apiKey, addLog, setStatusSummary]);
 
   return null;
 }
