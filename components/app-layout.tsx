@@ -55,30 +55,7 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ initialView }: AppLayoutProps) {
-  const { apiKey, clearApiKey } = useJules();
-import { useState, useCallback, useEffect } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
-import { useJules } from '@/lib/jules/provider';
-import type { Session, Activity, SessionTemplate } from '@/types/jules';
-import { SessionList } from './session-list';
-import { ActivityFeed } from './activity-feed';
-import { CodeDiffSidebar } from './code-diff-sidebar';
-import { AnalyticsDashboard } from './analytics-dashboard';
-import { NewSessionDialog } from './new-session-dialog';
-import { TemplatesPage } from './templates-page';
-import { SessionKeeperSettings } from './session-keeper-settings';
-import { SessionKeeperLogPanel } from './session-keeper-log-panel';
-import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { Menu, LogOut, Settings, BarChart3, MessageSquare, ChevronLeft, ChevronRight, Terminal as TerminalIcon, LayoutTemplate, Plus, Activity as ActivityIcon } from 'lucide-react';
-import { TerminalPanel } from './terminal-panel';
-import { useTerminalAvailable } from '@/hooks/use-terminal-available';
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
-import { SessionKeeperManager } from './session-keeper-manager';
-
-export function AppLayout() {
-  const { client, clearApiKey } = useJules();
+  const { client, apiKey, clearApiKey } = useJules();
   const { config, setConfig } = useSessionKeeperStore();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -102,8 +79,6 @@ export function AppLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [codeDiffSidebarCollapsed, setCodeDiffSidebarCollapsed] =
-    useState(false);
   const [codeDiffSidebarCollapsed, setCodeDiffSidebarCollapsed] = useState(false);
   // Replaced keeperSidebarCollapsed with direct logs toggle state
   const [isLogPanelOpen, setIsLogPanelOpen] = useState(false);
