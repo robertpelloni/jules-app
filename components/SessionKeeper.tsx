@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useJules } from '@/lib/jules/provider';
-import { RotateCw, Brain, X, Check, Activity, Users } from 'lucide-react';
+import { RotateCw, Brain, X, Check, Activity, Users, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -140,55 +140,7 @@ export function SessionKeeper({ onClose }: { isSidebar?: boolean, onClose?: () =
         const supervisorState: SupervisorState = savedState ? JSON.parse(savedState) : {};
         let stateChanged = false;
 
-        for (const session of activeSessions) {
-          // Helper to switch session safely
-          const safeSwitch = (targetId: string) => {
-            const cleanId = targetId.replace('sessions/', '');
-            const targetPath = `/?sessionId=${cleanId}`;
-            if (config.autoSwitch && !hasSwitchedRef.current) {
-               router.push(targetPath);
-               hasSwitchedRef.current = true;
-            }
-          };
-
-          // 1. Resume Paused/Completed/Failed
-          if (session.status === 'paused' || session.status === 'completed' || session.status === 'failed') {
-             addLog(`Resuming ${session.status} session ${session.id.substring(0, 8)}...`, 'action');
-             safeSwitch(session.id);
-             await client.resumeSession(session.id);
-             addLog(`Resumed ${session.id.substring(0, 8)}`, 'action');
-             setStatusSummary(prev => ({ ...prev, lastAction: `Resumed ${session.id.substring(0,8)}` }));
-             continue;
-          }
-
-          // 2. Approve Plans
-          if (session.status === 'awaiting_approval' || session.rawState === 'AWAITING_PLAN_APPROVAL') {
-            addLog(`Approving plan for session ${session.id.substring(0, 8)}...`, 'action');
-            safeSwitch(session.id);
-            await client.approvePlan(session.id);
-            addLog(`Plan approved for ${session.id.substring(0, 8)}`, 'action');
-            setStatusSummary(prev => ({ ...prev, lastAction: `Approved Plan ${session.id.substring(0,8)}` }));
-            continue;
-          }
-
-          // 3. Check for Inactivity & Nudge
-          const lastActivityTime = session.lastActivityAt ? new Date(session.lastActivityAt) : new Date(session.updatedAt);
-          const diffMs = now.getTime() - lastActivityTime.getTime();
-          const diffMinutes = diffMs / 60000;
-
-          // Determine threshold
-          let threshold = config.inactivityThresholdMinutes;
-          if (session.rawState === 'IN_PROGRESS') {
-             threshold = config.activeWorkThresholdMinutes;
-             // Guard: If actively working (<30s), always skip
-             if (diffMs < 30000) {
-               addLog(`Skipped ${session.id.substring(0, 8)}: Working (Active < 30s)`, 'skip');
-               continue;
-             }
-          }
-
-          if (diffMinutes > threshold) {
-            safeSwitch(session.id);
+        const generateMessage = async (session: any) => {
             let messageToSend = '';
 
             // DEBATE MODE OR SMART PILOT
@@ -208,9 +160,10 @@ export function SessionKeeper({ onClose }: { isSidebar?: boolean, onClose?: () =
                 }
                 const sortedActivities = activities.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
-                // Debate Logic
+                // Debate / Conference Logic
                 if (config.debateEnabled && config.debateParticipants && config.debateParticipants.length > 0) {
-                    addLog(`Convening Council (${config.debateParticipants.length} members)...`, 'info');
+                    const mode = config.supervisorMode === 'conference' ? 'conference' : 'debate';
+                    addLog(`Convening ${mode === 'conference' ? 'Conference' : 'Council'} (${config.debateParticipants.length} members)...`, 'info');
 
                     // Prepare simple history for debate (stateless usually)
                     const history = sortedActivities.map(a => ({
@@ -222,7 +175,7 @@ export function SessionKeeper({ onClose }: { isSidebar?: boolean, onClose?: () =
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            action: 'debate',
+                            action: mode,
                             messages: history,
                             participants: config.debateParticipants
                         })
@@ -233,13 +186,13 @@ export function SessionKeeper({ onClose }: { isSidebar?: boolean, onClose?: () =
                         messageToSend = data.content;
                         if (data.opinions) {
                             data.opinions.forEach((op: any) => {
-                                addLog(`Council Member (${op.participant.provider}): ${op.content.substring(0, 30)}...`, 'info');
+                                addLog(`Member (${op.participant.provider}): ${op.content.substring(0, 30)}...`, 'info');
                             });
                         }
-                        addLog(`Council Verdict: "${messageToSend.substring(0, 30)}..."`, 'action');
+                        addLog(`${mode === 'conference' ? 'Conference' : 'Council'} Result: "${messageToSend.substring(0, 30)}..."`, 'action');
                     } else {
                         const err = await response.json().catch(() => ({}));
-                        throw new Error(`Debate failed: ${err.error || 'Unknown'}`);
+                        throw new Error(`${mode} failed: ${err.error || 'Unknown'}`);
                     }
 
                 }
@@ -325,10 +278,71 @@ export function SessionKeeper({ onClose }: { isSidebar?: boolean, onClose?: () =
               }
               
               if (messages.length === 0) {
-                addLog(`Skipped ${session.id.substring(0, 8)}: No messages configured`, 'skip');
-                continue;
+                // Default fallback if no messages configured
+                return "Please resume working on this task.";
               }
               messageToSend = messages[Math.floor(Math.random() * messages.length)];
+            }
+            return messageToSend;
+        };
+
+        for (const session of activeSessions) {
+          // Helper to switch session safely
+          const safeSwitch = (targetId: string) => {
+            const cleanId = targetId.replace('sessions/', '');
+            const targetPath = `/?sessionId=${cleanId}`;
+            if (config.autoSwitch && !hasSwitchedRef.current) {
+               router.push(targetPath);
+               hasSwitchedRef.current = true;
+            }
+          };
+
+          // 1. Resume Paused/Completed/Failed
+          if (session.status === 'paused' || session.status === 'completed' || session.status === 'failed') {
+             addLog(`Resuming ${session.status} session ${session.id.substring(0, 8)}...`, 'action');
+             safeSwitch(session.id);
+             
+             const message = await generateMessage(session);
+             await client.resumeSession(session.id, message);
+             
+             addLog(`Resumed ${session.id.substring(0, 8)}`, 'action');
+             setStatusSummary(prev => ({ ...prev, lastAction: `Resumed ${session.id.substring(0,8)}` }));
+             continue;
+          }
+
+          // 2. Approve Plans
+          if (session.status === 'awaiting_approval' || session.rawState === 'AWAITING_PLAN_APPROVAL') {
+            addLog(`Approving plan for session ${session.id.substring(0, 8)}...`, 'action');
+            safeSwitch(session.id);
+            await client.approvePlan(session.id);
+            addLog(`Plan approved for ${session.id.substring(0, 8)}`, 'action');
+            setStatusSummary(prev => ({ ...prev, lastAction: `Approved Plan ${session.id.substring(0,8)}` }));
+            continue;
+          }
+
+          // 3. Check for Inactivity & Nudge
+          const lastActivityTime = session.lastActivityAt ? new Date(session.lastActivityAt) : new Date(session.updatedAt);
+          const diffMs = now.getTime() - lastActivityTime.getTime();
+          const diffMinutes = diffMs / 60000;
+
+          // Determine threshold
+          let threshold = config.inactivityThresholdMinutes;
+          if (session.rawState === 'IN_PROGRESS') {
+             threshold = config.activeWorkThresholdMinutes;
+             // Guard: If actively working (<30s), always skip
+             if (diffMs < 30000) {
+               addLog(`Skipped ${session.id.substring(0, 8)}: Working (Active < 30s)`, 'skip');
+               continue;
+             }
+          }
+
+          if (diffMinutes > threshold) {
+            safeSwitch(session.id);
+            
+            const messageToSend = await generateMessage(session);
+            if (!messageToSend) {
+                addLog(`Skipped ${session.id.substring(0, 8)}: No messages configured`, 'skip');
+                continue;
             }
             
             addLog(`Sending nudge to ${session.id.substring(0, 8)} (${Math.round(diffMinutes)}m inactive)`, 'action');

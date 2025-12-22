@@ -23,6 +23,7 @@ import { SessionKeeperManager } from './session-keeper-manager';
 
 export function AppLayout() {
   const { client, clearApiKey } = useJules();
+  const { config, setConfig } = useSessionKeeperStore();
   const searchParams = useSearchParams();
   const router = useRouter();
   const { isAvailable: terminalAvailable } = useTerminalAvailable();

@@ -357,24 +357,40 @@ export class JulesClient {
     });
   }
 
-  async resumeSession(sessionId: string): Promise<void> {
+  async resumeSession(sessionId: string, message?: string): Promise<void> {
     // No direct 'resume' endpoint found in SDK, using createActivity to wake it up.
     // This is a common pattern for resuming paused/completed sessions in agentic workflows.
     await this.createActivity({
       sessionId,
-      content: 'Please resume working on this task.',
+      content: message || 'Please resume working on this task.',
       type: 'message'
     });
   }
 
   // Activities
   async listActivities(sessionId: string): Promise<Activity[]> {
-    const response = await this.request<{ activities: ApiActivity[] }>(
-      `/sessions/${sessionId}/activities`
-    );
+    let allActivities: ApiActivity[] = [];
+    let pageToken: string | undefined;
+
+    do {
+      const params = new URLSearchParams();
+      params.set('pageSize', '100');
+      if (pageToken) {
+        params.set('pageToken', pageToken);
+      }
+
+      const endpoint = `/sessions/${sessionId}/activities?${params.toString()}`;
+      const response = await this.request<{ activities: ApiActivity[]; nextPageToken?: string }>(endpoint);
+
+      if (response.activities) {
+        allActivities = allActivities.concat(response.activities);
+      }
+
+      pageToken = response.nextPageToken;
+    } while (pageToken);
 
     // Transform API response to match our Activity type
-    return (response.activities || []).map((activity: ApiActivity) => {
+    return allActivities.map((activity: ApiActivity) => {
       // Extract ID from name field (e.g., "sessions/ID/activities/ACTIVITY_ID")
       const id = activity.name?.split('/').pop() || activity.id || '';
 

@@ -72,3 +72,47 @@ Synthesize the best points. Be direct and directive. Do not mention "The Council
       opinions: validOpinions
   };
 }
+
+export async function runConference(params: DebateParams) {
+  const { history, participants } = params;
+
+  // 1. Collect Opinions
+  const opinions = await Promise.all(participants.map(async (p) => {
+    try {
+        const provider = getProvider(p.provider);
+        if (!provider) throw new Error(`Provider ${p.provider} not found`);
+
+        const sysPrompt = `You are a ${p.role || 'project supervisor'} participating in a round-table conference about the next steps for an AI agent.
+Analyze the history and provide your recommendation. Be concise.`;
+
+        const result = await provider.complete({
+            messages: history,
+            apiKey: p.apiKey,
+            model: p.model,
+            systemPrompt: sysPrompt
+        });
+
+        return { participant: p, content: result.content };
+    } catch (e) {
+        console.error(`Participant ${p.provider}/${p.model} failed:`, e);
+        return { participant: p, error: e instanceof Error ? e.message : 'Unknown error', content: '' };
+    }
+  }));
+
+  const validOpinions = opinions.filter(o => !o.error && o.content);
+
+  if (validOpinions.length === 0) {
+      throw new Error("All conference participants failed.");
+  }
+
+  // 2. Format as "Role (Model): Content"
+  const content = validOpinions.map(o => {
+      const name = o.participant.role ? `${o.participant.role} (${o.participant.model})` : o.participant.model;
+      return `**${name}**: ${o.content}`;
+  }).join('\n\n');
+
+  return {
+      content,
+      opinions: validOpinions
+  };
+}
