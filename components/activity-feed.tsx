@@ -1,35 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
-import { useJules } from "@/lib/jules/provider";
-import type { Activity, Session } from "@/types/jules";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { formatDistanceToNow, isValid, parseISO } from "date-fns";
-import {
-  Send,
-  Archive,
-  Code,
-  Terminal,
-  ChevronDown,
-  ChevronRight,
-  Play,
-  GitBranch,
-  GitPullRequest,
-  MoreVertical,
-  Book,
-  Loader2,
-} from "lucide-react";
-import { archiveSession } from "@/lib/archive";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import { BashOutput } from "@/components/ui/bash-output";
-import { NewSessionDialog } from "./new-session-dialog";
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useJules } from '@/lib/jules/provider';
 import type { Activity, Session } from '@/types/jules';
 import { Card, CardContent } from '@/components/ui/card';
@@ -39,10 +10,8 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow, isValid, parseISO } from 'date-fns';
-import { Send, Archive, Code, Terminal, ChevronDown, ChevronRight, Play, GitBranch, GitPullRequest, MoreVertical, Book, ArrowUp, ArrowDown, Download, Copy, Check } from 'lucide-react';
+import { Send, Archive, Code, Terminal, ChevronDown, ChevronRight, Play, GitBranch, GitPullRequest, MoreVertical, Book, ArrowUp, ArrowDown, Download, Copy, Check, Loader2 } from 'lucide-react';
 import { archiveSession } from '@/lib/archive';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import { BashOutput } from '@/components/ui/bash-output';
 import { NewSessionDialog } from './new-session-dialog';
 import {
@@ -55,10 +24,11 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
-import { PlanContent } from "./plan-content";
 import { BorderGlow } from "./ui/border-glow";
-import { PlanContent } from './plan-content';
 import { ActivityContent } from './activity-content';
+import { PlanContent } from './plan-content';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface ActivityFeedProps {
   session: Session;
@@ -86,10 +56,10 @@ export function ActivityFeed({
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+  const [expandedBashOutputs, setExpandedBashOutputs] = useState<Set<string>>(new Set());
 
   const formatDate = (dateString: string) => {
     if (!dateString) return "Unknown date";
-
     try {
       const date = parseISO(dateString);
       if (!isValid(date)) return "Unknown date";
@@ -127,81 +97,6 @@ export function ActivityFeed({
       );
     }
   };
-
-  const loadActivities = useCallback(
-    async (isInitialLoad = true) => {
-      if (!client) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        // Only show loading spinner on initial load
-        if (isInitialLoad) {
-          setLoading(true);
-        }
-        setError(null);
-        const data = await client.listActivities(session.id);
-
-        // Only update if activities have changed (to prevent unnecessary re-renders)
-        setActivities((prevActivities) => {
-          // If no previous activities or this is initial load, just set them
-          if (prevActivities.length === 0 || isInitialLoad) {
-            return data;
-          }
-
-          // Check if we have new activities
-          const newActivities = data.filter(
-            (newAct) =>
-              !prevActivities.some((prevAct) => prevAct.id === newAct.id),
-          );
-
-          // Only update if there are new activities
-          if (newActivities.length > 0) {
-            // Track new activity IDs for animation
-            setNewActivityIds(new Set(newActivities.map((a) => a.id)));
-            // Clear the animation state after animation completes
-            setTimeout(() => setNewActivityIds(new Set()), 500);
-
-            return [...prevActivities, ...newActivities];
-          }
-
-          return prevActivities;
-        });
-      } catch (err) {
-        console.error("Failed to load activities:", err);
-        // For 404, just show empty state instead of error (session may not have activities yet)
-        if (
-          err instanceof Error &&
-          err.message.includes("Resource not found")
-        ) {
-          setActivities([]);
-          setError(null);
-        } else {
-          const errorMessage =
-            err instanceof Error ? err.message : "Failed to load activities";
-          setError(errorMessage);
-          if (isInitialLoad) {
-            setActivities([]);
-          }
-        }
-      } finally {
-        if (isInitialLoad) {
-          setLoading(false);
-        }
-      }
-    },
-    [client, session.id],
-  );
-
-  useEffect(() => {
-    loadActivities(true);
-
-    // Auto-poll for new activities every 5 seconds for active sessions
-    if (session.status === "active") {
-      const interval = setInterval(() => {
-        loadActivities(false); // Don't show loading spinner for polls
-      }, 5000);
 
   const loadActivities = useCallback(async (isInitialLoad = true) => {
     if (!client) {
@@ -244,7 +139,6 @@ export function ActivityFeed({
           setTimeout(() => setNewActivityIds(new Set()), 500);
 
           // Deduplicate pending messages
-          // If we received a new message that matches a pending one, remove the pending one
           const newContentCounts = new Map<string, number>();
           newActivities.forEach(a => {
             if (a.role === 'user') {
@@ -309,14 +203,8 @@ export function ActivityFeed({
       }, 1000);
     } catch (err) {
       console.error("Failed to approve plan:", err);
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to approve plan";
+      const errorMessage = err instanceof Error ? err.message : "Failed to approve plan";
       setError(errorMessage);
-        try { await loadActivities(false); } catch (err) { console.error(err); }
-      }, 1000);
-    } catch (err) {
-      console.error('Failed to approve plan:', err);
-      setError(err instanceof Error ? err.message : 'Failed to approve plan');
     } finally {
       setApprovingPlan(false);
     }
@@ -348,8 +236,7 @@ export function ActivityFeed({
       }, 2000);
     } catch (err) {
       console.error("Failed to send command:", err);
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to send command";
+      const errorMessage = err instanceof Error ? err.message : "Failed to send command";
       setError(errorMessage);
     } finally {
       setSending(false);
@@ -385,16 +272,8 @@ export function ActivityFeed({
       }, 2000);
     } catch (err) {
       console.error("Failed to send message:", err);
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to send message";
+      const errorMessage = err instanceof Error ? err.message : "Failed to send message";
       setError(errorMessage);
-      setMessage('');
-      setTimeout(async () => {
-        try { await loadActivities(false); } catch (err) { console.error(err); }
-      }, 2000);
-    } catch (err) {
-      console.error('Failed to send message:', err);
-      setError(err instanceof Error ? err.message : 'Failed to send message');
     } finally {
       setSending(false);
     }
@@ -409,54 +288,6 @@ export function ActivityFeed({
     onToggleCodeDiffs(!showCodeDiffs);
   };
 
-  // Get only the final code changes (last activity with diff contains all changes)
-  const finalDiff = activities.filter((activity) => activity.diff).slice(-1);
-  const hasDiffs = finalDiff.length > 0;
-
-  // Try to find output branch from agent messages or bash output
-  const outputBranch = (() => {
-    // Look at all activities in reverse order
-    const reversedActivities = [...activities].reverse();
-
-    for (const activity of reversedActivities) {
-      // 1. Check Bash Output for explicit git commands
-      if (activity.bashOutput) {
-        // git checkout -b feature-branch
-        const checkoutMatch = activity.bashOutput.match(
-          /git checkout -b\s+([\w-./]+)/,
-        );
-        if (checkoutMatch) return checkoutMatch[1];
-
-        // git push origin feature-branch
-        const pushMatch = activity.bashOutput.match(
-          /git push\s+(?:-u\s+)?(?:origin\s+)?([\w-./]+)/,
-        );
-        if (pushMatch) return pushMatch[1];
-      }
-
-      // 2. Check content for natural language patterns
-      if (
-        activity.role === "agent" &&
-        (activity.type === "message" || activity.type === "result")
-      ) {
-        const content = activity.content || "";
-
-        // "created branch 'feature/foo'", "on branch `fix-bug`", "switched to branch 'dev'"
-        const match = content.match(
-          /(?:created|pushed|on|switched to) branch ['"`]?([\w-./]+)['"`]?/i,
-        );
-        if (match) return match[1];
-      }
-    }
-
-    // Fallback to session branch if no specific output branch is found
-    return session.branch || "main";
-  })();
-
-  // State for expanded bash outputs (inline)
-  const [expandedBashOutputs, setExpandedBashOutputs] = useState<Set<string>>(
-    new Set(),
-  );
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
@@ -505,7 +336,6 @@ export function ActivityFeed({
   // Auto-scroll effect
   useEffect(() => {
     if (shouldAutoScroll && activities.length > 0) {
-      // Small timeout to allow DOM to update
       const timer = setTimeout(() => {
         const scrollContainer = document.querySelector('#activity-feed-scroll-area [data-radix-scroll-area-viewport]');
         if (scrollContainer) {
@@ -539,7 +369,6 @@ export function ActivityFeed({
   const finalDiff = activities.filter(activity => activity.diff).slice(-1);
   const hasDiffs = finalDiff.length > 0;
   const outputBranch = session.branch || 'main';
-  const [expandedBashOutputs, setExpandedBashOutputs] = useState<Set<string>>(new Set());
 
   const toggleBashOutput = (activityId: string) => {
     setExpandedBashOutputs((prev) => {
@@ -572,56 +401,13 @@ export function ActivityFeed({
     }
   };
 
-  if (loading && activities.length === 0) {
-    return (
-      <AvatarFallback className="bg-white text-black text-[9px] font-bold uppercase tracking-wider">
-        J
-      </AvatarFallback>
-    );
-  };
-
-  const getActivityTypeColor = (type: Activity["type"]) => {
-    switch (type) {
-      case "message":
-        return "bg-blue-500";
-      case "plan":
-        return "bg-purple-500";
-      case "progress":
-        return "bg-yellow-500";
-      case "result":
-        return "bg-green-500";
-      case "error":
-        return "bg-red-500";
-      default:
-        return "bg-gray-500";
-    }
-  };
-
-
-
-  // Filter activities the same way as we do for display
+  // Filter activities
   const filteredActivities = useMemo(() => activities.filter((activity) => {
-    // Always keep activities with bash output or diffs, regardless of content
-  const filteredActivities = activities.filter((activity) => {
     if (activity.bashOutput || activity.diff) return true;
     const content = activity.content?.trim();
     if (!content) return false;
-    if (content === "{}") return false;
-    if (content === "[]") return false;
-    // Filter out fallback messages like [agentMessaged], [userMessaged], etc.
-    if (/^\[[\w,\s]+\]$/.test(content)) return false;
-    // Also check for common placeholder patterns
-    if (content === "[agentMessaged]" || content === "[userMessaged]")
-      return false;
-    try {
-      const parsed = JSON.parse(content);
-      if (typeof parsed === "object" && Object.keys(parsed).length === 0)
-        return false;
-      if (Array.isArray(parsed) && parsed.length === 0) return false;
-    } catch {
-      // Not JSON, keep it
-
-    // Aggressive filter for empty JSON/Arrays (including whitespace)
+    
+    // Aggressive filter for empty JSON/Arrays
     const cleanContent = content.replace(/\s/g, '');
     if (cleanContent === '{}' || cleanContent === '[]') return false;
 
@@ -637,14 +423,31 @@ export function ActivityFeed({
         // Not valid JSON, process as text
       }
     }
-
     return true;
   }), [activities]);
 
-  const latestActivity =
-    filteredActivities.length > 0
-      ? filteredActivities[filteredActivities.length - 1]
-      : null;
+  const latestActivity = filteredActivities.length > 0 ? filteredActivities[filteredActivities.length - 1] : null;
+  const sessionDuration = session.createdAt ? Math.floor((new Date().getTime() - new Date(session.createdAt).getTime()) / 1000 / 60) : 0;
+
+  const getStatusInfo = () => {
+    if (session.status === 'active') return { color: 'text-green-500', bgColor: 'bg-green-500/10', label: 'Active', icon: '●' };
+    if (session.status === 'completed') return { color: 'text-blue-500', bgColor: 'bg-blue-500/10', label: 'Completed', icon: '✓' };
+    if (session.status === 'failed') return { color: 'text-red-500', bgColor: 'bg-red-500/10', label: 'Failed', icon: '✕' };
+    if (session.status === 'paused') return { color: 'text-yellow-500', bgColor: 'bg-yellow-500/10', label: 'Paused', icon: '⏸' };
+    return { color: 'text-gray-500', bgColor: 'bg-gray-500/10', label: session.status, icon: '○' };
+  };
+
+  const statusInfo = getStatusInfo();
+
+  if (loading && activities.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-full bg-black">
+        <p className="text-[10px] font-mono text-white/40 uppercase tracking-widest">
+          Loading activities...
+        </p>
+      </div>
+    );
+  }
 
   const groupedActivities = useMemo(() => {
     // Group consecutive progress activities from the same role
@@ -675,73 +478,6 @@ export function ActivityFeed({
 
     return grouped;
   }, [filteredActivities]);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full bg-black">
-        <p className="text-[10px] font-mono text-white/40 uppercase tracking-widest">
-          Loading activities...
-        </p>
-      </div>
-    );
-  }
-
-  const sessionDuration = session.createdAt
-    ? Math.floor(
-        (new Date().getTime() - new Date(session.createdAt).getTime()) /
-          1000 /
-          60,
-      )
-    : 0;
-
-  const getStatusInfo = () => {
-    if (session.status === "active") {
-      return {
-        color: "text-green-500",
-        bgColor: "bg-green-500/10",
-        label: "Active",
-        icon: "●",
-      };
-    } else if (session.status === "completed") {
-      return {
-        color: "text-blue-500",
-        bgColor: "bg-blue-500/10",
-        label: "Completed",
-        icon: "✓",
-      };
-    } else if (session.status === "failed") {
-      return {
-        color: "text-red-500",
-        bgColor: "bg-red-500/10",
-        label: "Failed",
-        icon: "✕",
-      };
-    } else if (session.status === "paused") {
-      return {
-        color: "text-yellow-500",
-        bgColor: "bg-yellow-500/10",
-        label: "Paused",
-        icon: "⏸",
-      };
-    }
-    return {
-      color: "text-gray-500",
-      bgColor: "bg-gray-500/10",
-      label: session.status,
-      icon: "○",
-    };
-  const latestActivity = filteredActivities.length > 0 ? filteredActivities[filteredActivities.length - 1] : null;
-  const sessionDuration = session.createdAt ? Math.floor((new Date().getTime() - new Date(session.createdAt).getTime()) / 1000 / 60) : 0;
-
-  const getStatusInfo = () => {
-    if (session.status === 'active') return { color: 'text-green-500', bgColor: 'bg-green-500/10', label: 'Active', icon: '●' };
-    if (session.status === 'completed') return { color: 'text-blue-500', bgColor: 'bg-blue-500/10', label: 'Completed', icon: '✓' };
-    if (session.status === 'failed') return { color: 'text-red-500', bgColor: 'bg-red-500/10', label: 'Failed', icon: '✕' };
-    if (session.status === 'paused') return { color: 'text-yellow-500', bgColor: 'bg-yellow-500/10', label: 'Paused', icon: '⏸' };
-    return { color: 'text-gray-500', bgColor: 'bg-gray-500/10', label: session.status, icon: '○' };
-  };
-
-  const statusInfo = getStatusInfo();
 
   return (
     <div className="flex flex-col h-full bg-black relative">
@@ -820,17 +556,6 @@ export function ActivityFeed({
           </div>
           <div className="flex items-center gap-1 shrink-0">
             {hasDiffs && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleCodeDiffsSidebar}
-                title="View final code changes"
-                aria-label="Toggle code diffs"
-                className={`h-7 w-7 hover:bg-white/5 ${showCodeDiffs ? "bg-purple-500/20 text-purple-400" : "text-white/60"}`}
-              >
-          </div>
-          <div className="flex items-center gap-1 shrink-0">
-            {hasDiffs && (
               <Button variant="ghost" size="icon" onClick={toggleCodeDiffsSidebar} className={`h-7 w-7 hover:bg-white/5 ${showCodeDiffs ? 'bg-purple-500/20 text-purple-400' : 'text-white/60'}`}>
                 <Code className="h-3.5 w-3.5" />
               </Button>
@@ -847,10 +572,7 @@ export function ActivityFeed({
                   <MoreVertical className="h-3.5 w-3.5" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                className="w-48 bg-zinc-950 border-white/10 text-white/80"
-              >
+              <DropdownMenuContent align="end" className="w-48 bg-zinc-950 border-white/10 text-white/80">
                 {session.status === "active" && (
                   <DropdownMenuItem
                     onClick={handleQuickReview}
@@ -885,15 +607,6 @@ export function ActivityFeed({
                     }}
                   />
                 )}
-                <DropdownMenuItem
-                  onClick={handleArchive}
-                  className="focus:bg-white/10 focus:text-white text-xs cursor-pointer text-red-400 focus:text-red-400"
-                >
-                <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-white/5 text-white/60">
-                  <MoreVertical className="h-3.5 w-3.5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 bg-zinc-950 border-white/10 text-white/80">
                 <DropdownMenuSub>
                   <DropdownMenuSubTrigger className="text-xs">
                     <Download className="mr-2 h-3.5 w-3.5" /> Export Chat
@@ -933,8 +646,6 @@ export function ActivityFeed({
             >
               Retry
             </Button>
-            <p className="text-[11px] font-mono text-red-400 uppercase tracking-wide">{error}</p>
-            <Button variant="outline" size="sm" onClick={() => loadActivities(true)} className="h-7 text-[10px] border-white/10 hover:bg-white/5 text-white/80">Retry</Button>
           </div>
         </div>
       )}
@@ -958,33 +669,6 @@ export function ActivityFeed({
               </div>
             )}
             {groupedActivities.map((item, groupIndex) => {
-                // Handle grouped progress activities
-                  <p className="text-[10px] font-mono text-white/40 uppercase tracking-widest">No activities yet</p>
-                </div>
-              </div>
-            )}
-            {(() => {
-              const grouped: Array<Activity | Activity[]> = [];
-              let currentGroup: Activity[] | null = null;
-
-              filteredActivities.forEach((activity, index) => {
-                const shouldGroup = activity.type === 'progress' && activity.role === 'agent';
-                const prevActivity = index > 0 ? filteredActivities[index - 1] : null;
-                const prevShouldGroup = prevActivity && prevActivity.type === 'progress' && prevActivity.role === 'agent';
-
-                if (shouldGroup) {
-                  if (prevShouldGroup && currentGroup) currentGroup.push(activity);
-                  else {
-                    currentGroup = [activity];
-                    grouped.push(currentGroup);
-                  }
-                } else {
-                  currentGroup = null;
-                  grouped.push(activity);
-                }
-              });
-
-              return grouped.map((item, groupIndex) => {
                 if (Array.isArray(item)) {
                   const firstActivity = item[0];
                   // Filter nulls (empty JSONs that slipped)
@@ -1030,7 +714,7 @@ export function ActivityFeed({
                                     {formatDate(activity.createdAt)}
                                   </div>
                                   <div className="text-[11px] leading-relaxed text-white/90 break-words">
-                                    {formatContent(activity.content)}
+                                    <ActivityContent content={activity.content} metadata={activity.metadata} />
                                   </div>
                                   {activity.bashOutput && (
                                     <div className="mt-2 pt-2 border-t border-white/[0.05]">
@@ -1071,24 +755,6 @@ export function ActivityFeed({
                           </CardContent>
                         </Card>
                       </BorderGlow>
-                      <Avatar className="h-6 w-6 shrink-0 mt-0.5 bg-zinc-900 border border-white/10">{getActivityIcon(firstActivity)}</Avatar>
-                      <Card className="flex-1 border-white/[0.08] bg-zinc-950/50 min-w-0">
-                        <CardContent className="p-3">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Badge variant="outline" className="text-[9px] h-4 px-1.5 font-mono uppercase tracking-wider bg-yellow-500/90 border-transparent text-black font-bold">progress</Badge>
-                            <span className="text-[9px] font-mono text-white/40 tracking-wide">{validItems.length} updates</span>
-                          </div>
-                          <div className="space-y-2">
-                            {validItems.map((activity, idx) => (
-                              <div key={activity.id} className={idx > 0 ? 'pt-2 border-t border-white/[0.08]' : ''}>
-                                <div className="text-[11px] leading-relaxed text-white/90 break-words">
-                                  <ActivityContent content={activity.content} metadata={activity.metadata} />
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </CardContent>
-                      </Card>
                     </div>
                   );
                 }
@@ -1111,7 +777,7 @@ export function ActivityFeed({
                     </Avatar>
                     {activity.role === "user" ? (
                       <Card className="flex-1 border-white/[0.08] bg-purple-950/20 border-purple-500/20">
-                        <CardContent className="p-3">
+                        <CardContent className="p-3 group/card relative">
                           <div className="flex items-center gap-2 mb-2">
                             <Badge
                               variant="outline"
@@ -1122,9 +788,17 @@ export function ActivityFeed({
                             <span className="text-[9px] font-mono text-white/40 tracking-wide">
                               {formatDate(activity.createdAt)}
                             </span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-4 w-4 ml-auto opacity-0 group-hover/card:opacity-100 transition-opacity"
+                              onClick={() => handleCopy(activity.content, activity.id)}
+                            >
+                              {copiedId === activity.id ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3 text-white/40" />}
+                            </Button>
                           </div>
                           <div className="text-[11px] leading-relaxed text-white/90 break-words">
-                            {formatContent(activity.content)}
+                            <ActivityContent content={activity.content} metadata={activity.metadata} />
                           </div>
                         </CardContent>
                       </Card>
@@ -1134,7 +808,7 @@ export function ActivityFeed({
                         containerClassName="bg-zinc-950/50"
                       >
                         <Card className="border-0 bg-transparent">
-                          <CardContent className="p-3">
+                          <CardContent className="p-3 group/card relative">
                             <div className="flex items-center gap-2 mb-2">
                               <Badge
                                 variant="outline"
@@ -1145,9 +819,17 @@ export function ActivityFeed({
                               <span className="text-[9px] font-mono text-white/40 tracking-wide">
                                 {formatDate(activity.createdAt)}
                               </span>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-4 w-4 ml-auto opacity-0 group-hover/card:opacity-100 transition-opacity"
+                                onClick={() => handleCopy(activity.content, activity.id)}
+                              >
+                                {copiedId === activity.id ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3 text-white/40" />}
+                              </Button>
                             </div>
                             <div className="text-[11px] leading-relaxed text-white/90 break-words">
-                              {formatContent(activity.content)}
+                              <ActivityContent content={activity.content} metadata={activity.metadata} />
                             </div>
                             {activity.bashOutput && (
                               <div className="mt-3 pt-3 border-t border-white/[0.08]">
@@ -1176,19 +858,13 @@ export function ActivityFeed({
                                 )}
                               </div>
                             )}
-                            {activity.type === "plan" &&
-                            activity.metadata?.planGenerated &&
-                            !(
-                              activity.metadata?.planGenerated as {
-                                approved?: boolean;
-                              }
-                            )?.approved ? (
+                            {showApprove && (
                               <div className="mt-3 pt-3 border-t border-white/[0.08]">
                                 <Button
                                   onClick={handleApprovePlan}
                                   disabled={approvingPlan}
                                   size="sm"
-                                  className="h-7 px-3 text-[9px] font-mono uppercase tracking-widest border-0"
+                                  className="h-7 px-3 text-[9px] font-mono uppercase tracking-widest bg-purple-600 hover:bg-purple-500 text-white border-0"
                                 >
                                   {approvingPlan ? (
                                     <>
@@ -1200,49 +876,11 @@ export function ActivityFeed({
                                   )}
                                 </Button>
                               </div>
-                            ) : null}
+                            )}
                           </CardContent>
                         </Card>
                       </BorderGlow>
                     )}
-                  <div key={activity.id} className={`flex gap-2.5 ${activity.role === 'user' ? 'flex-row-reverse' : ''} ${newActivityIds.has(activity.id) ? 'animate-in fade-in slide-in-from-bottom-2 duration-500' : ''}`}>
-                    <Avatar className="h-6 w-6 shrink-0 mt-0.5 bg-zinc-900 border border-white/10">{getActivityIcon(activity)}</Avatar>
-                    <Card className={`flex-1 border-white/[0.08] min-w-0 ${activity.role === 'user' ? 'bg-purple-950/20 border-purple-500/20' : 'bg-zinc-950/50'}`}>
-                      <CardContent className="p-3 group/card relative">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Badge variant="outline" className={`text-[9px] h-4 px-1.5 font-mono uppercase tracking-wider ${getActivityTypeColor(activity.type)} border-transparent text-black font-bold`}>{activity.type}</Badge>
-                          <span className="text-[9px] font-mono text-white/40 tracking-wide">{formatDate(activity.createdAt)}</span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-4 w-4 ml-auto opacity-0 group-hover/card:opacity-100 transition-opacity"
-                            onClick={() => handleCopy(activity.content, activity.id)}
-                          >
-                            {copiedId === activity.id ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3 text-white/40" />}
-                          </Button>
-                        </div>
-                        <div className="text-[11px] leading-relaxed text-white/90 break-words">
-                          <ActivityContent content={activity.content} metadata={activity.metadata} />
-                        </div>
-                        {activity.bashOutput && (
-                          <div className="mt-3 pt-3 border-t border-white/[0.08]">
-                            <button onClick={() => toggleBashOutput(activity.id)} className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-wider text-green-400 hover:text-green-300 transition-colors mb-2">
-                              {expandedBashOutputs.has(activity.id) ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-                              <Terminal className="h-3.5 w-3.5" />
-                              <span>Command Output</span>
-                            </button>
-                            {expandedBashOutputs.has(activity.id) && <BashOutput output={activity.bashOutput} />}
-                          </div>
-                        )}
-                        {showApprove && (
-                          <div className="mt-3 pt-3 border-t border-white/[0.08]">
-                            <Button onClick={handleApprovePlan} disabled={approvingPlan} size="sm" className="h-7 px-3 text-[9px] font-mono uppercase tracking-widest bg-purple-600 hover:bg-purple-500 text-white border-0">
-                              {approvingPlan ? 'Approving...' : 'Approve Plan'}
-                            </Button>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
                   </div>
                 );
               })}

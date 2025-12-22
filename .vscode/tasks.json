@@ -35,6 +35,11 @@
 			"label": "build-nextjs-retry-5",
 			"type": "shell",
 			"command": "npm run build"
+		},
+		{
+			"label": "delete-corrupt-file",
+			"type": "shell",
+			"command": "del components\\activity-feed.tsx"
 		}
 	]
 }
