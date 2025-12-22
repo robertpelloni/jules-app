@@ -74,72 +74,110 @@ export function SessionKeeperManager() {
                   }
                   const sortedActivities = activities.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
-                  addLog(`Asking Supervisor (${config.supervisorProvider})...`, 'info');
+                  // Debate / Conference Logic
+                  if (config.debateEnabled && config.debateParticipants && config.debateParticipants.length > 0) {
+                      const mode = config.supervisorMode === 'conference' ? 'conference' : 'debate';
+                      addLog(`Convening ${mode === 'conference' ? 'Conference' : 'Council'} (${config.debateParticipants.length} members)...`, 'info');
 
-                  if (!supervisorState[session.id]) {
-                    supervisorState[session.id] = { lastProcessedActivityTimestamp: '', history: [] };
-                  }
-                  const sessionState = supervisorState[session.id];
+                      // Prepare simple history for debate (stateless usually)
+                      const history = sortedActivities.map(a => ({
+                          role: a.role === 'agent' ? 'assistant' : 'user',
+                          content: a.content
+                      })).slice(-config.contextMessageCount);
 
-                  let newActivities = sortedActivities;
-                  if (sessionState.lastProcessedActivityTimestamp) {
-                    newActivities = sortedActivities.filter(a => new Date(a.createdAt).getTime() > new Date(sessionState.lastProcessedActivityTimestamp).getTime());
-                  }
+                      const response = await fetch('/api/supervisor', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                              action: mode,
+                              messages: history,
+                              participants: config.debateParticipants
+                          })
+                      });
 
-                  const isStateful = config.supervisorProvider === 'openai-assistants';
-                  let messagesToSend: { role: string, content: string }[] = [];
-
-                  if (newActivities.length > 0) {
-                    if (sessionState.history.length === 0 && !sessionState.openaiThreadId) {
-                      const fullSummary = newActivities.map(a => `${a.role.toUpperCase()}: ${a.content}`).join('\n\n');
-                      messagesToSend.push({ role: 'user', content: `Here is the full conversation history so far. Please analyze the state and provide the next instruction:\n\n${fullSummary}` });
-                    } else {
-                      const updates = newActivities.map(a => `${a.role.toUpperCase()}: ${a.content}`).join('\n\n');
-                      messagesToSend.push({ role: 'user', content: `Here are the latest updates since your last instruction:\n\n${updates}` });
-                    }
-                    sessionState.lastProcessedActivityTimestamp = newActivities[newActivities.length - 1].createdAt;
-                  } else if (sessionState.history.length > 0 || sessionState.openaiThreadId) {
-                      messagesToSend.push({ role: 'user', content: "The agent has been inactive for a while. Please provide a nudge or follow-up instruction." });
-                  }
-
-                  if (!isStateful) {
-                    messagesToSend = [...sessionState.history, ...messagesToSend].slice(-config.contextMessageCount);
-                  }
-
-                  const response = await fetch('/api/supervisor', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      messages: messagesToSend,
-                      provider: config.supervisorProvider,
-                      apiKey: config.supervisorApiKey,
-                      model: config.supervisorModel,
-                      threadId: sessionState.openaiThreadId,
-                      assistantId: sessionState.openaiAssistantId
-                    })
-                  });
-
-                  if (response.ok) {
-                    const data = await response.json();
-                    if (data.content) {
-                      messageToSend = data.content;
-                      addLog(`Supervisor says: "${messageToSend.substring(0, 30)}..."`, 'action');
-                      if (isStateful) {
-                        sessionState.openaiThreadId = data.threadId;
-                        sessionState.openaiAssistantId = data.assistantId;
-                        sessionState.history.push(...messagesToSend);
-                        sessionState.history.push({ role: 'assistant', content: messageToSend });
+                      if (response.ok) {
+                          const data = await response.json();
+                          messageToSend = data.content;
+                          if (data.opinions) {
+                              data.opinions.forEach((op: any) => {
+                                  addLog(`Member (${op.participant.provider}): ${op.content.substring(0, 30)}...`, 'info');
+                              });
+                          }
+                          addLog(`${mode === 'conference' ? 'Conference' : 'Council'} Result: "${messageToSend.substring(0, 30)}..."`, 'action');
                       } else {
-                        sessionState.history = [...messagesToSend, { role: 'assistant', content: messageToSend }];
+                          const err = await response.json().catch(() => ({}));
+                          throw new Error(`${mode} failed: ${err.error || 'Unknown'}`);
                       }
-                      stateChanged = true;
-                    }
-                  } else {
-                      const errText = await response.text();
-                      if (response.status === 429) {
-                          addLog(`Supervisor rate limited (429). Skipping...`, 'error');
+                  }
+                  // Single Supervisor Logic
+                  else {
+                      addLog(`Asking Supervisor (${config.supervisorProvider})...`, 'info');
+
+                      if (!supervisorState[session.id]) {
+                        supervisorState[session.id] = { lastProcessedActivityTimestamp: '', history: [] };
+                      }
+                      const sessionState = supervisorState[session.id];
+
+                      let newActivities = sortedActivities;
+                      if (sessionState.lastProcessedActivityTimestamp) {
+                        newActivities = sortedActivities.filter(a => new Date(a.createdAt).getTime() > new Date(sessionState.lastProcessedActivityTimestamp).getTime());
+                      }
+
+                      const isStateful = config.supervisorProvider === 'openai-assistants';
+                      let messagesToSend: { role: string, content: string }[] = [];
+
+                      if (newActivities.length > 0) {
+                        if (sessionState.history.length === 0 && !sessionState.openaiThreadId) {
+                          const fullSummary = newActivities.map(a => `${a.role.toUpperCase()}: ${a.content}`).join('\n\n');
+                          messagesToSend.push({ role: 'user', content: `Here is the full conversation history so far. Please analyze the state and provide the next instruction:\n\n${fullSummary}` });
+                        } else {
+                          const updates = newActivities.map(a => `${a.role.toUpperCase()}: ${a.content}`).join('\n\n');
+                          messagesToSend.push({ role: 'user', content: `Here are the latest updates since your last instruction:\n\n${updates}` });
+                        }
+                        sessionState.lastProcessedActivityTimestamp = newActivities[newActivities.length - 1].createdAt;
+                      } else if (sessionState.history.length > 0 || sessionState.openaiThreadId) {
+                          messagesToSend.push({ role: 'user', content: "The agent has been inactive for a while. Please provide a nudge or follow-up instruction." });
+                      }
+
+                      if (!isStateful) {
+                        messagesToSend = [...sessionState.history, ...messagesToSend].slice(-config.contextMessageCount);
+                      }
+
+                      const response = await fetch('/api/supervisor', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          messages: messagesToSend,
+                          provider: config.supervisorProvider,
+                          apiKey: config.supervisorApiKey,
+                          model: config.supervisorModel,
+                          threadId: sessionState.openaiThreadId,
+                          assistantId: sessionState.openaiAssistantId
+                        })
+                      });
+
+                      if (response.ok) {
+                        const data = await response.json();
+                        if (data.content) {
+                          messageToSend = data.content;
+                          addLog(`Supervisor says: "${messageToSend.substring(0, 30)}..."`, 'action');
+                          if (isStateful) {
+                            sessionState.openaiThreadId = data.threadId;
+                            sessionState.openaiAssistantId = data.assistantId;
+                            sessionState.history.push(...messagesToSend);
+                            sessionState.history.push({ role: 'assistant', content: messageToSend });
+                          } else {
+                            sessionState.history = [...messagesToSend, { role: 'assistant', content: messageToSend }];
+                          }
+                          stateChanged = true;
+                        }
                       } else {
-                          throw new Error(`Supervisor API failed: ${response.status} ${errText}`);
+                          const errText = await response.text();
+                          if (response.status === 429) {
+                              addLog(`Supervisor rate limited (429). Skipping...`, 'error');
+                          } else {
+                              throw new Error(`Supervisor API failed: ${response.status} ${errText}`);
+                          }
                       }
                   }
                } catch (err) {

@@ -47,6 +47,7 @@ const DEFAULT_CONFIG: SessionKeeperConfig = {
   supervisorApiKey: '',
   supervisorModel: '',
   contextMessageCount: 20,
+  supervisorMode: 'single',
   debateEnabled: false,
   debateParticipants: []
 };
@@ -255,6 +256,22 @@ export function SessionKeeperSettings({
 
               {config.smartPilotEnabled && (
                 <div className="grid gap-4 pt-2">
+                  <div className="space-y-2">
+                    <Label className="text-xs text-white/60">Mode</Label>
+                    <Select
+                      value={config.supervisorMode || (config.debateEnabled ? 'debate' : 'single')}
+                      onValueChange={(v: any) => handleConfigChange({ ...config, supervisorMode: v, debateEnabled: v !== 'single' })}
+                    >
+                      <SelectTrigger className="h-8 text-xs bg-black/50 border-white/10"><SelectValue /></SelectTrigger>
+                      <SelectContent className="bg-zinc-900 border-white/10 text-white">
+                        <SelectItem value="single">Single Supervisor</SelectItem>
+                        <SelectItem value="debate">Debate (Consensus)</SelectItem>
+                        <SelectItem value="conference">Smart Conference (Round Table)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {config.supervisorMode === 'single' || !config.supervisorMode ? (
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label className="text-xs text-white/60">Provider</Label>
@@ -285,7 +302,9 @@ export function SessionKeeperSettings({
                       />
                     </div>
                   </div>
+                  ) : null}
 
+                  {(config.supervisorMode === 'single' || !config.supervisorMode) && (
                   <div className="space-y-2">
                     <Label className="text-xs text-white/60">Model</Label>
                     <div className="flex gap-2">
@@ -321,6 +340,81 @@ export function SessionKeeperSettings({
                       </Button>
                     </div>
                   </div>
+                  )}
+
+                  {/* Conference / Debate Participants */}
+                  {(config.supervisorMode === 'debate' || config.supervisorMode === 'conference') && (
+                      <div className="space-y-3 border border-white/10 p-3 rounded bg-white/5">
+                          <div className="flex items-center justify-between">
+                              <Label className="text-xs font-bold text-white/80">
+                                  {config.supervisorMode === 'debate' ? 'Council Members' : 'Conference Participants'}
+                              </Label>
+                              <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={addParticipant}>
+                                  <Plus className="h-4 w-4" />
+                              </Button>
+                          </div>
+                          
+                          <div className="space-y-2">
+                              {(config.debateParticipants || []).map((p, i) => (
+                                  <div key={p.id || i} className="flex flex-col gap-2 p-2 bg-black/30 rounded border border-white/5">
+                                      <div className="flex gap-2">
+                                          <Select value={p.provider} onValueChange={(v) => {
+                                              const newParts = [...(config.debateParticipants || [])];
+                                              newParts[i] = { ...p, provider: v };
+                                              handleConfigChange({ ...config, debateParticipants: newParts });
+                                          }}>
+                                              <SelectTrigger className="h-6 text-[10px] w-24"><SelectValue /></SelectTrigger>
+                                              <SelectContent>
+                                                  <SelectItem value="openai">OpenAI</SelectItem>
+                                                  <SelectItem value="anthropic">Anthropic</SelectItem>
+                                                  <SelectItem value="gemini">Gemini</SelectItem>
+                                              </SelectContent>
+                                          </Select>
+                                          <Input 
+                                              className="h-6 text-[10px] flex-1" 
+                                              placeholder="Model (e.g. gpt-4)" 
+                                              value={p.model}
+                                              onChange={(e) => {
+                                                  const newParts = [...(config.debateParticipants || [])];
+                                                  newParts[i] = { ...p, model: e.target.value };
+                                                  handleConfigChange({ ...config, debateParticipants: newParts });
+                                              }}
+                                          />
+                                          <Button variant="ghost" size="icon" className="h-6 w-6 text-red-400" onClick={() => removeParticipant(i)}>
+                                              <Trash2 className="h-3 w-3" />
+                                          </Button>
+                                      </div>
+                                      <div className="flex gap-2">
+                                          <Input 
+                                              className="h-6 text-[10px] flex-1" 
+                                              placeholder="Role (e.g. Security Expert)" 
+                                              value={p.role}
+                                              onChange={(e) => {
+                                                  const newParts = [...(config.debateParticipants || [])];
+                                                  newParts[i] = { ...p, role: e.target.value };
+                                                  handleConfigChange({ ...config, debateParticipants: newParts });
+                                              }}
+                                          />
+                                          <Input 
+                                              className="h-6 text-[10px] flex-1 font-mono" 
+                                              type="password"
+                                              placeholder="API Key" 
+                                              value={p.apiKey}
+                                              onChange={(e) => {
+                                                  const newParts = [...(config.debateParticipants || [])];
+                                                  newParts[i] = { ...p, apiKey: e.target.value };
+                                                  handleConfigChange({ ...config, debateParticipants: newParts });
+                                              }}
+                                          />
+                                      </div>
+                                  </div>
+                              ))}
+                              {(config.debateParticipants || []).length === 0 && (
+                                  <div className="text-[10px] text-white/30 text-center py-2">No participants added</div>
+                              )}
+                          </div>
+                      </div>
+                  )}
 
                   <div className="space-y-2">
                     <Label className="text-xs text-white/60">Context History (Messages)</Label>

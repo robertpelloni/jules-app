@@ -68,6 +68,7 @@ export interface SessionKeeperConfig {
 
   // Smart Auto-Pilot Settings
   smartPilotEnabled: boolean;
+  supervisorMode?: 'single' | 'debate' | 'conference';
   supervisorProvider: 'openai' | 'openai-assistants' | 'anthropic' | 'gemini';
   supervisorApiKey: string;
   supervisorModel: string;

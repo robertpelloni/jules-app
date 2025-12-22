@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getProvider } from '@/lib/orchestration/providers';
-import { runDebate } from '@/lib/orchestration/debate';
+import { runDebate, runConference } from '@/lib/orchestration/debate';
 
 export async function POST(req: Request) {
   try {
@@ -45,6 +45,20 @@ export async function POST(req: Request) {
         } catch (e) {
             console.error("Debate Error", e);
             return NextResponse.json({ error: e instanceof Error ? e.message : 'Debate failed' }, { status: 500 });
+        }
+    }
+
+    // 3. Conference
+    if (action === 'conference') {
+        if (!participants || !Array.isArray(participants)) {
+            return NextResponse.json({ error: 'Invalid participants' }, { status: 400 });
+        }
+        try {
+            const result = await runConference({ history: messages, participants });
+            return NextResponse.json(result);
+        } catch (e) {
+            console.error("Conference Error", e);
+            return NextResponse.json({ error: e instanceof Error ? e.message : 'Conference failed' }, { status: 500 });
         }
     }
 

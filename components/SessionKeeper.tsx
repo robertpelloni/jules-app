@@ -160,9 +160,10 @@ export function SessionKeeper({ onClose }: { isSidebar?: boolean, onClose?: () =
                 }
                 const sortedActivities = activities.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
-                // Debate Logic
+                // Debate / Conference Logic
                 if (config.debateEnabled && config.debateParticipants && config.debateParticipants.length > 0) {
-                    addLog(`Convening Council (${config.debateParticipants.length} members)...`, 'info');
+                    const mode = config.supervisorMode === 'conference' ? 'conference' : 'debate';
+                    addLog(`Convening ${mode === 'conference' ? 'Conference' : 'Council'} (${config.debateParticipants.length} members)...`, 'info');
 
                     // Prepare simple history for debate (stateless usually)
                     const history = sortedActivities.map(a => ({
@@ -174,7 +175,7 @@ export function SessionKeeper({ onClose }: { isSidebar?: boolean, onClose?: () =
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            action: 'debate',
+                            action: mode,
                             messages: history,
                             participants: config.debateParticipants
                         })
@@ -185,13 +186,13 @@ export function SessionKeeper({ onClose }: { isSidebar?: boolean, onClose?: () =
                         messageToSend = data.content;
                         if (data.opinions) {
                             data.opinions.forEach((op: any) => {
-                                addLog(`Council Member (${op.participant.provider}): ${op.content.substring(0, 30)}...`, 'info');
+                                addLog(`Member (${op.participant.provider}): ${op.content.substring(0, 30)}...`, 'info');
                             });
                         }
-                        addLog(`Council Verdict: "${messageToSend.substring(0, 30)}..."`, 'action');
+                        addLog(`${mode === 'conference' ? 'Conference' : 'Council'} Result: "${messageToSend.substring(0, 30)}..."`, 'action');
                     } else {
                         const err = await response.json().catch(() => ({}));
-                        throw new Error(`Debate failed: ${err.error || 'Unknown'}`);
+                        throw new Error(`${mode} failed: ${err.error || 'Unknown'}`);
                     }
 
                 }
