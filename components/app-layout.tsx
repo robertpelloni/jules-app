@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useJules } from "@/lib/jules/provider";
 import type { Session, Activity, SessionTemplate } from "@/types/jules";
@@ -38,6 +39,7 @@ import {
   LayoutTemplate,
   Plus,
   Kanban,
+  Activity as ActivityIcon,
 } from "lucide-react";
 import { TerminalPanel } from "./terminal-panel";
 import { useTerminalAvailable } from "@/hooks/use-terminal-available";
@@ -49,6 +51,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { SessionKeeperLogPanel } from "./session-keeper-log-panel";
+import { SessionKeeperSettings } from "./session-keeper-settings";
+import { SessionKeeperManager } from "./session-keeper-manager";
+import { useSessionKeeperStore } from "@/lib/stores/session-keeper";
 
 interface AppLayoutProps {
   initialView?: "sessions" | "analytics" | "templates" | "kanban";
@@ -430,148 +437,25 @@ export function AppLayout({ initialView }: AppLayoutProps) {
               size="icon"
               className={`h-6 w-6 hover:bg-white/5 text-white/60 ${sidebarCollapsed ? 'mx-auto' : ''}`}
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
               {sidebarCollapsed ? (
                 <ChevronRight className="h-3.5 w-3.5" />
               ) : (
                 <ChevronLeft className="h-3.5 w-3.5" />
               )}
-              <Button
-                variant="ghost"
-                size="icon"
-                className={`h-6 w-6 hover:bg-white/5 text-white/60 ${sidebarCollapsed ? "mx-auto" : ""}`}
-                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                aria-label={
-                  sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"
-                }
-                aria-expanded={!sidebarCollapsed}
-              >
-                {sidebarCollapsed ? (
-                  <ChevronRight className="h-3.5 w-3.5" />
-                ) : (
-                  <ChevronLeft className="h-3.5 w-3.5" />
-                )}
-              </Button>
-            </div>
-            <div className="flex-1 overflow-hidden">
-              {!sidebarCollapsed && (
-                <SessionList
-                  key={refreshKey}
-                  onSelectSession={handleSessionSelect}
-                  selectedSessionId={selectedSession?.id}
-                />
-              )}
-            </div>
-          </aside>
-        )}
-
-        {/* Main Panel */}
-        <main className="flex-1 overflow-hidden bg-black flex flex-col">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={view + (selectedSession?.id || "none")}
-              initial={{ opacity: 0, scale: 0.995 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.995 }}
-              transition={{ duration: 0.15, ease: "easeOut" }}
-              className="flex-1 overflow-hidden flex flex-col"
-            >
-              {view === "kanban" ? (
-                <KanbanBoard onSelectSession={handleSessionSelect} />
-              ) : view === "analytics" ? (
-                <AnalyticsDashboard />
-              ) : view === "templates" ? (
-                <TemplatesPage
-                  onStartSession={handleStartSessionFromTemplate}
-                />
-              ) : selectedSession ? (
-                <ActivityFeed
-                  session={selectedSession}
-                  onArchive={handleSessionArchived}
-                  showCodeDiffs={showCodeDiffs}
-                  onToggleCodeDiffs={setShowCodeDiffs}
-                  onActivitiesChange={setCurrentActivities}
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center p-8">
-                  <div className="text-center space-y-4 max-w-sm">
-                    <h2 className="text-sm font-bold text-white/40 uppercase tracking-widest">
-                      NO SESSION
-                    </h2>
-                    <p className="text-[11px] text-white/30 leading-relaxed uppercase tracking-wide font-mono">
-                      Select session or create new
-                    </p>
-                    <div className="pt-2">
-                      <Button
-                        className="w-full sm:w-auto h-8 text-[10px] font-mono uppercase tracking-widest border-0"
-                        onClick={handleOpenNewSession}
-                      >
-                        <Plus className="h-3.5 w-3.5 mr-1.5" />
-                        New Session
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          </AnimatePresence>
-        </main>
-
-        {/* Code Diff Sidebar */}
-        {selectedSession && showCodeDiffs && view === "sessions" && (
-          <>
-            {!codeDiffSidebarCollapsed && (
-              <div
-                className="w-1 cursor-col-resize bg-transparent hover:bg-blue-500/50 transition-colors z-50"
-                onMouseDown={startResizing}
+            </Button>
+          </div>
+          <div className="flex-1 overflow-hidden">
+            {!sidebarCollapsed && (
+              <SessionList
+                key={refreshKey}
+                onSelectSession={handleSessionSelect}
+                selectedSessionId={selectedSession?.id}
               />
             )}
-            <aside
-              className={`hidden md:flex border-l border-white/[0.08] flex-col bg-zinc-950 ${
-                isResizing ? "transition-none" : "transition-all duration-200"
-              } ${codeDiffSidebarCollapsed ? "md:w-12" : ""}`}
-              style={{
-                width: codeDiffSidebarCollapsed ? undefined : codeSidebarWidth,
-              }}
-            >
-              <div className="px-3 py-2 border-b border-white/[0.08] flex items-center justify-between">
-                {!codeDiffSidebarCollapsed && (
-                  <h2 className="text-[10px] font-bold text-white/40 uppercase tracking-widest">
-                    CODE CHANGES
-                  </h2>
-                )}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={`h-6 w-6 hover:bg-white/5 text-white/60 ${codeDiffSidebarCollapsed ? "mx-auto" : ""}`}
-                  onClick={() =>
-                    setCodeDiffSidebarCollapsed(!codeDiffSidebarCollapsed)
-                  }
-                  aria-label={
-                    codeDiffSidebarCollapsed
-                      ? "Expand code changes"
-                      : "Collapse code changes"
-                  }
-                  aria-expanded={!codeDiffSidebarCollapsed}
-                >
-                  {codeDiffSidebarCollapsed ? (
-                    <ChevronLeft className="h-3.5 w-3.5" />
-                  ) : (
-                    <ChevronRight className="h-3.5 w-3.5" />
-                  )}
-                </Button>
-              </div>
-              <div className="flex-1 overflow-hidden">
-                {!codeDiffSidebarCollapsed && (
-                  <CodeDiffSidebar
-                    activities={currentActivities}
-                    repoUrl={`https://github.com/${selectedSession!.sourceId}`}
-                  />
-                )}
-              </div>
-            </aside>
-          </>
-        )}
+          </div>
+        </aside>
         {/* Resizable Panel Group (Vertical: Top = Main, Bottom = Logs) */}
         <ResizablePanelGroup direction="vertical" className="flex-1 min-w-0">
 
