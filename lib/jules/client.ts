@@ -262,11 +262,26 @@ export class JulesClient {
 
   // Sessions
   async listSessions(sourceId?: string): Promise<Session[]> {
-    const params = sourceId ? `?sourceId=${sourceId}` : '';
-    const response = await this.request<{ sessions: ApiSession[] }>(`/sessions${params}`);
+    let allSessions: ApiSession[] = [];
+    let pageToken: string | undefined;
+
+    do {
+      const params = new URLSearchParams();
+      params.set('pageSize', '100');
+      if (sourceId) params.set('sourceId', sourceId);
+      if (pageToken) params.set('pageToken', pageToken);
+
+      const endpoint = `/sessions?${params.toString()}`;
+      const response = await this.request<{ sessions?: ApiSession[]; nextPageToken?: string }>(endpoint);
+
+      if (response.sessions) {
+        allSessions = allSessions.concat(response.sessions);
+      }
+      pageToken = response.nextPageToken;
+    } while (pageToken);
 
     // Transform API response to match our Session type
-    return (response.sessions || []).map((session: ApiSession) => ({
+    return allSessions.map((session: ApiSession) => ({
       id: session.id,
       sourceId: session.sourceContext?.source?.replace('sources/github/', '') || '',
       title: session.title || '',
@@ -423,7 +438,7 @@ export class JulesClient {
         type = 'message';
         // Try more fields including common variations
         const um = activity.userMessage;
-        content = um.message || um.content || (um.text as string) || (um.prompt as string) || (typeof um === 'string' ? um : '');
+        content = um.message || um.content || um.text || um.prompt || (typeof um === 'string' ? um : '');
 
         // If still empty and it's an object, check specific keys before generic stringify
         if (!content && typeof um === 'object' && um !== null) {
