@@ -439,16 +439,6 @@ export function ActivityFeed({
 
   const statusInfo = getStatusInfo();
 
-  if (loading && activities.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-full bg-black">
-        <p className="text-[10px] font-mono text-white/40 uppercase tracking-widest">
-          Loading activities...
-        </p>
-      </div>
-    );
-  }
-
   const groupedActivities = useMemo(() => {
     // Group consecutive progress activities from the same role
     const grouped: Array<Activity | Activity[]> = [];
@@ -478,6 +468,16 @@ export function ActivityFeed({
 
     return grouped;
   }, [filteredActivities]);
+
+  if (loading && activities.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-full bg-black">
+        <p className="text-[10px] font-mono text-white/40 uppercase tracking-widest">
+          Loading activities...
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-black relative">

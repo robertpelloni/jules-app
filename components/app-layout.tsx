@@ -292,7 +292,7 @@ export function AppLayout({ initialView }: AppLayoutProps) {
             )}
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar pl-2">
             <Button
               variant="ghost"
               size="sm"
@@ -300,8 +300,8 @@ export function AppLayout({ initialView }: AppLayoutProps) {
               onClick={() => setView("kanban")}
               aria-pressed={view === "kanban"}
             >
-              <Kanban className="h-3.5 w-3.5 mr-1.5" />
-              <span className="text-[10px] font-mono uppercase tracking-wider">
+              <Kanban className="h-3.5 w-3.5 sm:mr-1.5" />
+              <span className="text-[10px] font-mono uppercase tracking-wider hidden sm:inline">
                 Board
               </span>
             </Button>
@@ -313,8 +313,8 @@ export function AppLayout({ initialView }: AppLayoutProps) {
               onClick={() => setView("sessions")}
               aria-pressed={view === "sessions"}
             >
-              <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
-              <span className="text-[10px] font-mono uppercase tracking-wider">
+              <MessageSquare className="h-3.5 w-3.5 sm:mr-1.5" />
+              <span className="text-[10px] font-mono uppercase tracking-wider hidden sm:inline">
                 Sessions
               </span>
             </Button>
@@ -326,8 +326,8 @@ export function AppLayout({ initialView }: AppLayoutProps) {
               onClick={() => setView("analytics")}
               aria-pressed={view === "analytics"}
             >
-              <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
-              <span className="text-[10px] font-mono uppercase tracking-wider">
+              <BarChart3 className="h-3.5 w-3.5 sm:mr-1.5" />
+              <span className="text-[10px] font-mono uppercase tracking-wider hidden sm:inline">
                 Analytics
               </span>
             </Button>
@@ -340,8 +340,8 @@ export function AppLayout({ initialView }: AppLayoutProps) {
               onClick={() => setIsLogPanelOpen(!isLogPanelOpen)}
               title="Toggle Auto-Pilot Logs"
             >
-              <ActivityIcon className="h-3.5 w-3.5 mr-1.5" />
-              <span className="text-[10px] font-mono uppercase tracking-wider">Logs</span>
+              <ActivityIcon className="h-3.5 w-3.5 sm:mr-1.5" />
+              <span className="text-[10px] font-mono uppercase tracking-wider hidden sm:inline">Logs</span>
             </Button>
 
             {terminalAvailable && (
@@ -354,8 +354,8 @@ export function AppLayout({ initialView }: AppLayoutProps) {
                 aria-label="Toggle Terminal"
                 aria-pressed={terminalOpen}
               >
-                <TerminalIcon className="h-3.5 w-3.5 mr-1.5" />
-                <span className="text-[10px] font-mono uppercase tracking-wider">
+                <TerminalIcon className="h-3.5 w-3.5 sm:mr-1.5" />
+                <span className="text-[10px] font-mono uppercase tracking-wider hidden sm:inline">
                   Terminal
                 </span>
               </Button>
@@ -368,11 +368,12 @@ export function AppLayout({ initialView }: AppLayoutProps) {
               initialValues={newSessionInitialValues}
               trigger={
                 <Button
-                  className="w-full sm:w-auto h-8 text-[10px] font-mono uppercase tracking-widest border-0"
+                  className="w-full sm:w-auto h-8 text-[10px] font-mono uppercase tracking-widest border-0 px-2 sm:px-4"
                   onClick={handleOpenNewSession}
                 >
-                  <Plus className="h-3.5 w-3.5 mr-1.5" />
-                  New Session
+                  <Plus className="h-3.5 w-3.5 sm:mr-1.5" />
+                  <span className="hidden sm:inline">New Session</span>
+                  <span className="sm:hidden">New</span>
                 </Button>
               }
             />

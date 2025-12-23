@@ -43,7 +43,8 @@ Analyze the history and provide your recommendation. Be concise.`;
   const validOpinions = opinions.filter(o => !o.error && o.content);
 
   if (validOpinions.length === 0) {
-      throw new Error("All debate participants failed.");
+      const errors = opinions.map(o => `${o.participant.role || o.participant.model}: ${o.error}`).join('; ');
+      throw new Error(`All debate participants failed. Details: ${errors}`);
   }
 
   const opinionText = validOpinions.map(o => `### ${o.participant.role || o.participant.model} (${o.participant.provider}):\n${o.content}`).join('\n\n');
@@ -102,7 +103,8 @@ Analyze the history and provide your recommendation. Be concise.`;
   const validOpinions = opinions.filter(o => !o.error && o.content);
 
   if (validOpinions.length === 0) {
-      throw new Error("All conference participants failed.");
+      const errors = opinions.map(o => `${o.participant.role || o.participant.model}: ${o.error}`).join('; ');
+      throw new Error(`All conference participants failed. Details: ${errors}`);
   }
 
   // 2. Format as "Role (Model): Content"

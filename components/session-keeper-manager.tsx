@@ -78,7 +78,15 @@ export function SessionKeeperManager() {
                 // Debate / Conference Logic
                 if (config.debateEnabled && config.debateParticipants && config.debateParticipants.length > 0) {
                     const mode = config.supervisorMode === 'conference' ? 'conference' : 'debate';
-                    addLog(`Convening ${mode === 'conference' ? 'Conference' : 'Council'} (${config.debateParticipants.length} members)...`, 'info');
+                    
+                    // Validate participants have API keys
+                    const validParticipants = config.debateParticipants.filter(p => p.apiKey && p.apiKey.trim().length > 0);
+                    
+                    if (validParticipants.length === 0) {
+                        throw new Error(`No valid participants for ${mode}. Please check API keys in Session Keeper settings.`);
+                    }
+
+                    addLog(`Convening ${mode === 'conference' ? 'Conference' : 'Council'} (${validParticipants.length} members)...`, 'info');
 
                     // Prepare simple history for debate (stateless usually)
                     const history = sortedActivities.map((a: any) => ({
@@ -92,7 +100,7 @@ export function SessionKeeperManager() {
                         body: JSON.stringify({
                             action: mode,
                             messages: history,
-                            participants: config.debateParticipants
+                            participants: validParticipants
                         })
                     });
 
