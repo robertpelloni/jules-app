@@ -14,14 +14,22 @@ export interface StatusSummary {
   nextCheckIn: number;
 }
 
+export interface SessionState {
+  error?: { code: number; message: string; timestamp: number };
+  ignoreUntil?: number;
+  lastActivitySnippet?: string;
+}
+
 interface SessionKeeperState {
   config: SessionKeeperConfig;
   logs: Log[];
   statusSummary: StatusSummary;
+  sessionStates: Record<string, SessionState>;
   setConfig: (config: SessionKeeperConfig) => void;
   addLog: (message: string, type: Log['type']) => void;
   clearLogs: () => void;
   setStatusSummary: (summary: Partial<StatusSummary>) => void;
+  updateSessionState: (sessionId: string, state: Partial<SessionState>) => void;
 }
 
 const DEFAULT_CONFIG: SessionKeeperConfig = {
@@ -53,6 +61,7 @@ export const useSessionKeeperStore = create<SessionKeeperState>()(
       config: DEFAULT_CONFIG,
       logs: [],
       statusSummary: { monitoringCount: 0, lastAction: 'None', nextCheckIn: 0 },
+      sessionStates: {},
 
       setConfig: (config) => set({ config }),
 
@@ -68,6 +77,16 @@ export const useSessionKeeperStore = create<SessionKeeperState>()(
 
       setStatusSummary: (summary) => set((state) => ({
         statusSummary: { ...state.statusSummary, ...summary }
+      })),
+
+      updateSessionState: (sessionId, newState) => set((state) => ({
+        sessionStates: {
+          ...state.sessionStates,
+          [sessionId]: {
+            ...state.sessionStates[sessionId],
+            ...newState
+          }
+        }
       })),
     }),
     {

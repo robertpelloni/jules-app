@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { getArchivedSessions } from '@/lib/archive';
 import { SessionKeeperSettings } from './session-keeper-settings';
+import { useSessionKeeperStore } from '@/lib/stores/session-keeper';
 import { SessionKeeperConfig } from '@/types/jules';
 
 // Persistent Supervisor State
@@ -21,40 +22,20 @@ interface SupervisorState {
   };
 }
 
-// Default configuration
-const DEFAULT_CONFIG: SessionKeeperConfig = {
-  isEnabled: false,
-  autoSwitch: true,
-  checkIntervalSeconds: 30,
-  inactivityThresholdMinutes: 1,
-  activeWorkThresholdMinutes: 30,
-  messages: [
-    "Great! Please keep going as you advise!",
-    "Yes! Please continue to proceed as you recommend!",
-    "This looks correct. Please proceed.",
-    "Excellent plan. Go ahead.",
-    "Looks good to me. Continue.",
-  ],
-  customMessages: {},
-  smartPilotEnabled: false,
-  supervisorProvider: 'openai', // Default to stateless Chat Completions
-  supervisorApiKey: '',
-  supervisorModel: '',
-  contextMessageCount: 20,
-};
-
 export function SessionKeeper({ onClose }: { isSidebar?: boolean, onClose?: () => void }) {
   const { client, apiKey } = useJules();
   const router = useRouter();
   const pathname = usePathname();
-  const [config, setConfig] = useState<SessionKeeperConfig>(DEFAULT_CONFIG);
-  const [logs, setLogs] = useState<{ time: string; message: string; type: 'info' | 'action' | 'error' | 'skip' }[]>([]);
+  
+  // Use global store
+  const { 
+    config, setConfig, 
+    logs, addLog: addLogToStore, clearLogs,
+    statusSummary, setStatusSummary,
+    sessionStates, updateSessionState
+  } = useSessionKeeperStore();
+
   const [sessions, setSessions] = useState<{ id: string; title: string }[]>([]);
-  const [statusSummary, setStatusSummary] = useState({
-    monitoringCount: 0,
-    lastAction: 'None',
-    nextCheckIn: 0
-  });
 
   // Refs for interval and preventing race conditions
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -62,30 +43,11 @@ export function SessionKeeper({ onClose }: { isSidebar?: boolean, onClose?: () =
   const hasSwitchedRef = useRef(false);
   const nextCheckRef = useRef<number>(0);
 
-  // Load config from local storage on mount
-  useEffect(() => {
-    const loadConfig = () => {
-        const savedConfig = localStorage.getItem('jules-session-keeper-config');
-        if (savedConfig) {
-          try {
-            const parsed = JSON.parse(savedConfig);
-            setConfig({ ...DEFAULT_CONFIG, ...parsed });
-          } catch (e) {
-            console.error('Failed to parse session keeper config', e);
-          }
-        }
-    };
-    loadConfig();
-
-    // Listen for updates from header dialog
-    window.addEventListener('jules-config-updated', loadConfig);
-    return () => window.removeEventListener('jules-config-updated', loadConfig);
-  }, []);
-
-  // Save config to local storage when changed
-  useEffect(() => {
-    localStorage.setItem('jules-session-keeper-config', JSON.stringify(config));
-  }, [config]);
+  // Helper wrapper for addLog to match existing signature
+  const addLog = (message: string, type: 'info' | 'action' | 'error' | 'skip') => {
+    if (type === 'info') return;
+    addLogToStore(message, type);
+  };
 
   // Fetch sessions for the dropdown
   useEffect(() => {
@@ -104,7 +66,7 @@ export function SessionKeeper({ onClose }: { isSidebar?: boolean, onClose?: () =
     }
 
     if (!config.isEnabled || !client || !apiKey) {
-      setStatusSummary(prev => ({ ...prev, monitoringCount: 0 }));
+      setStatusSummary({ monitoringCount: 0 });
       return;
     }
 
@@ -115,7 +77,7 @@ export function SessionKeeper({ onClose }: { isSidebar?: boolean, onClose?: () =
 
       const nextCheck = Date.now() + (config.checkIntervalSeconds * 1000);
       nextCheckRef.current = nextCheck;
-      setStatusSummary(prev => ({ ...prev, nextCheckIn: nextCheck }));
+      setStatusSummary({ nextCheckIn: nextCheck });
 
       try {
         addLog('Checking sessions...', 'info');
@@ -123,7 +85,7 @@ export function SessionKeeper({ onClose }: { isSidebar?: boolean, onClose?: () =
         const archived = getArchivedSessions();
         const activeSessions = currentSessions.filter(s => !archived.has(s.id));
 
-        setStatusSummary(prev => ({ ...prev, monitoringCount: activeSessions.length }));
+        setStatusSummary({ monitoringCount: activeSessions.length });
 
         // Debug Log
         console.log('[SessionKeeper] Checking sessions:', activeSessions.map(s => ({
@@ -148,6 +110,15 @@ export function SessionKeeper({ onClose }: { isSidebar?: boolean, onClose?: () =
               try {
                 // Fetch ALL activities
                 const activities = await client.listActivities(session.id);
+                
+                // Update last activity snippet in store
+                if (activities.length > 0) {
+                  const lastActivity = activities[activities.length - 1];
+                  updateSessionState(session.id, {
+                    lastActivitySnippet: lastActivity.content
+                  });
+                }
+
                 if (session.prompt && !activities.some(a => a.content === session.prompt)) {
                     activities.unshift({
                         id: 'initial-prompt',
@@ -267,6 +238,7 @@ export function SessionKeeper({ onClose }: { isSidebar?: boolean, onClose?: () =
               } catch (err) {
                 console.error('Supervisor/Debate Error:', err);
                 addLog(`Auto-Pilot error: ${err instanceof Error ? err.message : 'Unknown'}`, 'error');
+                throw err; // Re-throw to be caught by session loop
               }
             }
 
@@ -287,72 +259,116 @@ export function SessionKeeper({ onClose }: { isSidebar?: boolean, onClose?: () =
         };
 
         for (const session of activeSessions) {
-          // Helper to switch session safely
-          const safeSwitch = (targetId: string) => {
-            const cleanId = targetId.replace('sessions/', '');
-            const targetPath = `/?sessionId=${cleanId}`;
-            if (config.autoSwitch && !hasSwitchedRef.current) {
-               router.push(targetPath);
-               hasSwitchedRef.current = true;
-            }
-          };
-
-          // 1. Resume Paused/Completed/Failed
-          if (session.status === 'paused' || session.status === 'completed' || session.status === 'failed') {
-             addLog(`Resuming ${session.status} session ${session.id.substring(0, 8)}...`, 'action');
-             safeSwitch(session.id);
-             
-             const message = await generateMessage(session);
-             await client.resumeSession(session.id, message);
-             
-             addLog(`Resumed ${session.id.substring(0, 8)}`, 'action');
-             setStatusSummary(prev => ({ ...prev, lastAction: `Resumed ${session.id.substring(0,8)}` }));
-             continue;
-          }
-
-          // 2. Approve Plans
-          if (session.status === 'awaiting_approval' || session.rawState === 'AWAITING_PLAN_APPROVAL') {
-            addLog(`Approving plan for session ${session.id.substring(0, 8)}...`, 'action');
-            safeSwitch(session.id);
-            await client.approvePlan(session.id);
-            addLog(`Plan approved for ${session.id.substring(0, 8)}`, 'action');
-            setStatusSummary(prev => ({ ...prev, lastAction: `Approved Plan ${session.id.substring(0,8)}` }));
+          // Check if session is ignored due to error
+          const sessionState = sessionStates[session.id];
+          if (sessionState?.ignoreUntil && sessionState.ignoreUntil > Date.now()) {
+            const remaining = Math.ceil((sessionState.ignoreUntil - Date.now()) / 60000);
+            addLog(`Skipping ${session.id.substring(0, 8)} (Ignored for ${remaining}m due to error)`, 'skip');
             continue;
           }
 
-          // 3. Check for Inactivity & Nudge
-          const lastActivityTime = session.lastActivityAt ? new Date(session.lastActivityAt) : new Date(session.updatedAt);
-          const diffMs = now.getTime() - lastActivityTime.getTime();
-          const diffMinutes = diffMs / 60000;
+          try {
+            // Helper to switch session safely
+            const safeSwitch = (targetId: string) => {
+              const cleanId = targetId.replace('sessions/', '');
+              const targetPath = `/?sessionId=${cleanId}`;
+              if (config.autoSwitch && !hasSwitchedRef.current) {
+                 router.push(targetPath);
+                 hasSwitchedRef.current = true;
+              }
+            };
 
-          // Determine threshold
-          let threshold = config.inactivityThresholdMinutes;
-          if (session.rawState === 'IN_PROGRESS') {
-             threshold = config.activeWorkThresholdMinutes;
-             // Guard: If actively working (<30s), always skip
-             if (diffMs < 30000) {
-               addLog(`Skipped ${session.id.substring(0, 8)}: Working (Active < 30s)`, 'skip');
+            // 1. Resume Paused/Completed/Failed
+            if (session.status === 'paused' || session.status === 'completed' || session.status === 'failed') {
+               addLog(`Resuming ${session.status} session ${session.id.substring(0, 8)}...`, 'action');
+               safeSwitch(session.id);
+               
+               const message = await generateMessage(session);
+               await client.resumeSession(session.id, message);
+               
+               addLog(`Resumed ${session.id.substring(0, 8)}`, 'action');
+               setStatusSummary({ lastAction: `Resumed ${session.id.substring(0,8)}` });
+               
+               // Clear error if successful
+               if (sessionState?.error) {
+                 updateSessionState(session.id, { error: undefined, ignoreUntil: undefined });
+               }
                continue;
-             }
-          }
-
-          if (diffMinutes > threshold) {
-            safeSwitch(session.id);
-            
-            const messageToSend = await generateMessage(session);
-            if (!messageToSend) {
-                addLog(`Skipped ${session.id.substring(0, 8)}: No messages configured`, 'skip');
-                continue;
             }
+
+            // 2. Approve Plans
+            if (session.status === 'awaiting_approval' || session.rawState === 'AWAITING_PLAN_APPROVAL') {
+              addLog(`Approving plan for session ${session.id.substring(0, 8)}...`, 'action');
+              safeSwitch(session.id);
+              await client.approvePlan(session.id);
+              addLog(`Plan approved for ${session.id.substring(0, 8)}`, 'action');
+              setStatusSummary({ lastAction: `Approved Plan ${session.id.substring(0,8)}` });
+              continue;
+            }
+
+            // 3. Check for Inactivity & Nudge
+            const lastActivityTime = session.lastActivityAt ? new Date(session.lastActivityAt) : new Date(session.updatedAt);
+            const diffMs = now.getTime() - lastActivityTime.getTime();
+            const diffMinutes = diffMs / 60000;
+
+            // Determine threshold
+            let threshold = config.inactivityThresholdMinutes;
+            if (session.rawState === 'IN_PROGRESS') {
+               threshold = config.activeWorkThresholdMinutes;
+               // Guard: If actively working (<30s), always skip
+               if (diffMs < 30000) {
+                 addLog(`Skipped ${session.id.substring(0, 8)}: Working (Active < 30s)`, 'skip');
+                 continue;
+               }
+            }
+
+            if (diffMinutes > threshold) {
+              safeSwitch(session.id);
+              
+              const messageToSend = await generateMessage(session);
+              if (!messageToSend) {
+                  addLog(`Skipped ${session.id.substring(0, 8)}: No messages configured`, 'skip');
+                  continue;
+              }
+              
+              addLog(`Sending nudge to ${session.id.substring(0, 8)} (${Math.round(diffMinutes)}m inactive)`, 'action');
+              await client.createActivity({
+                sessionId: session.id,
+                content: messageToSend,
+                type: 'message'
+              });
+              addLog(`Nudge sent`, 'action');
+              setStatusSummary({ lastAction: `Nudged ${session.id.substring(0,8)}` });
+              
+              // Clear error if successful
+              if (sessionState?.error) {
+                updateSessionState(session.id, { error: undefined, ignoreUntil: undefined });
+              }
+            }
+          } catch (err: any) {
+            console.error(`Error processing session ${session.id}:`, err);
             
-            addLog(`Sending nudge to ${session.id.substring(0, 8)} (${Math.round(diffMinutes)}m inactive)`, 'action');
-            await client.createActivity({
-              sessionId: session.id,
-              content: messageToSend,
-              type: 'message'
-            });
-            addLog(`Nudge sent`, 'action');
-            setStatusSummary(prev => ({ ...prev, lastAction: `Nudged ${session.id.substring(0,8)}` }));
+            // Check for 429 or other errors
+            const is429 = err?.status === 429 || 
+                          err?.code === 429 || 
+                          err?.message?.includes('429') || 
+                          err?.message?.includes('Quota exceeded') ||
+                          err?.message?.includes('RESOURCE_EXHAUSTED');
+
+            if (is429) {
+              const ignoreDuration = 5 * 60 * 1000; // 5 minutes
+              addLog(`Rate limit hit for ${session.id.substring(0, 8)}. Ignoring for 5m.`, 'error');
+              updateSessionState(session.id, {
+                error: {
+                  code: 429,
+                  message: 'Rate Limit Exceeded (429)',
+                  timestamp: Date.now()
+                },
+                ignoreUntil: Date.now() + ignoreDuration
+              });
+            } else {
+              addLog(`Error processing ${session.id.substring(0, 8)}: ${err.message}`, 'error');
+            }
           }
         }
 
@@ -377,16 +393,7 @@ export function SessionKeeper({ onClose }: { isSidebar?: boolean, onClose?: () =
         clearInterval(intervalRef.current);
       }
     };
-  }, [config, client, apiKey, router, pathname]);
-
-  const addLog = (message: string, type: 'info' | 'action' | 'error' | 'skip') => {
-    if (type === 'info') return;
-    setLogs(prev => [{
-      time: new Date().toLocaleTimeString(),
-      message,
-      type
-    }, ...prev].slice(0, 100)); // Keep last 100
-  };
+  }, [config, client, apiKey, router, pathname, addLogToStore, setStatusSummary, updateSessionState, sessionStates]);
 
   const clearSupervisorMemory = (sessionId: string) => {
     const savedState = localStorage.getItem('jules_supervisor_state');
@@ -470,7 +477,7 @@ export function SessionKeeper({ onClose }: { isSidebar?: boolean, onClose?: () =
         <div className="flex-1 flex flex-col min-h-0 border border-white/10 rounded-lg bg-black/50 overflow-hidden">
           <div className="flex items-center justify-between px-3 py-2 border-b border-white/10 bg-white/5">
             <span className="text-[10px] uppercase text-white/40 font-bold tracking-wider">Activity Log</span>
-            <Button variant="ghost" size="sm" className="h-5 text-[9px] hover:bg-white/5 text-white/40" onClick={() => setLogs([])}>
+            <Button variant="ghost" size="sm" className="h-5 text-[9px] hover:bg-white/5 text-white/40" onClick={clearLogs}>
               CLEAR
             </Button>
           </div>

@@ -684,7 +684,7 @@ export function ActivityFeed({
                         {getActivityIcon(firstActivity)}
                       </Avatar>
                       <BorderGlow
-                        className="flex-1"
+                        className="flex-1 min-w-0"
                         containerClassName="bg-zinc-950/50"
                       >
                         <Card className="border-0 bg-transparent">
@@ -776,7 +776,7 @@ export function ActivityFeed({
                       {getActivityIcon(activity)}
                     </Avatar>
                     {activity.role === "user" ? (
-                      <Card className="flex-1 border-white/[0.08] bg-purple-950/20 border-purple-500/20">
+                      <Card className="flex-1 min-w-0 border-white/[0.08] bg-purple-950/20 border-purple-500/20">
                         <CardContent className="p-3 group/card relative">
                           <div className="flex items-center gap-2 mb-2">
                             <Badge
@@ -804,7 +804,7 @@ export function ActivityFeed({
                       </Card>
                     ) : (
                       <BorderGlow
-                        className="flex-1"
+                        className="flex-1 min-w-0"
                         containerClassName="bg-zinc-950/50"
                       >
                         <Card className="border-0 bg-transparent">

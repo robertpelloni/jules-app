@@ -6,7 +6,7 @@ import type { Session } from "@/types/jules";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, AlertCircle } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -17,6 +17,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { CardSpotlight } from "@/components/ui/card-spotlight";
 import { formatDistanceToNow, isValid, parseISO, isToday } from "date-fns";
 import { getArchivedSessions } from "@/lib/archive";
+import { useSessionKeeperStore } from "@/lib/stores/session-keeper";
 
 function truncateText(text: string, maxLength: number) {
   if (!text) return "";
@@ -34,6 +35,7 @@ export function SessionList({
   selectedSessionId,
 }: SessionListProps) {
   const { client } = useJules();
+  const { sessionStates } = useSessionKeeperStore();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -93,8 +95,13 @@ export function SessionList({
     loadSessions();
   }, [loadSessions]);
 
-  const getStatusInfo = (status: Session['status']) => {
-    switch (status) {
+  const getStatusInfo = (session: Session) => {
+    const state = sessionStates[session.id];
+    if (state?.error) {
+       return { color: 'bg-red-500', text: `Error ${state.error.code}` };
+    }
+
+    switch (session.status) {
       case 'active':
         return { color: 'bg-green-500', text: 'Active' };
       case 'completed':
@@ -198,7 +205,13 @@ export function SessionList({
         </div>
         <ScrollArea className="flex-1 min-h-0">
           <div className="p-2 space-y-1">
-            {visibleSessions.map((session) => (
+            {visibleSessions.map((session) => {
+              const statusInfo = getStatusInfo(session);
+              const sessionState = sessionStates[session.id];
+              const lastActivityTime = session.lastActivityAt ? formatDate(session.lastActivityAt) : null;
+              const lastActivitySnippet = sessionState?.lastActivitySnippet ? truncateText(sessionState.lastActivitySnippet, 40) : null;
+
+              return (
               <CardSpotlight
                 key={session.id}
                 radius={250}
@@ -222,14 +235,16 @@ export function SessionList({
                 >
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className={`flex-shrink-0 mt-1 w-2 h-2 rounded-full ${getStatusInfo(session.status).color}`} />
+                      <div className={`flex-shrink-0 mt-1 w-2 h-2 rounded-full ${statusInfo.color}`} />
                     </TooltipTrigger>
                     <TooltipContent side="right" className="bg-zinc-900 border-white/10 text-white text-[10px]">
                       <p>Status: {session.status}</p>
+                      {sessionState?.error && <p className="text-red-400">Error: {sessionState.error.message}</p>}
                       {session.lastActivityAt && <p>Last active: {formatDate(session.lastActivityAt)}</p>}
                     </TooltipContent>
                   </Tooltip>
                   <div className="flex-1 min-w-0">
+                    {/* Line 1: Title + Repo */}
                     <div className="flex items-center gap-2 mb-0.5 w-full min-w-0">
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -251,17 +266,34 @@ export function SessionList({
                         </Badge>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 text-[9px] text-white/40 leading-tight font-mono tracking-wide">
-                      <span className={`${getStatusInfo(session.status).color} bg-opacity-20 text-white/60 px-1 rounded-sm`}>
-                        {getStatusInfo(session.status).text}
+
+                    {/* Line 2: Status + Created At */}
+                    <div className="flex items-center gap-2 text-[9px] text-white/40 leading-tight font-mono tracking-wide mb-0.5">
+                      <span className={`${statusInfo.color} bg-opacity-20 text-white/60 px-1 rounded-sm`}>
+                        {statusInfo.text}
                       </span>
                       <span>•</span>
                       <span>{formatDate(session.createdAt)}</span>
                     </div>
+
+                    {/* Line 3: Last Active Time */}
+                    {lastActivityTime && (
+                      <div className="text-[9px] text-white/30 font-mono leading-tight truncate">
+                        Active {lastActivityTime}
+                      </div>
+                    )}
+
+                    {/* Line 4: Last Activity Snippet */}
+                    {lastActivitySnippet && (
+                      <div className="text-[9px] text-white/30 font-mono leading-tight truncate italic mt-0.5">
+                        "{lastActivitySnippet}"
+                      </div>
+                    )}
                   </div>
                 </div>
               </CardSpotlight>
-            ))}
+            );
+            })}
           </div>
         </ScrollArea>
 
