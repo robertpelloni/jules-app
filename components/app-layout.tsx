@@ -477,7 +477,7 @@ export function AppLayout({ initialView }: AppLayoutProps) {
         {/* Resizable Panel Group (Vertical: Top = Main, Bottom = Logs) */}
         <ResizablePanelGroup 
           direction="vertical" 
-          className="flex-1 min-w-0"
+          className="flex-1 min-w-0 flex-col"
           key={isLogPanelOpen ? "vertical-layout-open" : "vertical-layout-closed"}
         >
 
@@ -571,7 +571,7 @@ export function AppLayout({ initialView }: AppLayoutProps) {
           {/* Bottom Panel: Logs */}
           {isLogPanelOpen && (
             <>
-              <ResizableHandle withHandle />
+              <ResizableHandle withHandle className="h-px w-full [&>div]:rotate-90" />
               <ResizablePanel defaultSize={33} minSize={10} maxSize={50}>
                 <SessionKeeperLogPanel onClose={() => setIsLogPanelOpen(false)} />
               </ResizablePanel>
