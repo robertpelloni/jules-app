@@ -575,7 +575,7 @@ export function AppLayout({ initialView }: AppLayoutProps) {
                 withHandle 
                 className="h-2 w-full cursor-row-resize bg-zinc-900 border-y border-white/10 hover:bg-purple-500/20 transition-colors" 
               />
-              <ResizablePanel defaultSize={30} minSize={10} maxSize={50}>
+              <ResizablePanel defaultSize={30} minSize={10} maxSize={90}>
                 <SessionKeeperLogPanel onClose={() => setIsLogPanelOpen(false)} />
               </ResizablePanel>
             </>
