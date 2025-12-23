@@ -57,13 +57,19 @@ interface SessionKeeperSettingsProps {
   onConfigChange: (config: SessionKeeperConfig) => void;
   sessions: { id: string; title: string }[];
   onClearMemory: (sessionId: string) => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  trigger?: React.ReactNode;
 }
 
 export function SessionKeeperSettings({
   config: propConfig,
   onConfigChange: propOnChange,
   sessions: propSessions,
-  onClearMemory: propOnClearMemory
+  onClearMemory: propOnClearMemory,
+  open: propOpen,
+  onOpenChange: propOnOpenChange,
+  trigger
 }: Partial<SessionKeeperSettingsProps>) {
   const [isOpen, setIsOpen] = useState(false);
   const [localConfig, setLocalConfig] = useState<SessionKeeperConfig>(DEFAULT_CONFIG);
@@ -74,6 +80,10 @@ export function SessionKeeperSettings({
   // Use props if available (controlled), otherwise local (uncontrolled)
   const config = propConfig || localConfig;
   const sessions = propSessions || []; // Fallback to empty if not provided in standalone mode
+  
+  // Handle controlled open state
+  const isDialogOpen = propOpen !== undefined ? propOpen : isOpen;
+  const handleOpenChange = propOnOpenChange || setIsOpen;
 
   // Sync from storage if standalone
   useEffect(() => {
@@ -188,12 +198,16 @@ export function SessionKeeperSettings({
     : (config.customMessages?.[selectedSessionId] || []);
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-white/60 hover:text-white hover:bg-white/10" title="Auto-Pilot Settings">
-          <Settings className="h-4 w-4" />
-        </Button>
-      </DialogTrigger>
+    <Dialog open={isDialogOpen} onOpenChange={handleOpenChange}>
+      {trigger !== null && (
+        <DialogTrigger asChild>
+          {trigger || (
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-white/60 hover:text-white hover:bg-white/10" title="Auto-Pilot Settings">
+              <Settings className="h-4 w-4" />
+            </Button>
+          )}
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-2xl bg-zinc-950 border-white/10 text-white max-h-[85vh] flex flex-col p-0">
         <DialogHeader className="px-6 py-4 border-b border-white/10">
           <DialogTitle className="text-lg font-bold tracking-wide">Auto-Pilot Configuration</DialogTitle>

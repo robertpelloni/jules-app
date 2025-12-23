@@ -94,6 +94,7 @@ export function AppLayout({ initialView }: AppLayoutProps) {
   const [codeSidebarWidth, setCodeSidebarWidth] = useState(600);
   const [isResizing, setIsResizing] = useState(false);
   const [isApiKeyDialogOpen, setIsApiKeyDialogOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [terminalOpen, setTerminalOpen] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("terminal-open") === "true";
@@ -378,8 +379,12 @@ export function AppLayout({ initialView }: AppLayoutProps) {
               }
             />
 
-            {/* Session Keeper Settings (Moved to header, removed Sidebar toggle) */}
-            <SessionKeeperSettings />
+            {/* Session Keeper Settings (Controlled) */}
+            <SessionKeeperSettings 
+              open={isSettingsOpen} 
+              onOpenChange={setIsSettingsOpen} 
+              trigger={null} 
+            />
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -396,6 +401,18 @@ export function AppLayout({ initialView }: AppLayoutProps) {
                 align="end"
                 className="w-48 bg-zinc-950 border-white/[0.08]"
               >
+                <DropdownMenuItem
+                  onClick={() => setIsSettingsOpen(true)}
+                  className="hover:bg-white/5 text-white/80"
+                >
+                  <Settings className="mr-2 h-3.5 w-3.5" />
+                  <span className="text-xs uppercase tracking-wide">
+                    Auto-Pilot Settings
+                  </span>
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator className="bg-white/10" />
+
                 <DropdownMenuItem
                   onClick={() => setView("templates")}
                   className="hover:bg-white/5 text-white/80"
@@ -555,7 +572,7 @@ export function AppLayout({ initialView }: AppLayoutProps) {
           {isLogPanelOpen && (
             <>
               <ResizableHandle withHandle />
-              <ResizablePanel defaultSize={30} minSize={10} maxSize={50}>
+              <ResizablePanel defaultSize={33} minSize={10} maxSize={50}>
                 <SessionKeeperLogPanel onClose={() => setIsLogPanelOpen(false)} />
               </ResizablePanel>
             </>
