@@ -76,9 +76,11 @@ export function SessionKeeperManager() {
                 const sortedActivities = activities.sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
                 // Debate / Conference Logic
-                if (config.debateEnabled && config.debateParticipants && config.debateParticipants.length > 0 && config.supervisorMode !== 'single') {
-                    const mode = config.supervisorMode === 'conference' ? 'conference' : 'debate';
-                    
+                // Strictly check supervisorMode to prevent accidental debate execution
+                const mode = config.supervisorMode || 'single';
+                const isDebateOrConference = mode === 'debate' || mode === 'conference';
+
+                if (isDebateOrConference && config.debateParticipants && config.debateParticipants.length > 0) {
                     // Validate participants have API keys
                     const validParticipants = config.debateParticipants.filter(p => p.apiKey && p.apiKey.trim().length > 0);
                     

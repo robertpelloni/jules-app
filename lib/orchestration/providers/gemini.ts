@@ -3,7 +3,12 @@ import { CompletionParams, CompletionResult, ProviderInterface } from '../types'
 export const geminiProvider: ProviderInterface = {
   async complete(params: CompletionParams): Promise<CompletionResult> {
     const { messages, apiKey, model, systemPrompt } = params;
-    const modelToUse = model || 'gemini-1.5-flash';
+    let modelToUse = model || 'gemini-1.5-flash';
+    // Strip 'models/' prefix if user accidentally included it
+    if (modelToUse.startsWith('models/')) {
+        modelToUse = modelToUse.replace('models/', '');
+    }
+    
     // Use v1beta for newer models, but ensure model name is correct
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelToUse}:generateContent?key=${apiKey}`;
 
