@@ -2,19 +2,16 @@
 
 import * as React from "react"
 import { GripVerticalIcon } from "lucide-react"
-// v2 exports: Group, Panel, Separator
-import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from "react-resizable-panels"
+import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels"
 
 import { cn } from "@/lib/utils"
 
 function ResizablePanelGroup({
   className,
-  direction,
   ...props
-}: React.ComponentProps<typeof PanelGroup> & { direction: "vertical" | "horizontal" }) {
+}: React.ComponentProps<typeof PanelGroup>) {
   return (
     <PanelGroup
-      direction={direction}
       className={cn(
         "flex h-full w-full data-[panel-group-direction=vertical]:flex-col",
         className
