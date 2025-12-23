@@ -476,7 +476,7 @@ export function AppLayout({ initialView }: AppLayoutProps) {
         </aside>
         {/* Resizable Panel Group (Vertical: Top = Main, Bottom = Logs) */}
         <ResizablePanelGroup 
-          direction="vertical" 
+          orientation="vertical" 
           className="flex-1 min-w-0 flex-col"
           key={isLogPanelOpen ? "vertical-layout-open" : "vertical-layout-closed"}
         >
