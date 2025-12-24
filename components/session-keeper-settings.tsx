@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useJules } from '@/lib/jules/provider';
 import { SessionKeeperConfig } from '@/types/jules';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -71,6 +72,7 @@ export function SessionKeeperSettings({
   onOpenChange: propOnOpenChange,
   trigger
 }: Partial<SessionKeeperSettingsProps>) {
+  const { apiKey: mainApiKey } = useJules();
   const [isOpen, setIsOpen] = useState(false);
   const [localConfig, setLocalConfig] = useState<SessionKeeperConfig>(DEFAULT_CONFIG);
   const [selectedSessionId, setSelectedSessionId] = useState<string>('global');
@@ -307,13 +309,26 @@ export function SessionKeeperSettings({
                     </div>
                     <div className="space-y-2">
                       <Label className="text-xs text-white/60">API Key</Label>
-                      <Input
-                        className="h-8 text-xs bg-black/50 border-white/10 font-mono"
-                        type="password"
-                        placeholder={`Enter ${config.supervisorProvider} API Key`}
-                        value={config.supervisorApiKey}
-                        onChange={(e) => handleConfigChange({ ...config, supervisorApiKey: e.target.value })}
-                      />
+                      <div className="flex gap-2">
+                        <Input
+                          className="h-8 text-xs bg-black/50 border-white/10 font-mono flex-1"
+                          type="password"
+                          placeholder={`Enter ${config.supervisorProvider} API Key`}
+                          value={config.supervisorApiKey}
+                          onChange={(e) => handleConfigChange({ ...config, supervisorApiKey: e.target.value })}
+                        />
+                        {mainApiKey && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 border-white/10 hover:bg-white/5 text-white/60 text-[10px]"
+                            onClick={() => handleConfigChange({ ...config, supervisorApiKey: mainApiKey })}
+                            title="Use Main Session API Key"
+                          >
+                            Use Main Key
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                   ) : null}
