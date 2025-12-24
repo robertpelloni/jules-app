@@ -421,9 +421,11 @@ export class JulesClient {
   }
 
   // Activities
-  async listActivities(sessionId: string): Promise<Activity[]> {
-    let allActivities: ApiActivity[] = [];
+  async listActivities(sessionId: string, options?: { maxPages?: number; onProgress?: (activities: Activity[]) => void }): Promise<Activity[]> {
+    let allActivities: Activity[] = [];
     let pageToken: string | undefined;
+    let pageCount = 0;
+    const maxPages = options?.maxPages ?? Infinity; // Default to load all pages
 
     do {
       const params = new URLSearchParams();
@@ -436,14 +438,28 @@ export class JulesClient {
       const response = await this.request<{ activities: ApiActivity[]; nextPageToken?: string }>(endpoint);
 
       if (response.activities) {
-        allActivities = allActivities.concat(response.activities);
+        const newActivities = response.activities.map(activity => this.transformActivity(activity, sessionId));
+        allActivities = allActivities.concat(newActivities);
+        
+        // Notify progress if callback provided
+        if (options?.onProgress) {
+          options.onProgress(allActivities);
+        }
       }
 
       pageToken = response.nextPageToken;
+      pageCount++;
+
+      if (pageCount >= maxPages && pageToken) {
+        console.warn(`[Jules Client] Reached max pages (${maxPages}) for activities. Some older activities may be missing.`);
+        break;
+      }
     } while (pageToken);
 
-    // Transform API response to match our Activity type
-    return allActivities.map((activity: ApiActivity) => {
+    return allActivities;
+  }
+
+  private transformActivity(activity: ApiActivity, sessionId: string): Activity {
       // Extract ID from name field (e.g., "sessions/ID/activities/ACTIVITY_ID")
       const id = activity.name?.split("/").pop() || activity.id || "";
 
@@ -556,7 +572,6 @@ export class JulesClient {
         createdAt: activity.createTime,
         metadata: activity as Record<string, unknown>,
       };
-    });
   }
 
   async getActivity(sessionId: string, activityId: string): Promise<Activity> {
@@ -564,82 +579,7 @@ export class JulesClient {
       `/sessions/${sessionId}/activities/${activityId}`,
     );
 
-    // Transform similar to listActivities
-    const id = response.name?.split("/").pop() || activityId;
-    let type: Activity["type"] = "message";
-    let content = "";
-
-    if (response.planGenerated) {
-      type = "plan";
-      const plan = response.planGenerated.plan || response.planGenerated;
-      content =
-        plan.description ||
-        plan.summary ||
-        plan.title ||
-        JSON.stringify(plan.steps || plan, null, 2);
-    } else if (response.planApproved) {
-      type = "plan";
-      content = "Plan approved";
-    } else if (response.progressUpdated) {
-      type = "progress";
-      content =
-        response.progressUpdated.progressDescription ||
-        response.progressUpdated.description ||
-        response.progressUpdated.message ||
-        JSON.stringify(response.progressUpdated, null, 2);
-    } else if (response.sessionCompleted) {
-      type = "result";
-      const result = response.sessionCompleted;
-      content = result.summary || result.message || "Session completed";
-    }
-
-    // Extract artifacts from top-level artifacts array (applies to all activity types)
-    if (response.artifacts && response.artifacts.length > 0) {
-      for (const artifact of response.artifacts) {
-        // Handle both gitPatch.unidiffPatch and direct unidiffPatch formats
-        if (artifact.changeSet?.gitPatch?.unidiffPatch) {
-          response.diff = artifact.changeSet.gitPatch.unidiffPatch;
-        } else if (artifact.changeSet?.unidiffPatch) {
-          response.diff = artifact.changeSet.unidiffPatch;
-        }
-        if (artifact.bashOutput?.output) {
-          response.bashOutput = artifact.bashOutput.output;
-        }
-      }
-    } else if (response.agentMessaged) {
-      type = "message";
-      content =
-        response.agentMessaged.agentMessage ||
-        response.agentMessaged.message ||
-        "";
-    } else if (response.userMessage) {
-      type = "message";
-      content =
-        response.userMessage.message || response.userMessage.content || "";
-    }
-
-    if (!content) {
-      content =
-        response.message ||
-        response.content ||
-        response.text ||
-        response.description ||
-        "";
-    }
-
-    return {
-      id,
-      sessionId,
-      type,
-      role: (response.originator === "agent"
-        ? "agent"
-        : "user") as Activity["role"],
-      content,
-      diff: response.diff,
-      bashOutput: response.bashOutput,
-      createdAt: response.createTime,
-      metadata: response as Record<string, unknown>,
-    };
+    return this.transformActivity(response, sessionId);
   }
 
   async createActivity(data: CreateActivityRequest): Promise<Activity> {
