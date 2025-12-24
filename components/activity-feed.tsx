@@ -726,7 +726,7 @@ export function ActivityFeed({
                                   <div className="text-[11px] leading-relaxed text-white/90 break-words">
                                     <ActivityContent content={activity.content} metadata={activity.metadata} />
                                   </div>
-                                  {activity.bashOutput && (
+                                  {activity.bashOutput && activity.bashOutput.trim().length > 0 && (
                                     <div className="mt-2 pt-2 border-t border-white/[0.05]">
                                       <button
                                         onClick={() =>
@@ -841,7 +841,7 @@ export function ActivityFeed({
                             <div className="text-[11px] leading-relaxed text-white/90 break-words">
                               <ActivityContent content={activity.content} metadata={activity.metadata} />
                             </div>
-                            {activity.bashOutput && (
+                            {activity.bashOutput && activity.bashOutput.trim().length > 0 && (
                               <div className="mt-3 pt-3 border-t border-white/[0.08]">
                                 <button
                                   onClick={() => toggleBashOutput(activity.id)}
