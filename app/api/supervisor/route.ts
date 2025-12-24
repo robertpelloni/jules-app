@@ -153,6 +153,7 @@ export async function POST(req: Request) {
 
       // Poll
       let runStatus = runData.status;
+      let currentRunData = runData;
       let attempts = 0;
       while (runStatus !== 'completed' && runStatus !== 'failed' && attempts < 30) {
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -164,12 +165,13 @@ export async function POST(req: Request) {
         });
         const statusData = await statusResp.json();
         runStatus = statusData.status;
+        currentRunData = statusData;
         attempts++;
       }
 
       if (runStatus !== 'completed') {
-        console.error('[Supervisor API] Assistant Run Failed:', JSON.stringify(runData, null, 2));
-        const lastError = runData.last_error;
+        console.error('[Supervisor API] Assistant Run Failed:', JSON.stringify(currentRunData, null, 2));
+        const lastError = currentRunData.last_error;
         const errorMsg = lastError ? `${lastError.code}: ${lastError.message}` : 'No error details provided';
         throw new Error(`Assistant run failed (${runStatus}): ${errorMsg}`);
       }
