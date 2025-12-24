@@ -278,7 +278,6 @@ export function AppLayout({ initialView }: AppLayoutProps) {
             <h1 className="text-sm font-bold tracking-tight text-white">
               JULES
             </h1>
-            <h1 className="text-sm font-bold tracking-tight text-white">JULES</h1>
 
             {/* GitHub Repo Link */}
             {selectedSession?.sourceId && (
@@ -482,7 +481,7 @@ export function AppLayout({ initialView }: AppLayoutProps) {
         >
 
           {/* Top Panel: Dashboard */}
-          <ResizablePanel defaultSize={isLogPanelOpen ? 70 : 100} minSize={30} className="min-h-0">
+          <ResizablePanel defaultSize={isLogPanelOpen ? 70 : 100} minSize={10} className="min-h-0">
             {/* Main Panel Content */}
             <div className="flex h-full w-full flex-row min-w-0">
               <main className="flex-1 overflow-hidden bg-black flex flex-col min-w-0">
