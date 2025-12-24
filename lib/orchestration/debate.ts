@@ -50,6 +50,11 @@ Analyze the history and provide your recommendation. Be concise.`;
       throw new Error(`All debate participants failed. Details: ${errors}`);
   }
 
+  // If we have at least one valid opinion, proceed even if others failed
+  if (validOpinions.length < participants.length) {
+      console.warn(`Some participants failed, proceeding with ${validOpinions.length}/${participants.length} opinions.`);
+  }
+
   const opinionText = validOpinions.map(o => `### ${o.participant.role || o.participant.model} (${o.participant.provider}):\n${o.content}`).join('\n\n');
 
   const judgeParticipant = judge || participants[0];
