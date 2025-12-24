@@ -132,8 +132,10 @@ export function SessionKeeper({ onClose }: { isSidebar?: boolean, onClose?: () =
                 const sortedActivities = activities.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
                 // Debate / Conference Logic
-                if (config.debateEnabled && config.debateParticipants && config.debateParticipants.length > 0) {
-                    const mode = config.supervisorMode === 'conference' ? 'conference' : 'debate';
+                const mode = config.supervisorMode || (config.debateEnabled ? 'debate' : 'single');
+                const isDebateOrConference = mode === 'debate' || mode === 'conference';
+
+                if (isDebateOrConference && config.debateParticipants && config.debateParticipants.length > 0) {
                     addLog(`Convening ${mode === 'conference' ? 'Conference' : 'Council'} (${config.debateParticipants.length} members)...`, 'info');
 
                     // Prepare simple history for debate (stateless usually)

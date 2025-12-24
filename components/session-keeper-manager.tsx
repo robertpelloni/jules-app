@@ -77,7 +77,7 @@ export function SessionKeeperManager() {
 
                 // Debate / Conference Logic
                 // Strictly check supervisorMode to prevent accidental debate execution
-                const mode = config.supervisorMode || 'single';
+                const mode = config.supervisorMode || (config.debateEnabled ? 'debate' : 'single');
                 const isDebateOrConference = mode === 'debate' || mode === 'conference';
 
                 if (isDebateOrConference && config.debateParticipants && config.debateParticipants.length > 0) {

@@ -3,7 +3,7 @@ import { CompletionParams, CompletionResult, ProviderInterface } from '../types'
 export const geminiProvider: ProviderInterface = {
   async complete(params: CompletionParams): Promise<CompletionResult> {
     const { messages, apiKey, model, systemPrompt } = params;
-    let modelToUse = model || 'gemini-3-flash';
+    let modelToUse = model || 'gemini-1.5-flash';
     // Strip 'models/' prefix if user accidentally included it
     if (modelToUse.startsWith('models/')) {
         modelToUse = modelToUse.replace('models/', '');
