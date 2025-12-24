@@ -62,6 +62,19 @@ export const geminiProvider: ProviderInterface = {
   },
 
   async listModels(apiKey: string): Promise<string[]> {
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+      if (!response.ok) {
+        console.warn('Failed to fetch models from Google, falling back to defaults');
+        return ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-1.0-pro'];
+      }
+      const data = await response.json();
+      return data.models
+        .filter((m: any) => m.name.includes('gemini') && m.supportedGenerationMethods?.includes('generateContent'))
+        .map((m: any) => m.name.replace('models/', ''));
+    } catch (error) {
+      console.error('Error listing Gemini models:', error);
       return ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-1.0-pro'];
+    }
   }
 };
