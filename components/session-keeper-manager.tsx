@@ -16,7 +16,7 @@ interface SupervisorState {
 
 export function SessionKeeperManager() {
   const { client, apiKey } = useJules();
-  const { config, addLog, setStatusSummary } = useSessionKeeperStore();
+  const { config, addLog, setStatusSummary, updateSessionState } = useSessionKeeperStore();
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const processingRef = useRef(false);
 
@@ -55,7 +55,6 @@ export function SessionKeeperManager() {
         const supervisorState: SupervisorState = savedState ? JSON.parse(savedState) : {};
         let stateChanged = false;
 
-        const { updateSessionState } = useSessionKeeperStore();
         const generateMessage = async (session: any) => {
             let messageToSend = '';
 
@@ -279,6 +278,8 @@ export function SessionKeeperManager() {
               } 
             });
           }
+          // Add a small delay to prevent rate limiting
+          await new Promise(resolve => setTimeout(resolve, 1000));
         }
 
         // Save State if changed
