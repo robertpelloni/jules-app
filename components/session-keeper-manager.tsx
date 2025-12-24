@@ -88,6 +88,11 @@ export function SessionKeeperManager() {
                     isDebateOrConference = !!config.debateEnabled;
                     mode = isDebateOrConference ? 'debate' : 'single';
                 }
+                
+                // Double-check safeguard
+                if (mode === 'single') {
+                    isDebateOrConference = false;
+                }
 
                 if (isDebateOrConference && config.debateParticipants && config.debateParticipants.length > 0) {
                     // Validate participants have API keys

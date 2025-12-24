@@ -144,6 +144,11 @@ export function SessionKeeper({ onClose }: { isSidebar?: boolean, onClose?: () =
                     mode = isDebateOrConference ? 'debate' : 'single';
                 }
 
+                // Double-check safeguard
+                if (mode === 'single') {
+                    isDebateOrConference = false;
+                }
+
                 if (isDebateOrConference && config.debateParticipants && config.debateParticipants.length > 0) {
                     addLog(`Convening ${mode === 'conference' ? 'Conference' : 'Council'} (${config.debateParticipants.length} members)...`, 'info');
 
