@@ -114,7 +114,7 @@ export function ActivityFeed({
       const updateActivitiesState = (fetchedActivities: Activity[]) => {
         // Prepend initial prompt if missing
         if (sessionDetails.prompt) {
-           const hasPrompt = fetchedActivities.some(a => a.content === sessionDetails.prompt);
+           const hasPrompt = fetchedActivities.some(a => a.id === 'initial-prompt' || a.content === sessionDetails.prompt);
            if (!hasPrompt) {
               fetchedActivities.unshift({
                 id: 'initial-prompt',
