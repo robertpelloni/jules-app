@@ -3,6 +3,11 @@ import { Server } from "socket.io";
 import pty from "node-pty";
 import path from "path";
 import fs from "fs";
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const server = http.createServer((req, res) => {
   if (req.url === "/health") {
@@ -94,7 +99,7 @@ io.on("connection", (socket) => {
   });
 });
 
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 8081;
 
 // Determine and create workspace directory
 const workspaceDir =
