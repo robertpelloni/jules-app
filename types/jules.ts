@@ -26,6 +26,7 @@ export interface Activity {
   content: string;
   diff?: string; // Unified diff patch from artifacts
   bashOutput?: string; // Bash command output from artifacts
+  media?: { data: string; mimeType: string }; // New: Media artifact
   metadata?: Record<string, unknown>;
   createdAt: string;
 }
