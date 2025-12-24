@@ -3,7 +3,7 @@ import { CompletionParams, CompletionResult, ProviderInterface } from '../types'
 export const anthropicProvider: ProviderInterface = {
   async complete(params: CompletionParams): Promise<CompletionResult> {
     const { messages, apiKey, model, systemPrompt } = params;
-    const modelToUse = model || 'claude-3-5-sonnet-20240620';
+    const modelToUse = model || 'claude-4.5-opus';
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -34,6 +34,7 @@ export const anthropicProvider: ProviderInterface = {
 
   async listModels(apiKey: string): Promise<string[]> {
       return [
+         'claude-4.5-opus',
          'claude-3-5-sonnet-20240620',
          'claude-3-opus-20240229',
          'claude-3-sonnet-20240229',

@@ -110,57 +110,68 @@ export function ActivityFeed({
 
       // Get session details to ensure we have the prompt
       const sessionDetails = await client.getSession(session.id);
-      const data = await client.listActivities(session.id);
-
-      // Prepend initial prompt if missing
-      if (sessionDetails.prompt) {
-         const hasPrompt = data.some(a => a.content === sessionDetails.prompt);
-         if (!hasPrompt) {
-            data.unshift({
-              id: 'initial-prompt',
-              sessionId: session.id,
-              type: 'message',
-              role: 'user',
-              content: sessionDetails.prompt,
-              createdAt: session.createdAt
-            });
-         }
-      }
-
-      setActivities(prevActivities => {
-        if (prevActivities.length === 0 || isInitialLoad) return data;
-
-        const newActivities = data.filter(
-          newAct => !prevActivities.some(prevAct => prevAct.id === newAct.id)
-        );
-
-        if (newActivities.length > 0) {
-          setNewActivityIds(new Set(newActivities.map(a => a.id)));
-          setTimeout(() => setNewActivityIds(new Set()), 500);
-
-          // Deduplicate pending messages
-          const newContentCounts = new Map<string, number>();
-          newActivities.forEach(a => {
-            if (a.role === 'user') {
-              newContentCounts.set(a.content, (newContentCounts.get(a.content) || 0) + 1);
-            }
-          });
-
-          const filteredPrev = prevActivities.filter(a => {
-            if (a.id === 'pending' && a.role === 'user') {
-              const count = newContentCounts.get(a.content);
-              if (count && count > 0) {
-                newContentCounts.set(a.content, count - 1);
-                return false; // Remove this pending item
-              }
-            }
-            return true;
-          });
-
-          return [...filteredPrev, ...newActivities];
+      
+      const updateActivitiesState = (fetchedActivities: Activity[]) => {
+        // Prepend initial prompt if missing
+        if (sessionDetails.prompt) {
+           const hasPrompt = fetchedActivities.some(a => a.content === sessionDetails.prompt);
+           if (!hasPrompt) {
+              fetchedActivities.unshift({
+                id: 'initial-prompt',
+                sessionId: session.id,
+                type: 'message',
+                role: 'user',
+                content: sessionDetails.prompt,
+                createdAt: session.createdAt
+              });
+           }
         }
-        return prevActivities;
+
+        setActivities(prevActivities => {
+          if (prevActivities.length === 0 || isInitialLoad) return fetchedActivities;
+
+          const newActivities = fetchedActivities.filter(
+            newAct => !prevActivities.some(prevAct => prevAct.id === newAct.id)
+          );
+
+          if (newActivities.length > 0) {
+            setNewActivityIds(new Set(newActivities.map(a => a.id)));
+            setTimeout(() => setNewActivityIds(new Set()), 500);
+
+            // Deduplicate pending messages
+            const newContentCounts = new Map<string, number>();
+            newActivities.forEach(a => {
+              if (a.role === 'user') {
+                newContentCounts.set(a.content, (newContentCounts.get(a.content) || 0) + 1);
+              }
+            });
+
+            const filteredPrev = prevActivities.filter(a => {
+              if (a.id === 'pending' && a.role === 'user') {
+                const count = newContentCounts.get(a.content);
+                if (count && count > 0) {
+                  newContentCounts.set(a.content, count - 1);
+                  return false; // Remove this pending item
+                }
+              }
+              return true;
+            });
+
+            return [...filteredPrev, ...newActivities];
+          }
+          return prevActivities;
+        });
+      };
+
+      const data = await client.listActivities(session.id, {
+        onProgress: (partialActivities) => {
+            updateActivitiesState(partialActivities);
+        }
       });
+      
+      // Final consistency check
+      updateActivitiesState(data);
+
     } catch (err) {
       console.error('Failed to load activities:', err);
       if (err instanceof Error && err.message.includes('Resource not found')) {

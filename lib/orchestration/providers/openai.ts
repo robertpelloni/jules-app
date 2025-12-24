@@ -3,7 +3,7 @@ import { CompletionParams, CompletionResult, ProviderInterface } from '../types'
 export const openaiProvider: ProviderInterface = {
   async complete(params: CompletionParams): Promise<CompletionResult> {
     const { messages, apiKey, model, systemPrompt } = params;
-    const modelToUse = model || 'gpt-4o';
+    const modelToUse = model || 'gpt-5.2';
 
     const msgs = messages.map(m => ({
         role: m.role === 'user' ? 'user' : 'assistant',
