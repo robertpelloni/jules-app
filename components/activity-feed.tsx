@@ -10,8 +10,8 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow, isValid, parseISO } from 'date-fns';
-import { Send, Archive, Code, Terminal, ChevronDown, ChevronRight, Play, GitBranch, GitPullRequest, MoreVertical, Book, ArrowUp, ArrowDown, Download, Copy, Check } from 'lucide-react';
-import { archiveSession } from '@/lib/archive';
+import { Send, Archive, ArchiveRestore, Code, Terminal, ChevronDown, ChevronRight, Play, GitBranch, GitPullRequest, MoreVertical, Book, ArrowUp, ArrowDown, Download, Copy, Check } from 'lucide-react';
+import { archiveSession, unarchiveSession, isSessionArchived } from '@/lib/archive';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { BashOutput } from '@/components/ui/bash-output';
@@ -47,6 +47,12 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
   const [newActivityIds, setNewActivityIds] = useState<Set<string>>(new Set());
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [isArchived, setIsArchived] = useState(false);
+
+  // Check archive status on session change
+  useEffect(() => {
+    setIsArchived(isSessionArchived(session.id));
+  }, [session.id]);
 
   const formatDate = (dateString: string) => {
     if (!dateString) return 'Unknown date';
@@ -163,18 +169,19 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
 
   useEffect(() => {
     loadActivities(true);
-    if (session.status === 'active') {
+    // Only poll if active AND not archived
+    if (session.status === 'active' && !isArchived) {
       const interval = setInterval(() => loadActivities(false), 5000);
       return () => clearInterval(interval);
     }
-  }, [session.id, session.status, loadActivities]);
+  }, [session.id, session.status, isArchived, loadActivities]);
 
   useEffect(() => {
     onActivitiesChange(activities);
   }, [activities, onActivitiesChange]);
 
   const handleApprovePlan = async () => {
-    if (!client || approvingPlan) return;
+    if (!client || approvingPlan || isArchived) return;
     try {
       setApprovingPlan(true);
       setError(null);
@@ -192,7 +199,7 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!message.trim() || !client || sending) return;
+    if (!message.trim() || !client || sending || isArchived) return;
     try {
       setSending(true);
       setError(null);
@@ -215,7 +222,14 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
 
   const handleArchive = () => {
     archiveSession(session.id);
+    setIsArchived(true);
     onArchive?.();
+  };
+
+  const handleUnarchive = () => {
+    unarchiveSession(session.id);
+    setIsArchived(false);
+    onArchive?.(); // Reuse callback to notify list refresh
   };
 
   const toggleCodeDiffsSidebar = () => {
@@ -417,15 +431,34 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
                   Copy Full JSON
                 </DropdownMenuItem>
                 <DropdownMenuSeparator className="bg-white/10" />
-                <DropdownMenuItem onClick={handleArchive} className="text-xs cursor-pointer text-red-400 focus:text-red-400">
-                  <Archive className="mr-2 h-3.5 w-3.5" />
-                  Archive Session
-                </DropdownMenuItem>
+                {isArchived ? (
+                  <DropdownMenuItem onClick={handleUnarchive} className="text-xs cursor-pointer text-purple-400 focus:text-purple-400">
+                    <ArchiveRestore className="mr-2 h-3.5 w-3.5" />
+                    Unarchive Session
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem onClick={handleArchive} className="text-xs cursor-pointer text-red-400 focus:text-red-400">
+                    <Archive className="mr-2 h-3.5 w-3.5" />
+                    Archive Session
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </div>
       </div>
+
+      {isArchived && (
+        <div className="bg-zinc-900 border-b border-white/[0.08] px-4 py-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Archive className="h-4 w-4 text-white/40" />
+            <span className="text-[11px] font-mono text-white/60 uppercase tracking-wide">Archived Session (Read-only)</span>
+          </div>
+          <Button size="sm" variant="ghost" onClick={handleUnarchive} className="h-6 text-[10px] text-purple-400 hover:text-purple-300 hover:bg-purple-500/10">
+            Unarchive
+          </Button>
+        </div>
+      )}
 
       {error && (
         <div className="border-b border-white/[0.08] bg-red-950/20 px-4 py-3">
@@ -501,8 +534,8 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
                 // Allow rendering if media is present, even if content is empty (though activity filter handles this)
                 if (contentNode === null && !activity.media) return null;
 
-                // Only show approve button if session is waiting for approval AND this is the latest plan
-                const showApprove = activity.type === 'plan' && session.status === 'awaiting_approval';
+                // Only show approve button if session is waiting for approval AND this is the latest plan AND not archived
+                const showApprove = !isArchived && activity.type === 'plan' && session.status === 'awaiting_approval';
 
                 return (
                   <div key={activity.id} className={`flex gap-2.5 ${activity.role === 'user' ? 'flex-row-reverse' : ''} ${newActivityIds.has(activity.id) ? 'animate-in fade-in slide-in-from-bottom-2 duration-500' : ''}`}>
@@ -571,7 +604,7 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
         </div>
       </div>
 
-      {session.status !== 'failed' && (
+      {!isArchived && session.status !== 'failed' && (
         <form onSubmit={handleSendMessage} className="border-t border-white/[0.08] bg-zinc-950/95 p-3">
           <div className="flex gap-2">
             <Textarea

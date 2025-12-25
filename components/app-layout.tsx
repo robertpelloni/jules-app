@@ -118,12 +118,8 @@ export function AppLayout() {
   };
 
   const handleSessionArchived = () => {
-    // Clear the selected session and refresh the session list
-    setSelectedSession(null);
+    // Refresh the session list to update the archived/active status
     setRefreshKey((prev) => prev + 1);
-    const newParams = new URLSearchParams(searchParams.toString());
-    newParams.delete('sessionId');
-    router.push(`/?${newParams.toString()}`);
   };
 
   const handleLogout = () => {
