@@ -44,6 +44,10 @@ const TEMPLATES = [
   {
     label: "Update Docs & Push",
     text: "Please update changelog and version number, documentation and roadmap, commit and push to git."
+  },
+  {
+    label: "Update, Fix & Redeploy",
+    text: "Please update all submodules, fix any new issues, update changelog and version number, documentation and roadmap, commit and push to git, redeploy."
   }
 ];
 

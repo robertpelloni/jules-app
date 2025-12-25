@@ -60,6 +60,11 @@ A powerful, self-hosted web application for managing Jules AI agent sessions wit
   - ✅ Color-coded status indicators
   - ✅ Role-based avatars (user vs agent)
 
+- **ACTIVITY-004**: Broadcast Messages ✅ _Closed_
+  - ✅ Send messages to all open sessions simultaneously
+  - ✅ Template support for common instructions
+  - ✅ Progress tracking
+
 - **UI-002**: Dark Mode Support ([#10](https://github.com/sbhavani/jules-app/issues/10)) ✅ _Closed_
   - ✅ System preference detection
   - ✅ Manual toggle option
@@ -137,6 +142,10 @@ A powerful, self-hosted web application for managing Jules AI agent sessions wit
   - ✅ Refactored `AnalyticsDashboard` to render session statistics immediately.
   - ✅ Activity breakdown data now loads in the background with contextual spinners.
 
+- **INFRA-001**: Docker Image Optimization
+  - ✅ Replaced 32GB PyTorch image with lightweight Python Slim image.
+  - ✅ Reduced disk usage and improved startup time.
+
 </details>
 
 ## MoSCoW Prioritization (Future Work)
@@ -153,10 +162,10 @@ A powerful, self-hosted web application for managing Jules AI agent sessions wit
   - ✅ Support for non-main branches in API client
   - ✅ Branch metadata display in session details
 
-- **SESSION-009**: Kanban Board View ([#31](https://github.com/sbhavani/jules-app/issues/31)) 🟡 _Open_
-  - 🟡 'Control Tower' for parallel sessions
-  - 🟡 Status columns (Running, Waiting, Done)
-  - 🟡 Quick actions
+- **SESSION-009**: Kanban Board View ([#31](https://github.com/sbhavani/jules-app/issues/31)) ✅ _Closed_
+  - ✅ 'Control Tower' for parallel sessions
+  - ✅ Status columns (Running, Waiting, Done)
+  - ✅ Quick actions
 
 - **SESSION-010**: GitHub Issue Integration ([#49](https://github.com/sbhavani/jules-app/issues/49)) 🟡 _Open_
   - 🟡 Select active GitHub issue in New Session dialog
