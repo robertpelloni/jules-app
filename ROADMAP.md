@@ -18,17 +18,17 @@
   - "Smart Pilot" (Supervisor LLM) and "Council Debate" (Multi-agent) integrations.
   - Settings UI with visual feedback.
   - Logs Panel.
+  - Analytics Integration (Nudges, Approvals, Debates metrics).
 - **UI Enhancements**:
   - `ActivityFeed`: Set-based O(N) deduplication.
   - `ActivityFeed`: Rendering of Base64 images (Media) and PR links.
   - `AppLayout`: Resizable vertical split for logs.
   - `resizable.tsx`: Robust export handling for `react-resizable-panels`.
-
-## In Progress
-- **Repository Search**: Implementing server-side filtering for repositories in the "New Session" dialog to handle large GitHub organizations.
+  - `Combobox`: Server-side filtering support (`onSearchChange`).
+  - `NewSessionDialog`: Debounced repository search for large orgs.
+  - `AnalyticsDashboard`: Session Keeper metrics integration.
 
 ## Planned / Pending
 - **Council Debate Visualization**: Visualizing the multi-agent debate process in the UI (currently logs-only).
 - **Terminal Integration Polish**: Verify secure API key passing and connection resilience.
 - **Template Management**: Refine template creation/editing flow.
-- **Analytics Dashboard**: Integrate Session Keeper metrics (nudges sent, plans approved).
