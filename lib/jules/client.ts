@@ -1,9 +1,18 @@
-import type { Source, Session, Activity, CreateSessionRequest, CreateActivityRequest } from '@/types/jules';
+import type { Source, Session, Activity, CreateSessionRequest, CreateActivityRequest, SessionOutput } from '@/types/jules';
 
 // API Response Interfaces (Internal)
 interface ApiSource {
   source?: string;
   name?: string;
+  [key: string]: unknown;
+}
+
+interface ApiSessionOutput {
+  pullRequest?: {
+    url: string;
+    title: string;
+    description: string;
+  };
   [key: string]: unknown;
 }
 
@@ -20,6 +29,7 @@ interface ApiSession {
   createTime: string;
   updateTime: string;
   lastActivityAt?: string;
+  outputs?: ApiSessionOutput[];
   [key: string]: unknown;
 }
 
@@ -182,7 +192,7 @@ export class JulesClient {
   }
 
   // Sources
-  async listSources(): Promise<Source[]> {
+  async listSources(filter?: string): Promise<Source[]> {
     let allSources: ApiSource[] = [];
     let pageToken: string | undefined;
 
@@ -190,6 +200,7 @@ export class JulesClient {
       const params = new URLSearchParams();
       params.set('pageSize', '100');
       if (pageToken) params.set('pageToken', pageToken);
+      if (filter) params.set('filter', filter);
 
       const endpoint = `/sources?${params.toString()}`;
       const response = await this.request<{ sources?: ApiSource[]; nextPageToken?: string }>(endpoint);
@@ -214,7 +225,6 @@ export class JulesClient {
     });
 
     // Sort logic same as before...
-    // (omitting specific hardcoded repo logic for brevity unless needed)
      const missingRepo = 'sbhavani/dgx-spark-playbooks';
     const missingRepoId = `sources/github/${missingRepo}`;
     if (!sources.some(s => s.id === missingRepoId)) {
@@ -273,17 +283,7 @@ export class JulesClient {
       pageToken = response.nextPageToken;
     } while (pageToken);
 
-    return allSessions.map((session: ApiSession) => ({
-      id: session.id,
-      sourceId: session.sourceContext?.source?.replace('sources/github/', '') || '',
-      title: session.title || '',
-      status: this.mapState(session.state || ''),
-      rawState: session.state,
-      createdAt: session.createTime,
-      updatedAt: session.updateTime,
-      lastActivityAt: session.lastActivityAt,
-      branch: session.sourceContext?.githubRepoContext?.startingBranch || 'main'
-    }));
+    return allSessions.map((session: ApiSession) => this.transformSession(session));
   }
 
   private mapState(state: string): Session['status'] {
@@ -301,8 +301,29 @@ export class JulesClient {
     return stateMap[state] || 'active';
   }
 
+  private transformSession(session: ApiSession): Session {
+      const outputs: SessionOutput[] = (session.outputs || []).map(o => ({
+          pullRequest: o.pullRequest,
+          ...o
+      }));
+
+      return {
+        id: session.id,
+        sourceId: session.sourceContext?.source?.replace('sources/github/', '') || '',
+        title: session.title || '',
+        status: this.mapState(session.state || ''),
+        rawState: session.state,
+        createdAt: session.createTime,
+        updatedAt: session.updateTime,
+        lastActivityAt: session.lastActivityAt,
+        branch: session.sourceContext?.githubRepoContext?.startingBranch || 'main',
+        outputs: outputs.length > 0 ? outputs : undefined
+      };
+  }
+
   async getSession(id: string): Promise<Session> {
-    return this.request<Session>(`/sessions/${id}`);
+    const response = await this.request<ApiSession>(`/sessions/${id}`);
+    return this.transformSession(response);
   }
 
   async createSession(data: CreateSessionRequest): Promise<Session> {
@@ -316,17 +337,18 @@ export class JulesClient {
       sourceContext: {
         source: data.sourceId,
         githubRepoContext: {
-          startingBranch: data.startingBranch || 'main'
+          startingBranch: data.startingBranch || 'main' // Default to main branch
         }
       },
       title: data.title || 'Untitled Session',
-      requirePlanApproval: true
+      requirePlanApproval: true // Enable plan approval as per requirements
     };
 
-    return this.request<Session>('/sessions', {
+    const response = await this.request<ApiSession>('/sessions', {
       method: 'POST',
       body: JSON.stringify(requestBody),
     });
+    return this.transformSession(response);
   }
 
   async deleteSession(id: string): Promise<void> {
@@ -386,6 +408,7 @@ export class JulesClient {
       let content = '';
       let diff = activity.diff || undefined;
       let bashOutput = activity.bashOutput || undefined;
+      let media: { data: string; mimeType: string } | undefined = undefined;
 
       // Extract specific content based on type
       if (activity.planGenerated) {
@@ -433,6 +456,9 @@ export class JulesClient {
           if (artifact.bashOutput?.output) {
             bashOutput = artifact.bashOutput.output;
           }
+          if (artifact.media) {
+             media = artifact.media;
+          }
         }
       }
 
@@ -454,6 +480,7 @@ export class JulesClient {
         content,
         diff,
         bashOutput,
+        media,
         createdAt: activity.createTime,
         metadata: activity as Record<string, unknown>
       };

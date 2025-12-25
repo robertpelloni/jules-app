@@ -305,7 +305,7 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
   }
 
   const filteredActivities = activities.filter((activity) => {
-    if (activity.bashOutput || activity.diff) return true;
+    if (activity.bashOutput || activity.diff || activity.media) return true;
     const content = activity.content?.trim();
     if (!content) return false;
 
@@ -342,6 +342,9 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
 
   const statusInfo = getStatusInfo();
 
+  // Check for PR
+  const pullRequest = session.outputs?.find(o => o.pullRequest)?.pullRequest;
+
   return (
     <div className="flex flex-col h-full bg-black relative">
       <div className="border-b border-white/[0.08] bg-zinc-950/95 px-4 py-3">
@@ -353,6 +356,17 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
                 <span>{statusInfo.icon}</span>
                 <span>{statusInfo.label}</span>
               </div>
+              {pullRequest && (
+                <a
+                  href={pullRequest.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 px-2 py-0.5 text-[9px] font-mono font-bold uppercase tracking-wider bg-green-500/10 text-green-400 hover:text-green-300 hover:underline border border-green-500/20 rounded"
+                >
+                  <GitPullRequest className="h-3 w-3" />
+                  <span>PR Created</span>
+                </a>
+              )}
             </div>
             <div className="flex items-center gap-3 text-[9px] font-mono text-white/40 uppercase tracking-wide">
               <span>Started {formatDate(session.createdAt)}</span>
@@ -484,7 +498,8 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
 
                 const activity = item;
                 const contentNode = formatContent(activity.content, activity.metadata);
-                if (contentNode === null) return null;
+                // Allow rendering if media is present, even if content is empty (though activity filter handles this)
+                if (contentNode === null && !activity.media) return null;
 
                 // Only show approve button if session is waiting for approval AND this is the latest plan
                 const showApprove = activity.type === 'plan' && session.status === 'awaiting_approval';
@@ -506,7 +521,19 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
                             {copiedId === activity.id ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3 text-white/40" />}
                           </Button>
                         </div>
+
+                        {activity.media && activity.media.data && (
+                           <div className="mb-2 rounded overflow-hidden border border-white/10">
+                              <img
+                                src={`data:${activity.media.mimeType};base64,${activity.media.data}`}
+                                alt="Generated Artifact"
+                                className="max-w-full h-auto block"
+                              />
+                           </div>
+                        )}
+
                         <div className="text-[11px] leading-relaxed text-white/90 break-words">{contentNode}</div>
+
                         {activity.bashOutput && (
                           <div className="mt-3 pt-3 border-t border-white/[0.08]">
                             <button onClick={() => toggleBashOutput(activity.id)} className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-wider text-green-400 hover:text-green-300 transition-colors mb-2">

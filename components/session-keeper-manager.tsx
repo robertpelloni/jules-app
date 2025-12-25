@@ -23,12 +23,6 @@ export function SessionKeeperManager() {
     const checkSessions = async () => {
       try {
         const sessions = await client.listSessions();
-        const monitoredSessions = sessions.filter(s => s.status !== 'failed' && s.status !== 'completed'); // Only monitor active sessions for nudges?
-        // Actually, requirements say "continuously loops through all sessions... sends... 'Please continue' if no activity".
-        // But looping completed sessions is wasteful. However, the user might want to resume them.
-        // Let's stick to the previous logic: monitor all, but treat completed/failed specially if needed.
-        // Wait, previous logic in SessionKeeper.tsx *did* monitor completed/failed and auto-resumed them!
-        // "If completed or failed, force resume message". I will keep that behavior.
 
         setStatusSummary({
           monitoringCount: sessions.length,
@@ -47,9 +41,6 @@ export function SessionKeeperManager() {
           }
 
           if (activities.length === 0) {
-             // If no activities, treat as inactive? Or new session?
-             // If it has a prompt, maybe we should start it?
-             // For now, skip empty sessions to avoid loops.
              continue;
           }
 
