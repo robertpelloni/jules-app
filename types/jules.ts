@@ -66,6 +66,7 @@ export interface SessionTemplate {
   title?: string;
   isFavorite?: boolean; // New: for favoriting templates
   tags?: string[]; // New: for categorization
+  isPrebuilt?: boolean; // New: to distinguish system templates
   createdAt: string;
   updatedAt: string;
 }

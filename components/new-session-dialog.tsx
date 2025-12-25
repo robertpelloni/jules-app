@@ -17,10 +17,11 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Combobox } from '@/components/ui/combobox';
-import { Plus, Loader2, Save, Sparkles, LayoutTemplate } from 'lucide-react';
+import { Plus, Loader2, Save, Sparkles } from 'lucide-react';
 import { TemplateFormDialog } from '@/components/template-form-dialog';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { toast } from 'sonner';
 
 interface NewSessionDialogProps {
   onSessionCreated?: () => void;
@@ -77,15 +78,19 @@ export function NewSessionDialog({ onSessionCreated, initialValues, trigger, ope
       }
 
       if (data.length === 0 && !query) {
-        setError('No repositories found. Please connect a GitHub repository in the Jules web app first.');
+        // setError('No repositories found. Please connect a GitHub repository in the Jules web app first.');
+        // We don't want to show an error immediately on load, just let the empty state handle it
       }
     } catch (err) {
       console.error('Failed to load sources:', err);
       if (err instanceof Error && err.message.includes('Resource not found')) {
-        setError('Unable to load repositories. Please ensure you have connected at least one GitHub repository in the Jules web app.');
+        const msg = 'Unable to load repositories. Please ensure you have connected at least one GitHub repository.';
+        setError(msg);
+        toast.error(msg);
       } else {
         const errorMessage = err instanceof Error ? err.message : 'Failed to load repositories';
         setError(errorMessage);
+        toast.error(errorMessage);
       }
     }
   }, [client, formData.sourceId]);
@@ -143,11 +148,13 @@ export function NewSessionDialog({ onSessionCreated, initialValues, trigger, ope
       setFormData({ sourceId: '', title: '', prompt: '', startingBranch: '', autoCreatePr: false });
       setSelectedTemplateId('');
       setError(null);
+      toast.success('Session created successfully');
       onSessionCreated?.();
     } catch (err) {
       console.error('Failed to create session:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to create session';
       setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }

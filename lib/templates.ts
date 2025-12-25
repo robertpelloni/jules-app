@@ -1,6 +1,6 @@
 import { SessionTemplate } from "@/types/jules";
 
-const TEMPLATES_KEY = "jules-session-templates";
+const USER_TEMPLATES_KEY = "jules-user-templates";
 
 const PREBUILT_TEMPLATES: SessionTemplate[] = [
   {
@@ -9,6 +9,7 @@ const PREBUILT_TEMPLATES: SessionTemplate[] = [
     title: "Strategic Planning",
     description:
       "A strategic planner who translates high-level vision into actionable, technical specifications.",
+    isPrebuilt: true,
     prompt: `You are "Architect" 📐 - a strategic planner who translates high-level vision into actionable, technical specifications. Your mission is to maintain synchronization between docs/PRD.md and GitHub Issues, ensuring every unit of work is atomized, technically feasible, and ready for development.
 
 Boundaries
@@ -145,6 +146,7 @@ Remember: You are the Architect. You build the blueprints so the builders (Agent
     title: "Implementation Artisan",
     description:
       "A pragmatic, clean-code artisan who turns requirements into reality.",
+    isPrebuilt: true,
     prompt: `You are "Builder" 🔨 - a pragmatic, clean-code artisan who turns requirements into reality. Your mission is to pick up a verified GitHub Issue, write elegant, maintainable code to satisfy it, and submit a pristine Pull Request.
 
 Boundaries
@@ -273,6 +275,7 @@ Remember: You are the Builder. Precision and clarity are your metrics. Do not so
     title: "Performance Optimization",
     description:
       "A performance-obsessed agent who makes the codebase faster, one optimization at a time.",
+    isPrebuilt: true,
     prompt: `You are "Bolt" ⚡ - a performance-obsessed agent who makes the codebase faster, one optimization at a time.
 
 Your mission is to identify and implement ONE small performance improvement that makes the application measurably faster or more efficient.
@@ -433,6 +436,7 @@ If no suitable performance optimization can be identified, stop and do not creat
     title: "UX Improvement",
     description:
       "A UX-focused agent who adds small touches of delight and accessibility to the user interface.",
+    isPrebuilt: true,
     prompt: `You are "Palette" 🎨 - a UX-focused agent who adds small touches of delight and accessibility to the user interface.
 
 Your mission is to find and implement ONE micro-UX improvement that makes the interface more intuitive, accessible, or pleasant to use.
@@ -635,6 +639,7 @@ If no suitable UX enhancement can be identified, stop and do not create a PR.`,
     title: "Security Auditor",
     description:
       "A security-focused agent who protects the codebase from vulnerabilities and security risks.",
+    isPrebuilt: true,
     prompt: `You are "Sentinel" 🛡️ - a security-focused agent who protects the codebase from vulnerabilities and security risks.
 
 Your mission is to identify and fix ONE small security issue or add ONE security enhancement that makes the application more secure.
@@ -885,6 +890,7 @@ If no security issues can be identified, perform a security enhancement or stop 
     title: "Quality Assurance",
     description:
       "A quality-obsessed agent who makes the codebase bulletproof, one test case at a time.",
+    isPrebuilt: true,
     prompt: `You are "Guardian" 🛡️ - a quality-obsessed agent who makes the codebase bulletproof, one test case at a time.
 Your mission is to identify and implement ONE meaningful test case that increases code coverage and confidence in the system's stability.
 Boundaries
@@ -993,6 +999,7 @@ Remember: You're Guardian. You don't just write code; you write insurance. A pas
     title: "Bug Reproduction",
     description:
       "A forensic PyTorch reproduction agent who mirrors bugs to reveal their root cause.",
+    isPrebuilt: true,
     prompt: `You are "Echo" 🔁 - a forensic PyTorch reproduction agent who mirrors bugs to reveal their root cause.
 Your mission is to turn vague external reports into concrete, reproducible scripts, serving as the bridge between user reports and engineering standards.
 Boundaries
@@ -1091,6 +1098,7 @@ Remember: You are Echo. You do not guess; you replicate. If you cannot reproduce
     name: 'Refactor 🔧',
     title: 'Code Refactoring',
     description: 'General-purpose refactoring template for improving code structure and readability.',
+    isPrebuilt: true,
     prompt: `Refactor the following file(s) to improve structure, readability, and maintainability: {file_path}.
 
 Specific Goal: {goal}
@@ -1107,6 +1115,7 @@ Guidelines:
     name: 'Test Gen 🧪',
     title: 'Test Suite Generator',
     description: 'Generates comprehensive test suites for existing code.',
+    isPrebuilt: true,
     prompt: `Generate a comprehensive test suite for the following file(s): {file_path}.
 
 Guidelines:
@@ -1122,6 +1131,7 @@ Guidelines:
     name: 'Bug Fix 🐛',
     title: 'Bug Diagnosis & Fix',
     description: 'Diagnose and resolve runtime errors or unexpected behavior.',
+    isPrebuilt: true,
     prompt: `I am encountering the following error/issue:
 {error_message}
 
@@ -1140,6 +1150,7 @@ Please:
     name: 'Tech Debt 🧹',
     title: 'Tech Debt Analysis',
     description: 'Analyze code for technical debt, antipatterns, and improvements.',
+    isPrebuilt: true,
     prompt: `Analyze the following file(s) or directory for technical debt, code smells, and antipatterns: {target}.
 
 Please provide:
@@ -1154,6 +1165,7 @@ Please provide:
     name: 'Docs 📝',
     title: 'Documentation Writer',
     description: 'Generate documentation, comments, and READMEs.',
+    isPrebuilt: true,
     prompt: `Write comprehensive documentation for the following scope: {target}.
 
 Deliverables:
@@ -1168,6 +1180,7 @@ Deliverables:
     name: 'CI Setup 🤖',
     title: 'Jules CI Action',
     description: 'Add Jules to your GitHub Actions workflow.',
+    isPrebuilt: true,
     prompt: `Create a .github/workflows/jules.yml file to run Jules on specific events (e.g., push, workflow_dispatch).
 
 Use the official action: google-labs-code/jules-action.
@@ -1181,27 +1194,29 @@ Configuration:
   }
 ];
 
-export function getTemplates(): SessionTemplate[] {
+export function getUserTemplates(): SessionTemplate[] {
   if (typeof window === "undefined") return [];
 
   try {
-    const stored = localStorage.getItem(TEMPLATES_KEY);
-    if (!stored) {
-      // Return prebuilt templates if nothing is stored
-      return PREBUILT_TEMPLATES;
-    }
-
-    // Sort by most recently updated
-    const templates: SessionTemplate[] = JSON.parse(stored);
-    return templates.sort(
-      (a, b) =>
-        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-    );
+    const stored = localStorage.getItem(USER_TEMPLATES_KEY);
+    if (!stored) return [];
+    return JSON.parse(stored);
   } catch (error) {
-    console.error("Failed to parse templates from localStorage:", error);
-    // Fallback to prebuilt templates on error
-    return PREBUILT_TEMPLATES;
+    console.error("Failed to parse user templates:", error);
+    return [];
   }
+}
+
+export function getTemplates(): SessionTemplate[] {
+  const userTemplates = getUserTemplates();
+  
+  // Merge prebuilt and user templates
+  // User templates are sorted by update time
+  const sortedUserTemplates = [...userTemplates].sort(
+    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+  );
+
+  return [...PREBUILT_TEMPLATES, ...sortedUserTemplates];
 }
 
 export function saveTemplate(
@@ -1213,23 +1228,30 @@ export function saveTemplate(
     throw new Error("Cannot save template on server side");
   }
 
-  const templates = getTemplates();
+  const userTemplates = getUserTemplates();
   const now = new Date().toISOString();
 
   let savedTemplate: SessionTemplate;
 
   if (template.id) {
-    // Update existing
-    const index = templates.findIndex((t) => t.id === template.id);
+    // Check if it's a prebuilt template
+    const isPrebuilt = PREBUILT_TEMPLATES.some(t => t.id === template.id);
+    if (isPrebuilt) {
+      throw new Error("Cannot edit prebuilt templates directly. Please clone them.");
+    }
+
+    // Update existing user template
+    const index = userTemplates.findIndex((t) => t.id === template.id);
     if (index === -1) throw new Error("Template not found");
 
     savedTemplate = {
-      ...templates[index],
+      ...userTemplates[index],
       ...template,
-      id: template.id, // Ensure ID is preserved
+      id: template.id,
       updatedAt: now,
+      isPrebuilt: false,
     };
-    templates[index] = savedTemplate;
+    userTemplates[index] = savedTemplate;
   } else {
     // Create new
     savedTemplate = {
@@ -1237,12 +1259,13 @@ export function saveTemplate(
       id: crypto.randomUUID(),
       createdAt: now,
       updatedAt: now,
+      isPrebuilt: false,
     };
-    templates.push(savedTemplate);
+    userTemplates.push(savedTemplate);
   }
 
   try {
-    localStorage.setItem(TEMPLATES_KEY, JSON.stringify(templates));
+    localStorage.setItem(USER_TEMPLATES_KEY, JSON.stringify(userTemplates));
     return savedTemplate;
   } catch (error) {
     console.error("Failed to save template to localStorage:", error);
@@ -1253,11 +1276,17 @@ export function saveTemplate(
 export function deleteTemplate(id: string): void {
   if (typeof window === "undefined") return;
 
-  const templates = getTemplates();
-  const filtered = templates.filter((t) => t.id !== id);
+  // Check if prebuilt
+  if (PREBUILT_TEMPLATES.some(t => t.id === id)) {
+    console.warn("Cannot delete prebuilt template");
+    return;
+  }
+
+  const userTemplates = getUserTemplates();
+  const filtered = userTemplates.filter((t) => t.id !== id);
 
   try {
-    localStorage.setItem(TEMPLATES_KEY, JSON.stringify(filtered));
+    localStorage.setItem(USER_TEMPLATES_KEY, JSON.stringify(filtered));
   } catch (error) {
     console.error("Failed to delete template from localStorage:", error);
   }

@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 
 interface TemplateFormDialogProps {
   open: boolean;
@@ -69,6 +70,8 @@ export function TemplateFormDialog({
     }
   }, [open, template, initialValues]);
 
+  const isPrebuilt = template?.isPrebuilt;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -76,8 +79,10 @@ export function TemplateFormDialog({
         .split(",")
         .map((tag) => tag.trim())
         .filter((tag) => tag !== "");
+      
+      // If it's a prebuilt template, we don't pass the ID, forcing a new creation (clone)
       saveTemplate({
-        id: template?.id,
+        id: isPrebuilt ? undefined : template?.id,
         name: formData.name,
         description: formData.description,
         prompt: formData.prompt,
@@ -86,8 +91,10 @@ export function TemplateFormDialog({
       });
       onSave();
       onOpenChange(false);
+      toast.success(isPrebuilt ? "Template cloned successfully" : "Template saved successfully");
     } catch (error) {
       console.error("Failed to save template:", error);
+      toast.error("Failed to save template");
     }
   };
 
@@ -96,11 +103,15 @@ export function TemplateFormDialog({
       <DialogContent className="sm:max-w-[600px] border-purple-500/20 shadow-[0_0_15px_rgba(168,85,247,0.15)]">
         <DialogHeader>
           <DialogTitle>
-            {template ? "Edit Template" : "Create New Template"}
+            {template 
+              ? (isPrebuilt ? "Clone System Template" : "Edit Template") 
+              : "Create New Template"}
           </DialogTitle>
           <DialogDescription>
             {template
-              ? "Update the details for this session template."
+              ? (isPrebuilt 
+                  ? "This is a system template. Saving will create a customizable copy." 
+                  : "Update the details for this session template.")
               : "Configure a new template for quick session creation."}
           </DialogDescription>
         </DialogHeader>
@@ -204,7 +215,9 @@ export function TemplateFormDialog({
               type="submit"
               className="h-8 text-[10px] font-mono uppercase tracking-widest"
             >
-              Save Template
+              {template 
+                ? (isPrebuilt ? "Clone Template" : "Save Changes") 
+                : "Create Template"}
             </Button>
           </div>
         </form>

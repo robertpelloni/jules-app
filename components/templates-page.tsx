@@ -14,6 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge"; // Import Badge
 import { Plus, Trash2, Edit2, Play, LayoutTemplate, Star } from "lucide-react"; // Import Star
 import { TemplateFormDialog } from "./template-form-dialog";
+import { toast } from "sonner";
 
 interface TemplatesPageProps {
   onStartSession: (template: SessionTemplate) => void;
@@ -36,17 +37,29 @@ export function TemplatesPage({ onStartSession }: TemplatesPageProps) {
 
   const handleDelete = (id: string) => {
     if (confirm("Are you sure you want to delete this template?")) {
-      deleteTemplate(id);
-      loadTemplates();
+      try {
+        deleteTemplate(id);
+        loadTemplates();
+        toast.success("Template deleted");
+      } catch (error) {
+        console.error("Failed to delete template:", error);
+        toast.error("Failed to delete template");
+      }
     }
   };
 
   const handleToggleFavorite = (template: SessionTemplate) => {
-    saveTemplate({
-      ...template,
-      isFavorite: !template.isFavorite,
-    });
-    loadTemplates();
+    try {
+      saveTemplate({
+        ...template,
+        isFavorite: !template.isFavorite,
+      });
+      loadTemplates();
+      toast.success(template.isFavorite ? "Removed from favorites" : "Added to favorites");
+    } catch (error) {
+      console.error("Failed to toggle favorite:", error);
+      toast.error("Failed to update template");
+    }
   };
 
   return (
@@ -99,41 +112,50 @@ export function TemplatesPage({ onStartSession }: TemplatesPageProps) {
               >
                 <CardHeader className="flex-1 p-4 pb-2">
                   <div className="flex justify-between items-start gap-2 mb-2">
-                    <CardTitle className="text-xs font-bold text-white uppercase tracking-wide leading-tight">
+                    <CardTitle className="text-xs font-bold text-white uppercase tracking-wide leading-tight flex items-center gap-2">
                       {template.name}
+                      {template.isPrebuilt && (
+                        <Badge className="text-[8px] font-mono uppercase px-1 py-0 h-4 bg-purple-500/20 text-purple-300 border-purple-500/30">
+                          System
+                        </Badge>
+                      )}
                     </CardTitle>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className={`h-6 w-6 ${template.isFavorite ? "text-yellow-400" : "text-white/40"} hover:text-yellow-300 hover:bg-white/10`}
-                        onClick={() => handleToggleFavorite(template)}
-                        aria-label={
-                          template.isFavorite
-                            ? "Remove from favorites"
-                            : "Add to favorites"
-                        }
-                      >
-                        <Star className="h-3 w-3 fill-current" />
-                      </Button>
+                      {!template.isPrebuilt && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={`h-6 w-6 ${template.isFavorite ? "text-yellow-400" : "text-white/40"} hover:text-yellow-300 hover:bg-white/10`}
+                          onClick={() => handleToggleFavorite(template)}
+                          aria-label={
+                            template.isFavorite
+                              ? "Remove from favorites"
+                              : "Add to favorites"
+                          }
+                        >
+                          <Star className="h-3 w-3 fill-current" />
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="icon"
                         className="h-6 w-6 text-white/40 hover:text-white hover:bg-white/10"
                         onClick={() => setEditingTemplate(template)}
-                        aria-label="Edit template"
+                        aria-label={template.isPrebuilt ? "View/Clone template" : "Edit template"}
                       >
                         <Edit2 className="h-3 w-3" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 text-white/40 hover:text-destructive hover:bg-white/10"
-                        onClick={() => handleDelete(template.id)}
-                        aria-label="Delete template"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
+                      {!template.isPrebuilt && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-white/40 hover:text-destructive hover:bg-white/10"
+                          onClick={() => handleDelete(template.id)}
+                          aria-label="Delete template"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                   <CardDescription className="text-[10px] text-white/40 font-mono leading-relaxed line-clamp-3">
