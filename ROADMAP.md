@@ -19,6 +19,8 @@
   - Settings UI with visual feedback.
   - Logs Panel.
   - Analytics Integration (Nudges, Approvals, Debates metrics).
+  - **Council Debate Visualization**: Visualizing the multi-agent debate process in the UI.
+  - **Memory Manager**: Context compaction and repo-level memory storage.
 - **UI Enhancements**:
   - `ActivityFeed`: Set-based O(N) deduplication.
   - `ActivityFeed`: Rendering of Base64 images (Media) and PR links.
@@ -30,9 +32,9 @@
 - **System**:
   - Centralized Versioning (`VERSION.md`).
   - Submodule Synchronization.
+  - **System Dashboard**: A dedicated page to view submodule versions, build info, and project structure.
 
 ## Planned / Pending
-- **System Dashboard**: A dedicated page to view submodule versions, build info, and project structure.
-- **Council Debate Visualization**: Visualizing the multi-agent debate process in the UI (currently logs-only).
 - **Terminal Integration Polish**: Verify secure API key passing and connection resilience.
 - **Template Management**: Refine template creation/editing flow.
+- **Real-time Submodule Status**: Add live git status checks to the System Dashboard.

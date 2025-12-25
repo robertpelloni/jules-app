@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.5] - 2025-12-25
+
+### Added
+- **Real-time Submodule Status**: The System Dashboard now fetches live git status for all submodules, showing if they are synced, modified, or uninitialized.
+- **API**: New `/api/system/status` endpoint to expose git submodule status.
+
 ## [0.2.4] - 2025-12-25
 
 ### Added

@@ -1,18 +1,61 @@
 'use client';
 
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, GitBranch, FolderTree, Clock, Hash } from "lucide-react";
+import { ArrowLeft, GitBranch, FolderTree, Clock, Hash, RefreshCw, CheckCircle2, AlertCircle, HelpCircle } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import submodulesData from "../submodules.json";
 
+interface LiveSubmoduleStatus {
+  path: string;
+  commit: string;
+  status: 'synced' | 'modified' | 'uninitialized';
+  describe: string;
+}
+
 export default function SystemDashboard() {
-  const { submodules, generatedAt } = submodulesData as { 
+  const { submodules: buildSubmodules, generatedAt } = submodulesData as { 
     submodules: { path: string; commit: string; describe: string; lastUpdated: string }[], 
     generatedAt: string 
+  };
+
+  const [liveStatus, setLiveStatus] = useState<LiveSubmoduleStatus[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const fetchStatus = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/system/status');
+      const data = await res.json();
+      if (data.submodules) {
+        setLiveStatus(data.submodules);
+      }
+    } catch (e) {
+      console.error("Failed to fetch live status", e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchStatus();
+  }, []);
+
+  const getStatusBadge = (path: string) => {
+    const live = liveStatus.find(s => s.path === path);
+    if (!live) return <Badge variant="outline" className="text-white/40 border-white/10">Unknown</Badge>;
+    
+    if (live.status === 'synced') {
+      return <Badge variant="outline" className="text-green-400 border-green-500/20 bg-green-500/10 gap-1"><CheckCircle2 className="h-3 w-3" /> Synced</Badge>;
+    }
+    if (live.status === 'modified') {
+      return <Badge variant="outline" className="text-yellow-400 border-yellow-500/20 bg-yellow-500/10 gap-1"><AlertCircle className="h-3 w-3" /> Modified</Badge>;
+    }
+    return <Badge variant="outline" className="text-red-400 border-red-500/20 bg-red-500/10 gap-1"><HelpCircle className="h-3 w-3" /> Uninitialized</Badge>;
   };
 
   return (
@@ -28,12 +71,18 @@ export default function SystemDashboard() {
               Submodule status and project structure.
             </p>
           </div>
-          <Link href="/">
-            <Button variant="outline" className="border-white/10 hover:bg-white/5">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to App
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={fetchStatus} disabled={isLoading} className="border-white/10 hover:bg-white/5">
+              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              Refresh Status
             </Button>
-          </Link>
+            <Link href="/">
+              <Button variant="outline" size="sm" className="border-white/10 hover:bg-white/5">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to App
+              </Button>
+            </Link>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -57,7 +106,7 @@ export default function SystemDashboard() {
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-xs text-white/60">Total Modules</span>
-                <span className="text-xs font-bold">{submodules.length}</span>
+                <span className="text-xs font-bold">{buildSubmodules.length}</span>
               </div>
             </CardContent>
           </Card>
@@ -102,7 +151,7 @@ export default function SystemDashboard() {
         <div className="space-y-4">
           <h2 className="text-lg font-bold tracking-wide text-white/80">Submodules</h2>
           <div className="grid gap-4">
-            {submodules.map((mod) => (
+            {buildSubmodules.map((mod) => (
               <Card key={mod.path} className="bg-zinc-950 border-white/10 hover:border-white/20 transition-colors">
                 <CardContent className="p-4 flex items-center justify-between">
                   <div className="flex items-center gap-4">
@@ -119,7 +168,8 @@ export default function SystemDashboard() {
                       </div>
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="flex items-center gap-4">
+                    {getStatusBadge(mod.path)}
                     <Badge variant="secondary" className="bg-white/5 text-white/60 hover:bg-white/10">
                       {mod.path.split('/')[0]}
                     </Badge>
