@@ -4,7 +4,6 @@ import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useJules } from '@/lib/jules/provider';
 import { useSessionKeeperStore } from '@/lib/stores/session-keeper';
-import { decideNextAction } from '@/lib/orchestration/supervisor';
 import { Activity } from '@/types/jules';
 
 export function SessionKeeperManager() {
@@ -148,17 +147,29 @@ export function SessionKeeperManager() {
                 addLog(`Consulting Supervisor for ${session.id}...`, 'info');
                 try {
                   const contextActivities = [...fullActivities].reverse().slice(-config.contextMessageCount);
-                  const context = contextActivities.map(a => `${a.role.toUpperCase()}: ${a.content}`).join('\n');
+                  const messages = contextActivities.map(a => ({
+                      role: a.role === 'agent' ? 'assistant' : 'user',
+                      content: a.content
+                  }));
 
-                  const supervisorMessage = await decideNextAction(
-                    config.supervisorProvider,
-                    config.supervisorApiKey,
-                    config.supervisorModel,
-                    `The user is inactive. The last activity was: ${latestActivity.content}. \n\n Recent Context:\n ${context}`
-                  );
+                  const response = await fetch('/api/supervisor', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        messages,
+                        provider: config.supervisorProvider,
+                        apiKey: config.supervisorApiKey,
+                        model: config.supervisorModel
+                    })
+                  });
 
-                  if (supervisorMessage) {
-                    message = supervisorMessage;
+                  if (response.ok) {
+                    const data = await response.json();
+                    if (data.content) {
+                        message = data.content;
+                    }
+                  } else {
+                     addLog(`Supervisor API failed: ${response.status}`, 'error');
                   }
                 } catch (e) {
                   addLog(`Supervisor failed: ${e}`, 'error');
