@@ -42,7 +42,6 @@ export interface ComboboxOption {
 }
 
 interface ComboboxProps {
-<<<<<<< HEAD
   options: ComboboxOption[];
   value?: string;
   onValueChange?: (value: string) => void;
@@ -52,17 +51,6 @@ interface ComboboxProps {
   emptyMessage?: string;
   className?: string;
   id?: string;
-=======
-  options: ComboboxOption[]
-  value?: string
-  onValueChange?: (value: string) => void
-  onSearchChange?: (value: string) => void
-  placeholder?: string
-  searchPlaceholder?: string
-  emptyMessage?: string
-  className?: string
-  id?: string
->>>>>>> cca362fe49a84150efc5a322c7a17148c86140f9
 }
 
 export function Combobox({

@@ -560,6 +560,15 @@ export class JulesClient {
       createdAt: new Date().toISOString(),
     };
   }
+
+  async updateSession(id: string, updates: Partial<Session>): Promise<void> {
+    console.warn('[JulesClient] updateSession is not fully implemented by the backend yet. Updates are local only.', updates);
+    // TODO: Implement actual API call when available
+    // await this.request<void>(`/sessions/${id}`, {
+    //   method: 'PATCH',
+    //   body: JSON.stringify(updates),
+    // });
+  }
 }
 
 export function createJulesClient(apiKey: string): JulesClient {

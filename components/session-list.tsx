@@ -217,7 +217,7 @@ export function SessionList({ onSelectSession, selectedSessionId }: SessionListP
               </div>
             ) : (
               visibleSessions.map((session) => {
-                const statusInfo = getStatusInfo(session);
+                const statusInfo = getStatusInfo(session.status);
                 const sessionState = sessionStates?.[session.id];
                 const lastActivityTime = session.lastActivityAt ? formatDate(session.lastActivityAt) : null;
                 const lastActivitySnippet = sessionState?.lastActivitySnippet ? truncateText(sessionState.lastActivitySnippet, 40) : null;

@@ -133,15 +133,10 @@ export function SessionKeeper({ onClose }: { isSidebar?: boolean, onClose?: () =
 
                 // Debate / Conference Logic
                 let mode = 'single';
-                let isDebateOrConference = false;
-
-                if (config.supervisorMode) {
-                    mode = config.supervisorMode;
-                    isDebateOrConference = mode === 'debate' || mode === 'conference';
-                } else {
-                    // Fallback for legacy config
-                    isDebateOrConference = !!config.debateEnabled;
-                    mode = isDebateOrConference ? 'debate' : 'single';
+                let isDebateOrConference = !!config.debateEnabled;
+                
+                if (isDebateOrConference) {
+                    mode = 'debate';
                 }
 
                 // Double-check safeguard

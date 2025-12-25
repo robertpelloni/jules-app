@@ -57,7 +57,6 @@ export function SessionKeeperManager() {
 
         // Debug Config
         console.log('[Auto-Pilot Debug] Config:', {
-            mode: config.supervisorMode,
             debateEnabled: config.debateEnabled,
             smartPilot: config.smartPilotEnabled,
             participants: config.debateParticipants?.length
@@ -84,17 +83,11 @@ export function SessionKeeperManager() {
                 const sortedActivities = activities.sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
                 // Debate / Conference Logic
-                // Strictly check supervisorMode to prevent accidental debate execution
                 let mode = 'single';
-                let isDebateOrConference = false;
-
-                if (config.supervisorMode) {
-                    mode = config.supervisorMode;
-                    isDebateOrConference = mode === 'debate' || mode === 'conference';
-                } else {
-                    // Fallback for legacy config
-                    isDebateOrConference = !!config.debateEnabled;
-                    mode = isDebateOrConference ? 'debate' : 'single';
+                let isDebateOrConference = !!config.debateEnabled;
+                
+                if (isDebateOrConference) {
+                    mode = 'debate';
                 }
                 
                 // Double-check safeguard
