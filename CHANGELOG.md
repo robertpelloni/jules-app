@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.1] - 2025-12-25
+
+### Added
+- **Super Protocol Template**: Added a comprehensive "All-in-One" protocol template to the Broadcast Dialog for streamlining maintenance workflows.
+
+### Changed
+- **Session List UI**: Improved layout by displaying the repository name above the session title and moving the "last activity" time to a dedicated line for better readability.
+- **Broadcast Templates**: Refined the text of all broadcast templates for clarity and conciseness.
+
 ## [0.2.0] - 2025-12-24
 
 ### Added

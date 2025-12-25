@@ -209,6 +209,7 @@ A powerful, self-hosted web application for managing Jules AI agent sessions wit
 | [#6](https://github.com/sbhavani/jules-app/issues/6) | UI-001 | Mobile-Responsive Layout | ✅ Closed | P0 Critical |
 | [#7](https://github.com/sbhavani/jules-app/issues/7) | SESSION-004 | Delete/Archive Sessions | ✅ Closed | P1 Important |
 | [#8](https://github.com/sbhavani/jules-app/issues/8) | ACTIVITY-002 | Activity Type Indicators | ✅ Closed | P1 Important |
+| [#50](https://github.com/sbhavani/jules-app/issues/50) | ACTIVITY-004 | Broadcast Messages | ✅ Closed | P1 Important |
 | [#9](https://github.com/sbhavani/jules-app/issues/9) | SOURCE-001 | Repository Management | ✅ Closed | P1 Important |
 | [#10](https://github.com/sbhavani/jules-app/issues/10) | UI-002 | Dark Mode Support | ✅ Closed | P1 Important |
 | [#11](https://github.com/sbhavani/jules-app/issues/11) | UI-003 | Loading States & Skeleton Loaders | ✅ Closed | P1 Important |
@@ -227,7 +228,7 @@ A powerful, self-hosted web application for managing Jules AI agent sessions wit
 | [#28](https://github.com/sbhavani/jules-app/issues/28) | ORCH-001 | "The Architect" Plan Review | 🟡 Open | Feature |
 | [#29](https://github.com/sbhavani/jules-app/issues/29) | ORCH-002 | "The Auditor" Security Analysis | 🟡 Open | Feature |
 | [#30](https://github.com/sbhavani/jules-app/issues/30) | ORCH-003 | "The Librarian" Auto-Docs | 🟡 Open | Feature |
-| [#31](https://github.com/sbhavani/jules-app/issues/31) | SESSION-009 | Kanban Board View | 🟡 Open | P1 Important |
+| [#31](https://github.com/sbhavani/jules-app/issues/31) | SESSION-009 | Kanban Board View | ✅ Closed | P1 Important |
 | [#32](https://github.com/sbhavani/jules-app/issues/32) | ANALYTICS-002 | Code Impact Metrics | 🟡 Open | Feature |
 | [#33](https://github.com/sbhavani/jules-app/issues/33) | ANALYTICS-004 | Session Health Monitoring | 🟡 Open | P1 Important |
 | [#34](https://github.com/sbhavani/jules-app/issues/34) | DEV-001 | Integrated Local Terminal | ✅ Closed | Feature |
@@ -238,9 +239,9 @@ A powerful, self-hosted web application for managing Jules AI agent sessions wit
 | [#48](https://github.com/sbhavani/jules-app/issues/48) | THEME-001 | Refactor Theming System | 🟡 Open | P2 Nice to Have |
 
 **Summary Statistics:**
-- ✅ Closed: 19 issues (+1 optimization focus)
-- 🟡 Open: 16 issues
+- ✅ Closed: 21 issues (+1 optimization focus)
+- 🟡 Open: 15 issues
 - P0 Critical: 6 issues (6 closed, 0 open)
-- P1 Important: 12 issues (6 closed, 6 open)
+- P1 Important: 13 issues (8 closed, 5 open)
 - P2 Nice to Have: 8 issues (2 closed, 6 open)
 - Feature requests: 10 issues (2 closed, 8 open)
