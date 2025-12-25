@@ -40,6 +40,10 @@ const TEMPLATES = [
   {
     label: "Roadmap & Documentation",
     text: "Please closely analyze the entire conversation history in full and note every feature, package, implementation detail, etc, and organize them into the roadmap and documentation, noting what has already been accomplished and what is not done yet. Please then continue work on the next feature."
+  },
+  {
+    label: "Update Docs & Push",
+    text: "Please update changelog and version number, documentation and roadmap, commit and push to git."
   }
 ];
 
