@@ -18,6 +18,7 @@ import { CardSpotlight } from "@/components/ui/card-spotlight";
 import { formatDistanceToNow, isValid, parseISO, isToday } from "date-fns";
 import { getArchivedSessions } from "@/lib/archive";
 import { useSessionKeeperStore } from "@/lib/stores/session-keeper";
+import { BroadcastDialog } from "./broadcast-dialog";
 
 function truncateText(text: string, maxLength: number) {
   if (!text) return "";
@@ -193,24 +194,27 @@ export function SessionList({
     <TooltipProvider>
       <div className="h-full flex flex-col bg-zinc-950 overflow-hidden">
         <div className="px-3 py-2 border-b border-white/[0.08] shrink-0">
-          <div className="relative">
-            <Search className="absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search for repo or sessions"
-              aria-label="Search sessions"
-              className="h-7 w-full bg-black/50 pl-7 pr-7 text-[10px] border-white/10 focus-visible:ring-purple-500/50 placeholder:text-muted-foreground/50"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white transition-colors"
-                aria-label="Clear search"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            )}
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search for repo or sessions"
+                aria-label="Search sessions"
+                className="h-7 w-full bg-black/50 pl-7 pr-7 text-[10px] border-white/10 focus-visible:ring-purple-500/50 placeholder:text-muted-foreground/50"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white transition-colors"
+                  aria-label="Clear search"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+            <BroadcastDialog sessions={sessions} />
           </div>
         </div>
         <ScrollArea className="flex-1 min-h-0">

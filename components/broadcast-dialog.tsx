@@ -1,0 +1,123 @@
+"use client";
+
+import { useState } from "react";
+import { useJules } from "@/lib/jules/provider";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Loader2, Megaphone } from "lucide-react";
+import type { Session } from "@/types/jules";
+
+interface BroadcastDialogProps {
+  sessions: Session[];
+}
+
+export function BroadcastDialog({ sessions }: BroadcastDialogProps) {
+  const { client } = useJules();
+  const [open, setOpen] = useState(false);
+  const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
+  const [progress, setProgress] = useState(0);
+
+  const activeSessions = sessions.filter(s => s.status === 'active');
+
+  const handleSend = async () => {
+    if (!client || !message.trim()) return;
+
+    setSending(true);
+    setProgress(0);
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (let i = 0; i < activeSessions.length; i++) {
+      const session = activeSessions[i];
+      try {
+        await client.createActivity({
+          sessionId: session.id,
+          content: message,
+          type: 'message'
+        });
+        successCount++;
+      } catch (error) {
+        console.error(`Failed to send to session ${session.id}:`, error);
+        failCount++;
+      }
+      setProgress(Math.round(((i + 1) / activeSessions.length) * 100));
+    }
+
+    setSending(false);
+    setOpen(false);
+    setMessage("");
+    setProgress(0);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-white" title="Broadcast to all active sessions">
+          <Megaphone className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px] bg-zinc-950 border-white/10 text-white">
+        <DialogHeader>
+          <DialogTitle>Broadcast Message</DialogTitle>
+          <DialogDescription className="text-zinc-400">
+            Send a message to all {activeSessions.length} active sessions simultaneously.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid gap-2">
+            <Label htmlFor="message" className="text-white">Message</Label>
+            <Textarea
+              id="message"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Type your message here..."
+              className="bg-zinc-900 border-white/10 text-white min-h-[100px]"
+            />
+          </div>
+          {sending && (
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs text-zinc-400">
+                <span>Sending...</span>
+                <span>{progress}%</span>
+              </div>
+              <div className="h-1 w-full bg-zinc-800 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-purple-500 transition-all duration-300"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button 
+            onClick={handleSend} 
+            disabled={sending || !message.trim() || activeSessions.length === 0}
+            className="bg-purple-600 hover:bg-purple-500 text-white"
+          >
+            {sending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Sending...
+              </>
+            ) : (
+              "Send Broadcast"
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
