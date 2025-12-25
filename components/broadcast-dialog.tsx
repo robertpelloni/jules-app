@@ -47,7 +47,7 @@ const TEMPLATES = [
   },
   {
     label: "Update, Fix & Redeploy",
-    text: "Please update all submodules, fix any new issues, update changelog and version number, documentation and roadmap, commit and push to git, redeploy."
+    text: "Please update all submodules, merge in upstream changes (including for forked submodules), fix any issues, update changelog and version number, documentation and roadmap. Commit and push changes for each repository, then redeploy."
   }
 ];
 
