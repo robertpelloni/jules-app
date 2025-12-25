@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.4] - 2025-12-25
+
+### Added
+- **Memory Manager**: New feature to compact session history into "Memory Files" using an LLM.
+- **Context Injection**: Ability to save memories to the repo (`.jules/memories`) and copy them for injection into new sessions.
+- **API**: New `/api/memory` endpoint for handling compaction and file operations.
+
 ## [0.2.3] - 2025-12-25
 
 ### Added

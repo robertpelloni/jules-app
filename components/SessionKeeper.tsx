@@ -13,6 +13,7 @@ import { SessionKeeperSettings } from './session-keeper-settings';
 import { useSessionKeeperStore } from '@/lib/stores/session-keeper';
 import { SessionKeeperConfig } from '@/types/jules';
 import { DebateVisualizer } from './debate-visualizer';
+import { MemoryManager } from './memory-manager';
 
 // Persistent Supervisor State
 interface SupervisorState {
@@ -446,6 +447,7 @@ export function SessionKeeper({ onClose }: { isSidebar?: boolean, onClose?: () =
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+           <MemoryManager sessionId={sessions.find(s => s.id === pathname?.split('=')[1])?.id} />
            <SessionKeeperSettings
              config={config}
              onConfigChange={setConfig}
