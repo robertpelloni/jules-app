@@ -7,10 +7,12 @@ import { RotateCw, Brain, X, Check, Activity, Users, Sparkles } from 'lucide-rea
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getArchivedSessions } from '@/lib/archive';
 import { SessionKeeperSettings } from './session-keeper-settings';
 import { useSessionKeeperStore } from '@/lib/stores/session-keeper';
 import { SessionKeeperConfig } from '@/types/jules';
+import { DebateVisualizer } from './debate-visualizer';
 
 // Persistent Supervisor State
 interface SupervisorState {
@@ -484,33 +486,44 @@ export function SessionKeeper({ onClose }: { isSidebar?: boolean, onClose?: () =
            </p>
         </Card>
 
-        {/* Live Logs */}
-        <div className="flex-1 flex flex-col min-h-0 border border-white/10 rounded-lg bg-black/50 overflow-hidden">
-          <div className="flex items-center justify-between px-3 py-2 border-b border-white/10 bg-white/5">
-            <span className="text-[10px] uppercase text-white/40 font-bold tracking-wider">Activity Log</span>
-            <Button variant="ghost" size="sm" className="h-5 text-[9px] hover:bg-white/5 text-white/40" onClick={clearLogs}>
-              CLEAR
-            </Button>
-          </div>
-          <ScrollArea className="flex-1 p-0">
-            <div className="flex flex-col font-mono text-[10px]">
-              {logs.length === 0 && (
-                <div className="p-4 text-center text-white/20 italic">No activity recorded...</div>
-              )}
-              {logs.map((log, i) => (
-                <div key={i} className={`flex gap-3 px-3 py-1.5 border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors ${
-                  log.type === 'error' ? 'text-red-400 bg-red-950/10' :
-                  log.type === 'action' ? 'text-green-400 bg-green-950/10' :
-                  log.type === 'skip' ? 'text-yellow-500/50' :
-                  'text-white/40'
-                }`}>
-                  <span className="opacity-40 shrink-0 w-14">{log.time}</span>
-                  <span className="break-all">{log.message}</span>
-                </div>
-              ))}
+        {/* Tabs for Logs and Council */}
+        <Tabs defaultValue="logs" className="flex-1 flex flex-col min-h-0">
+          <TabsList className="grid w-full grid-cols-2 mb-2 bg-white/5">
+            <TabsTrigger value="logs" className="text-xs">Activity Log</TabsTrigger>
+            <TabsTrigger value="council" className="text-xs">Council Debates</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="logs" className="flex-1 flex flex-col min-h-0 border border-white/10 rounded-lg bg-black/50 overflow-hidden mt-0 data-[state=inactive]:hidden">
+            <div className="flex items-center justify-between px-3 py-2 border-b border-white/10 bg-white/5">
+              <span className="text-[10px] uppercase text-white/40 font-bold tracking-wider">Activity Log</span>
+              <Button variant="ghost" size="sm" className="h-5 text-[9px] hover:bg-white/5 text-white/40" onClick={clearLogs}>
+                CLEAR
+              </Button>
             </div>
-          </ScrollArea>
-        </div>
+            <ScrollArea className="flex-1 p-0">
+              <div className="flex flex-col font-mono text-[10px]">
+                {logs.length === 0 && (
+                  <div className="p-4 text-center text-white/20 italic">No activity recorded...</div>
+                )}
+                {logs.map((log, i) => (
+                  <div key={i} className={`flex gap-3 px-3 py-1.5 border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors ${
+                    log.type === 'error' ? 'text-red-400 bg-red-950/10' :
+                    log.type === 'action' ? 'text-green-400 bg-green-950/10' :
+                    log.type === 'skip' ? 'text-yellow-500/50' :
+                    'text-white/40'
+                  }`}>
+                    <span className="opacity-40 shrink-0 w-14">{log.time}</span>
+                    <span className="break-all">{log.message}</span>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          </TabsContent>
+          
+          <TabsContent value="council" className="flex-1 min-h-0 mt-0 data-[state=inactive]:hidden">
+             <DebateVisualizer />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

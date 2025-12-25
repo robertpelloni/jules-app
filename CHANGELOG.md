@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.3] - 2025-12-25
+
+### Added
+- **Council Debate Visualization**: New UI component to visualize multi-agent debate interactions in the Session Keeper.
+- **Documentation**: Standardized LLM instruction files (`CLAUDE.md`, `GEMINI.md`, `AGENTS.md`, `GPT.md`) to reference a master `LLM_INSTRUCTIONS.md`.
+
+### Changed
+- **Session Keeper**: Refactored `SessionKeeper` UI to include a tabbed view for Logs and Council Debates.
+- **Store**: Updated `SessionKeeperStore` to persist debate history.
+
 ## [0.2.2] - 2025-12-25
 
 ### Added

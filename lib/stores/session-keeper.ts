@@ -8,6 +8,25 @@ export interface Log {
   type: 'info' | 'action' | 'error' | 'skip';
 }
 
+export interface DebateOpinion {
+  participant: {
+    provider: string;
+    model: string;
+    role?: string;
+  };
+  content: string;
+  error?: string;
+}
+
+export interface DebateResult {
+  id: string;
+  sessionId: string;
+  timestamp: number;
+  mode: 'debate' | 'conference';
+  opinions: DebateOpinion[];
+  finalInstruction: string;
+}
+
 export interface StatusSummary {
   monitoringCount: number;
   lastAction: string;
@@ -29,11 +48,13 @@ export interface SessionKeeperStats {
 interface SessionKeeperState {
   config: SessionKeeperConfig;
   logs: Log[];
+  debates: DebateResult[];
   statusSummary: StatusSummary;
   sessionStates: Record<string, SessionState>;
   stats: SessionKeeperStats;
   setConfig: (config: SessionKeeperConfig) => void;
   addLog: (message: string, type: Log['type']) => void;
+  addDebate: (debate: DebateResult) => void;
   clearLogs: () => void;
   setStatusSummary: (summary: Partial<StatusSummary>) => void;
   updateSessionState: (sessionId: string, state: Partial<SessionState>) => void;
@@ -68,6 +89,7 @@ export const useSessionKeeperStore = create<SessionKeeperState>()(
     (set) => ({
       config: DEFAULT_CONFIG,
       logs: [],
+      debates: [],
       statusSummary: { monitoringCount: 0, lastAction: 'None', nextCheckIn: 0 },
       sessionStates: {},
       stats: { totalNudges: 0, totalApprovals: 0, totalDebates: 0 },
@@ -80,6 +102,10 @@ export const useSessionKeeperStore = create<SessionKeeperState>()(
           message,
           type
         }, ...state.logs].slice(0, 100)
+      })),
+
+      addDebate: (debate) => set((state) => ({
+        debates: [debate, ...state.debates].slice(0, 50) // Keep last 50 debates
       })),
 
       clearLogs: () => set({ logs: [] }),

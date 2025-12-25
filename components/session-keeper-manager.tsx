@@ -16,7 +16,7 @@ interface SupervisorState {
 
 export function SessionKeeperManager() {
   const { client, apiKey } = useJules();
-  const { config, addLog, setStatusSummary, updateSessionState, incrementStat } = useSessionKeeperStore();
+  const { config, addLog, addDebate, setStatusSummary, updateSessionState, incrementStat } = useSessionKeeperStore();
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const processingRef = useRef(false);
 
@@ -124,6 +124,17 @@ export function SessionKeeperManager() {
                     if (response.ok) {
                         const data = await response.json();
                         messageToSend = data.content;
+                        
+                        // Save Debate Result
+                        addDebate({
+                            id: Date.now().toString(),
+                            sessionId: session.id,
+                            timestamp: Date.now(),
+                            mode: mode as 'debate' | 'conference',
+                            opinions: data.opinions || [],
+                            finalInstruction: messageToSend
+                        });
+
                         if (data.opinions) {
                             data.opinions.forEach((op: any) => {
                                 addLog(`Member (${op.participant.provider}): ${op.content.substring(0, 30)}...`, 'info');
