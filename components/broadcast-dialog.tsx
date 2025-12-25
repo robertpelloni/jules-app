@@ -28,7 +28,8 @@ export function BroadcastDialog({ sessions }: BroadcastDialogProps) {
   const [sending, setSending] = useState(false);
   const [progress, setProgress] = useState(0);
 
-  const activeSessions = sessions.filter(s => s.status === 'active');
+  // Use all provided sessions regardless of status, assuming the parent filters for "open" (unarchived) sessions
+  const targetSessions = sessions;
 
   const handleSend = async () => {
     if (!client || !message.trim()) return;
@@ -39,8 +40,8 @@ export function BroadcastDialog({ sessions }: BroadcastDialogProps) {
     let successCount = 0;
     let failCount = 0;
 
-    for (let i = 0; i < activeSessions.length; i++) {
-      const session = activeSessions[i];
+    for (let i = 0; i < targetSessions.length; i++) {
+      const session = targetSessions[i];
       try {
         await client.createActivity({
           sessionId: session.id,
@@ -52,7 +53,7 @@ export function BroadcastDialog({ sessions }: BroadcastDialogProps) {
         console.error(`Failed to send to session ${session.id}:`, error);
         failCount++;
       }
-      setProgress(Math.round(((i + 1) / activeSessions.length) * 100));
+      setProgress(Math.round(((i + 1) / targetSessions.length) * 100));
     }
 
     setSending(false);
@@ -64,7 +65,7 @@ export function BroadcastDialog({ sessions }: BroadcastDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-white" title="Broadcast to all active sessions">
+        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-white" title="Broadcast to all open sessions">
           <Megaphone className="h-4 w-4" />
         </Button>
       </DialogTrigger>
@@ -72,7 +73,7 @@ export function BroadcastDialog({ sessions }: BroadcastDialogProps) {
         <DialogHeader>
           <DialogTitle>Broadcast Message</DialogTitle>
           <DialogDescription className="text-zinc-400">
-            Send a message to all {activeSessions.length} active sessions simultaneously.
+            Send a message to all {targetSessions.length} open sessions simultaneously.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -104,7 +105,7 @@ export function BroadcastDialog({ sessions }: BroadcastDialogProps) {
         <DialogFooter>
           <Button 
             onClick={handleSend} 
-            disabled={sending || !message.trim() || activeSessions.length === 0}
+            disabled={sending || !message.trim() || targetSessions.length === 0}
             className="bg-purple-600 hover:bg-purple-500 text-white"
           >
             {sending ? (

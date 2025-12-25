@@ -214,7 +214,7 @@ export function SessionList({
                 </button>
               )}
             </div>
-            <BroadcastDialog sessions={sessions} />
+            <BroadcastDialog sessions={sessions.filter(s => !archivedSessionIds.has(s.id))} />
           </div>
         </div>
         <ScrollArea className="flex-1 min-h-0">
