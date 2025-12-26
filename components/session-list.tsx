@@ -18,6 +18,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { CardSpotlight } from '@/components/ui/card-spotlight';
 import { formatDistanceToNow, isValid, parseISO, isToday } from 'date-fns';
 import { getArchivedSessions } from '@/lib/archive';
+import { BroadcastDialog } from "@/components/broadcast-dialog";
 
 function truncateText(text: string, maxLength: number) {
   if (!text) return '';
@@ -200,6 +201,7 @@ export function SessionList({ onSelectSession, selectedSessionId }: SessionListP
               {showArchived ? "Show Active Sessions" : "Show Archived Sessions"}
             </TooltipContent>
           </Tooltip>
+          <BroadcastDialog sessions={visibleSessions} />
         </div>
         <ScrollArea className="flex-1 min-h-0">
           <div className="p-2 space-y-1">
@@ -290,7 +292,7 @@ export function SessionList({ onSelectSession, selectedSessionId }: SessionListP
                           </span>
                           {lastActivityTime && (
                             <span className="text-white/50 truncate">
-                              {lastActivityTime}
+                              Last action: {lastActivityTime}
                             </span>
                           )}
                         </div>
@@ -303,7 +305,7 @@ export function SessionList({ onSelectSession, selectedSessionId }: SessionListP
                         {/* Line 4: Last Activity Snippet */}
                         {lastActivitySnippet && (
                           <div className="text-[9px] text-white/30 font-mono leading-tight truncate italic mt-0.5">
-                            "{lastActivitySnippet}"
+                            &quot;{lastActivitySnippet}&quot;
                           </div>
                         )}
                       </div>
