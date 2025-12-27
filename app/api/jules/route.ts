@@ -58,10 +58,13 @@ export async function POST(request: NextRequest) {
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      console.error("[Jules API Proxy] POST error:", {
-        status: response.status,
-        data,
-      });
+      // Only log critical errors (500s), skip 4xx client errors to reduce noise
+      if (response.status >= 500) {
+        console.error("[Jules API Proxy] Upstream Error:", {
+          status: response.status,
+          data,
+        });
+      }
     }
 
     return NextResponse.json(data, { status: response.status });

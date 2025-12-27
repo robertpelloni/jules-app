@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import useSWR from 'swr';
 import { useJules } from '@/lib/jules/provider';
 import type { Activity, Session } from '@/types/jules';
+import { exportSessionToJSON, exportSessionToMarkdown } from '@/lib/export';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -205,29 +206,12 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
   };
 
   const handleExport = (format: 'json' | 'txt' | 'md') => {
-    let content = '';
-    const filename = `session-${session.id.substring(0, 8)}.${format}`;
-
     if (format === 'json') {
-      content = JSON.stringify(activities, null, 2);
+      exportSessionToJSON(session, activities);
     } else {
-      content = activities.map(a => {
-        const header = `[${formatDate(a.createdAt)}] ${a.role.toUpperCase()} (${a.type})`;
-        return format === 'md'
-          ? `### ${header}\n\n${a.content}\n\n`
-          : `${header}\n${a.content}\n\n-------------------\n\n`;
-      }).join('');
+      // Use Markdown export for both .md and .txt (it's readable text)
+      exportSessionToMarkdown(session, activities);
     }
-
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
   };
 
   const scrollToTop = () => {
