@@ -5,13 +5,14 @@ import useSWR from 'swr';
 import { useJules } from '@/lib/jules/provider';
 import type { Activity, Session } from '@/types/jules';
 import { exportSessionToJSON, exportSessionToMarkdown } from '@/lib/export';
+import { useNotifications } from '@/hooks/use-notifications';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow, isValid, parseISO } from 'date-fns';
-import { Send, Archive, ArchiveRestore, Code, Terminal, ChevronDown, ChevronRight, Play, GitBranch, GitPullRequest, MoreVertical, Book, ArrowUp, ArrowDown, Download, Copy, Check, Loader2 } from 'lucide-react';
+import { Send, Archive, ArchiveRestore, Code, Terminal, ChevronDown, ChevronRight, Play, GitBranch, GitPullRequest, MoreVertical, Book, ArrowUp, ArrowDown, Download, Copy, Check, Loader2, Bell } from 'lucide-react';
 import { archiveSession, unarchiveSession, isSessionArchived } from '@/lib/archive';
 import { BashOutput } from '@/components/ui/bash-output';
 import { ActivityContent } from './activity-content';
@@ -48,6 +49,7 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
   const [isArchived, setIsArchived] = useState(false);
   const prevIdsRef = useRef<Set<string>>(new Set());
   const [localError, setLocalError] = useState<string | null>(null);
+  const { sendNotification, permission, requestPermission } = useNotifications();
 
   // Check archive status on session change
   useEffect(() => {
@@ -131,11 +133,21 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
       if (newItems.length > 0) {
          setNewActivityIds(new Set(newItems.map(a => a.id)));
          setTimeout(() => setNewActivityIds(new Set()), 500);
+
+         // Notify on new agent messages if hidden
+         const newAgentMessage = newItems.find(a => a.role === 'agent' && (a.type === 'message' || a.type === 'plan' || a.type === 'error'));
+         if (newAgentMessage && document.hidden && permission === 'granted') {
+            const title = newAgentMessage.type === 'error' ? 'Jules Error' : 'Jules Update';
+            sendNotification(title, {
+                body: newAgentMessage.content.substring(0, 100) + (newAgentMessage.content.length > 100 ? '...' : ''),
+                tag: session.id
+            });
+         }
       }
     }
     
     prevIdsRef.current = currentIds;
-  }, [activities]);
+  }, [activities, permission, sendNotification, session.id]);
 
   useEffect(() => {
     onActivitiesChange(activities);
@@ -376,6 +388,12 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
                   Copy Full JSON
                 </DropdownMenuItem>
                 <DropdownMenuSeparator className="bg-white/10" />
+                {permission === 'default' && (
+                    <DropdownMenuItem onClick={requestPermission} className="text-xs cursor-pointer">
+                        <Bell className="mr-2 h-3.5 w-3.5" />
+                        Enable Notifications
+                    </DropdownMenuItem>
+                )}
                 {isArchived ? (
                   <DropdownMenuItem onClick={handleUnarchive} className="text-xs cursor-pointer text-purple-400 focus:text-purple-400">
                     <ArchiveRestore className="mr-2 h-3.5 w-3.5" />
