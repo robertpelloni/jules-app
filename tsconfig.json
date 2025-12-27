@@ -30,9 +30,13 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
+<<<<<<< HEAD
   "exclude": [
     "node_modules",
     "external",
     "jules-sdk-reference"
   ]
+=======
+  "exclude": ["node_modules"]
+>>>>>>> origin/fix-remove-debug-logs-16472708773165476071
 }

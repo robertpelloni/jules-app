@@ -1,4 +1,12 @@
+<<<<<<< HEAD
+<<<<<<< HEAD
 import type { Metadata, Viewport } from "next";
+=======
+import type { Metadata } from "next";
+>>>>>>> origin/feat-session-kanban-board-4406113728067866336
+=======
+import type { Metadata } from "next";
+>>>>>>> origin/fix-remove-debug-logs-16472708773165476071
 import { Geist, Geist_Mono } from "next/font/google";
 import { JulesProvider } from "@/lib/jules/provider";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -19,6 +27,8 @@ export const metadata: Metadata = {
   description: "A mobile-friendly task manager for Jules AI agent sessions",
 };
 
+<<<<<<< HEAD
+<<<<<<< HEAD
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
@@ -28,6 +38,10 @@ export const viewport: Viewport = {
   ],
 };
 
+=======
+>>>>>>> origin/feat-session-kanban-board-4406113728067866336
+=======
+>>>>>>> origin/fix-remove-debug-logs-16472708773165476071
 export default function RootLayout({
   children,
 }: Readonly<{

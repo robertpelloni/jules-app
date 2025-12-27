@@ -2,6 +2,7 @@ import { NextResponse, NextRequest } from 'next/server';
 
 const JULES_API_BASE = 'https://jules.googleapis.com/v1alpha';
 
+<<<<<<< HEAD
 interface Artifact {
   changeSet?: {
     gitPatch?: {
@@ -32,6 +33,8 @@ interface Activity {
   [key: string]: unknown;
 }
 
+=======
+>>>>>>> origin/fix-remove-debug-logs-16472708773165476071
 export async function GET(request: NextRequest) {
   try {
     const apiKey = request.headers.get('x-jules-api-key');
@@ -52,6 +55,7 @@ export async function GET(request: NextRequest) {
 
     const data = await response.json().catch(() => ({}));
 
+<<<<<<< HEAD
     // Temporarily log activities for debugging
     if (path.includes('/activities') && data.activities && data.activities.length > 0) {
       // Log activity types
@@ -104,6 +108,8 @@ export async function GET(request: NextRequest) {
       }
     }
 
+=======
+>>>>>>> origin/fix-remove-debug-logs-16472708773165476071
     return NextResponse.json(data, { status: response.status });
   } catch (error) {
     console.error('[Jules API Proxy] Error:', error);

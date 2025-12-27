@@ -39,6 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+<<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> origin/fix-remove-debug-logs-16472708773165476071
 
 # terminal server
 /terminal-server/node_modules
@@ -54,3 +58,8 @@ next-env.d.ts
 # temporary files
 *.png
 !public/**/*.png
+<<<<<<< HEAD
+=======
+>>>>>>> origin/feat-session-kanban-board-4406113728067866336
+=======
+>>>>>>> origin/fix-remove-debug-logs-16472708773165476071

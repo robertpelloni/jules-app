@@ -1,13 +1,20 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
+<<<<<<< HEAD
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useJules } from '@/lib/jules/provider';
 import type { Session, Activity, SessionTemplate } from '@/types/jules';
+=======
+import { useJules } from '@/lib/jules/provider';
+import type { Session, Activity } from '@/types/jules';
+>>>>>>> origin/fix-remove-debug-logs-16472708773165476071
 import { SessionList } from './session-list';
 import { ActivityFeed } from './activity-feed';
 import { CodeDiffSidebar } from './code-diff-sidebar';
 import { AnalyticsDashboard } from './analytics-dashboard';
+<<<<<<< HEAD
+import { SessionBoard } from './session-board';
 import { NewSessionDialog } from './new-session-dialog';
 import { TemplatesPage } from './templates-page';
 import { SessionKeeperSettings } from './session-keeper-settings';
@@ -15,7 +22,7 @@ import { SessionKeeperLogPanel } from './session-keeper-log-panel';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { Menu, LogOut, Settings, BarChart3, MessageSquare, ChevronLeft, ChevronRight, Terminal as TerminalIcon, LayoutTemplate, Plus, Activity as ActivityIcon } from 'lucide-react';
+import { Menu, LogOut, Settings, BarChart3, MessageSquare, ChevronLeft, ChevronRight, Terminal as TerminalIcon, LayoutTemplate, Plus, Activity as ActivityIcon, LayoutGrid, Cpu } from 'lucide-react';
 import { TerminalPanel } from './terminal-panel';
 import { useTerminalAvailable } from '@/hooks/use-terminal-available';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
@@ -27,13 +34,31 @@ export function AppLayout() {
   const router = useRouter();
   const { isAvailable: terminalAvailable } = useTerminalAvailable();
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
-  const [view, setView] = useState<'sessions' | 'analytics' | 'templates'>('sessions');
+  const [view, setView] = useState<'sessions' | 'analytics' | 'templates' | 'board'>('sessions');
+=======
+import { NewSessionDialog } from './new-session-dialog';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Menu, LogOut, Settings, BarChart3, MessageSquare, ChevronLeft, ChevronRight, Terminal as TerminalIcon } from 'lucide-react';
+import { TerminalPanel } from './terminal-panel';
+import { useTerminalAvailable } from '@/hooks/use-terminal-available';
+
+
+export function AppLayout() {
+  const { clearApiKey } = useJules();
+  const { isAvailable: terminalAvailable } = useTerminalAvailable();
+  const [selectedSession, setSelectedSession] = useState<Session | null>(null);
+  const [view, setView] = useState<'sessions' | 'analytics'>('sessions');
+>>>>>>> origin/fix-remove-debug-logs-16472708773165476071
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [codeDiffSidebarCollapsed, setCodeDiffSidebarCollapsed] = useState(false);
-  // Replaced keeperSidebarCollapsed with direct logs toggle state
+<<<<<<< HEAD
   const [isLogPanelOpen, setIsLogPanelOpen] = useState(false);
+=======
+>>>>>>> origin/fix-remove-debug-logs-16472708773165476071
   const [showCodeDiffs, setShowCodeDiffs] = useState(false);
   const [currentActivities, setCurrentActivities] = useState<Activity[]>([]);
   const [codeSidebarWidth, setCodeSidebarWidth] = useState(600);
@@ -45,6 +70,7 @@ export function AppLayout() {
     return false;
   });
 
+<<<<<<< HEAD
   // State for New Session Dialog (Controlled)
   const [isNewSessionOpen, setIsNewSessionOpen] = useState(false);
   const [newSessionInitialValues, setNewSessionInitialValues] = useState<{
@@ -67,12 +93,13 @@ export function AppLayout() {
           })
           .catch(err => {
             console.error('Failed to load session from URL', err);
-            // Optionally clear param if invalid
           });
       }
     }
   }, [searchParams, client, selectedSession?.id]);
 
+=======
+>>>>>>> origin/fix-remove-debug-logs-16472708773165476071
   const startResizing = useCallback(() => {
     setIsResizing(true);
   }, []);
@@ -106,19 +133,30 @@ export function AppLayout() {
     setSelectedSession(session);
     setView('sessions');
     setMobileMenuOpen(false);
+<<<<<<< HEAD
     // Update URL without refreshing
     const newParams = new URLSearchParams(searchParams.toString());
     newParams.set('sessionId', session.id);
     router.push(`/?${newParams.toString()}`);
+=======
+>>>>>>> origin/fix-remove-debug-logs-16472708773165476071
   };
 
   const handleSessionCreated = () => {
     setRefreshKey((prev) => prev + 1);
+<<<<<<< HEAD
     setIsNewSessionOpen(false);
   };
 
   const handleSessionArchived = () => {
     // Refresh the session list to update the archived/active status
+=======
+  };
+
+  const handleSessionArchived = () => {
+    // Clear the selected session and refresh the session list
+    setSelectedSession(null);
+>>>>>>> origin/fix-remove-debug-logs-16472708773165476071
     setRefreshKey((prev) => prev + 1);
   };
 
@@ -135,6 +173,7 @@ export function AppLayout() {
     });
   }, []);
 
+<<<<<<< HEAD
   const handleStartSessionFromTemplate = (template: SessionTemplate) => {
     setNewSessionInitialValues({
       prompt: template.prompt,
@@ -151,6 +190,10 @@ export function AppLayout() {
   return (
     <div className="flex h-screen flex-col bg-black max-w-full overflow-hidden">
       <SessionKeeperManager />
+=======
+  return (
+    <div className="flex h-screen flex-col bg-black">
+>>>>>>> origin/fix-remove-debug-logs-16472708773165476071
       {/* Header */}
       <header className="border-b border-white/[0.08] bg-zinc-950/95 backdrop-blur-sm">
         <div className="flex h-14 items-center justify-between px-4">
@@ -173,6 +216,7 @@ export function AppLayout() {
               </SheetContent>
             </Sheet>
             <h1 className="text-sm font-bold tracking-tight text-white">JULES</h1>
+<<<<<<< HEAD
 
             {/* GitHub Repo Link */}
             {selectedSession?.sourceId && (
@@ -201,6 +245,16 @@ export function AppLayout() {
             <Button
               variant="ghost"
               size="sm"
+              className={`h-8 px-3 hover:bg-white/5 ${view === 'board' ? 'text-white' : 'text-white/60'}`}
+              onClick={() => setView('board')}
+            >
+              <LayoutGrid className="h-3.5 w-3.5 mr-1.5" />
+              <span className="text-[10px] font-mono uppercase tracking-wider">Board</span>
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
               className={`h-8 px-3 hover:bg-white/5 ${view === 'analytics' ? 'text-white' : 'text-white/60'}`}
               onClick={() => setView('analytics')}
             >
@@ -220,11 +274,41 @@ export function AppLayout() {
               <span className="text-[10px] font-mono uppercase tracking-wider">Logs</span>
             </Button>
 
+=======
+          </div>
+
+          <div className="flex items-center gap-1">
+            {view === 'analytics' ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-3 hover:bg-white/5 text-white/80"
+                onClick={() => setView('sessions')}
+              >
+                <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
+                <span className="text-[10px] font-mono uppercase tracking-wider">Sessions</span>
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-3 hover:bg-white/5 text-white/80"
+                onClick={() => setView('analytics')}
+              >
+                <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
+                <span className="text-[10px] font-mono uppercase tracking-wider">Analytics</span>
+              </Button>
+            )}
+>>>>>>> origin/fix-remove-debug-logs-16472708773165476071
             {terminalAvailable && (
               <Button
                 variant="ghost"
                 size="sm"
+<<<<<<< HEAD
                 className={`h-8 px-3 hover:bg-white/5 ${terminalOpen ? 'text-green-500' : 'text-white/60'}`}
+=======
+                className={`h-8 px-3 hover:bg-white/5 ${terminalOpen ? 'text-green-500' : 'text-white/80'}`}
+>>>>>>> origin/fix-remove-debug-logs-16472708773165476071
                 onClick={handleToggleTerminal}
                 title="Toggle Terminal (Ctrl+`)"
               >
@@ -232,6 +316,7 @@ export function AppLayout() {
                 <span className="text-[10px] font-mono uppercase tracking-wider">Terminal</span>
               </Button>
             )}
+<<<<<<< HEAD
             
             <NewSessionDialog 
               onSessionCreated={handleSessionCreated} 
@@ -252,19 +337,31 @@ export function AppLayout() {
             {/* Session Keeper Settings (Moved to header, removed Sidebar toggle) */}
             <SessionKeeperSettings />
 
+=======
+            <NewSessionDialog onSessionCreated={handleSessionCreated} />
+>>>>>>> origin/fix-remove-debug-logs-16472708773165476071
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-white/5 text-white/60">
                   <Settings className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
+<<<<<<< HEAD
               <DropdownMenuContent align="end" className="w-48 bg-zinc-950 border-white/[0.08]">
                 <DropdownMenuItem onClick={() => setView('templates')} className="hover:bg-white/5 text-white/80">
                   <LayoutTemplate className="mr-2 h-3.5 w-3.5" />
                   <span className="text-xs uppercase tracking-wide">Manage Templates</span>
                 </DropdownMenuItem>
+
+                <DropdownMenuItem onClick={() => router.push('/system')} className="hover:bg-white/5 text-white/80">
+                  <Cpu className="mr-2 h-3.5 w-3.5" />
+                  <span className="text-xs uppercase tracking-wide">System Status</span>
+                </DropdownMenuItem>
                 
                 <DropdownMenuSeparator className="bg-white/10" />
+=======
+              <DropdownMenuContent align="end" className="w-40 bg-zinc-950 border-white/[0.08]">
+>>>>>>> origin/fix-remove-debug-logs-16472708773165476071
 
                 <DropdownMenuItem onClick={handleLogout} className="hover:bg-white/5 text-white/80">
                   <LogOut className="mr-2 h-3.5 w-3.5" />
@@ -276,9 +373,15 @@ export function AppLayout() {
         </div>
       </header>
 
+<<<<<<< HEAD
       {/* Main Content Area */}
       <div className="flex flex-1 overflow-hidden min-h-0">
         {/* Desktop Sidebar (Session List) */}
+=======
+      {/* Main Content */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Desktop Sidebar */}
+>>>>>>> origin/fix-remove-debug-logs-16472708773165476071
         <aside className={`hidden md:flex border-r border-white/[0.08] flex-col bg-zinc-950 transition-all duration-200 ${
           sidebarCollapsed ? 'md:w-12' : 'md:w-64'
         }`}>
@@ -310,6 +413,7 @@ export function AppLayout() {
           </div>
         </aside>
 
+<<<<<<< HEAD
         {/* Resizable Panel Group (Vertical: Top = Main, Bottom = Logs) */}
         <ResizablePanelGroup direction="vertical" className="flex-1 min-w-0">
 
@@ -322,6 +426,8 @@ export function AppLayout() {
                   <main className="flex-1 overflow-hidden bg-black flex flex-col min-w-0">
                     {view === 'analytics' ? (
                       <AnalyticsDashboard />
+                    ) : view === 'board' ? (
+                      <SessionBoard />
                     ) : view === 'templates' ? (
                       <TemplatesPage onStartSession={handleStartSessionFromTemplate} />
                     ) : selectedSession ? (
@@ -415,6 +521,80 @@ export function AppLayout() {
           )}
 
         </ResizablePanelGroup>
+=======
+        {/* Main Panel */}
+        <main className="flex-1 overflow-hidden bg-black">
+          {view === 'analytics' ? (
+            <AnalyticsDashboard />
+          ) : selectedSession ? (
+            <ActivityFeed
+              session={selectedSession}
+              onArchive={handleSessionArchived}
+              showCodeDiffs={showCodeDiffs}
+              onToggleCodeDiffs={setShowCodeDiffs}
+              onActivitiesChange={setCurrentActivities}
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center p-8">
+              <div className="text-center space-y-4 max-w-sm">
+                <h2 className="text-sm font-bold text-white/40 uppercase tracking-widest">
+                  NO SESSION
+                </h2>
+                <p className="text-[11px] text-white/30 leading-relaxed uppercase tracking-wide font-mono">
+                  Select session or create new
+                </p>
+                <div className="pt-2">
+                  <NewSessionDialog onSessionCreated={handleSessionCreated} />
+                </div>
+              </div>
+            </div>
+          )}
+        </main>
+
+        {/* Code Diff Sidebar */}
+        {selectedSession && showCodeDiffs && (
+          <>
+            {!codeDiffSidebarCollapsed && (
+              <div
+                className="w-1 cursor-col-resize bg-transparent hover:bg-blue-500/50 transition-colors z-50"
+                onMouseDown={startResizing}
+              />
+            )}
+            <aside
+              className={`hidden md:flex border-l border-white/[0.08] flex-col bg-zinc-950 ${
+                isResizing ? 'transition-none' : 'transition-all duration-200'
+              } ${codeDiffSidebarCollapsed ? 'md:w-12' : ''}`}
+              style={{ width: codeDiffSidebarCollapsed ? undefined : codeSidebarWidth }}
+            >
+              <div className="px-3 py-2 border-b border-white/[0.08] flex items-center justify-between">
+                {!codeDiffSidebarCollapsed && (
+                  <h2 className="text-[10px] font-bold text-white/40 uppercase tracking-widest">CODE CHANGES</h2>
+                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={`h-6 w-6 hover:bg-white/5 text-white/60 ${codeDiffSidebarCollapsed ? 'mx-auto' : ''}`}
+                  onClick={() => setCodeDiffSidebarCollapsed(!codeDiffSidebarCollapsed)}
+                >
+                  {codeDiffSidebarCollapsed ? (
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                  ) : (
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  )}
+                </Button>
+              </div>
+              <div className="flex-1 overflow-hidden">
+                {!codeDiffSidebarCollapsed && (
+                  <CodeDiffSidebar
+                    activities={currentActivities}
+                    repoUrl={selectedSession ? `https://github.com/${selectedSession.sourceId}` : undefined}
+                  />
+                )}
+              </div>
+            </aside>
+          </>
+        )}
+>>>>>>> origin/fix-remove-debug-logs-16472708773165476071
       </div>
 
       {/* Terminal Panel */}

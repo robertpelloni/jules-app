@@ -9,13 +9,21 @@ interface JulesContextType {
   isLoading: boolean;
   setApiKey: (key: string) => void;
   clearApiKey: () => void;
+<<<<<<< HEAD
+<<<<<<< HEAD
   refreshTrigger: number;
   triggerRefresh: () => void;
+=======
+>>>>>>> origin/feat-session-kanban-board-4406113728067866336
+=======
+>>>>>>> origin/fix-remove-debug-logs-16472708773165476071
 }
 
 const JulesContext = createContext<JulesContextType | undefined>(undefined);
 
 export function JulesProvider({ children }: { children: ReactNode }) {
+<<<<<<< HEAD
+<<<<<<< HEAD
   // Use lazy initializer for apiKey to avoid setApiKeyState in useEffect if possible,
   // but we need to check localStorage which is client-side only.
   const [apiKey, setApiKeyState] = useState<string | null>(null);
@@ -30,11 +38,32 @@ export function JulesProvider({ children }: { children: ReactNode }) {
     // We can suppress the warning or structure it differently.
     const stored = localStorage.getItem('jules-api-key');
     if (stored) {
+=======
+=======
+>>>>>>> origin/fix-remove-debug-logs-16472708773165476071
+  const [apiKey, setApiKeyState] = useState<string | null>(null);
+  const [client, setClient] = useState<JulesClient | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('jules-api-key');
+    if (stored) {
+      // eslint-disable-next-line
+<<<<<<< HEAD
+>>>>>>> origin/feat-session-kanban-board-4406113728067866336
+=======
+>>>>>>> origin/fix-remove-debug-logs-16472708773165476071
       setApiKeyState(stored);
       setClient(new JulesClient(stored));
     }
     setIsLoading(false);
+<<<<<<< HEAD
+<<<<<<< HEAD
     // eslint-disable-next-line react-hooks/exhaustive-deps
+=======
+>>>>>>> origin/feat-session-kanban-board-4406113728067866336
+=======
+>>>>>>> origin/fix-remove-debug-logs-16472708773165476071
   }, []);
 
   const setApiKey = (key: string) => {
@@ -49,6 +78,8 @@ export function JulesProvider({ children }: { children: ReactNode }) {
     setClient(null);
   };
 
+<<<<<<< HEAD
+<<<<<<< HEAD
   const triggerRefresh = () => {
     setRefreshTrigger(prev => prev + 1);
   };
@@ -63,6 +94,14 @@ export function JulesProvider({ children }: { children: ReactNode }) {
       refreshTrigger,
       triggerRefresh
     }}>
+=======
+  return (
+    <JulesContext.Provider value={{ client, apiKey, isLoading, setApiKey, clearApiKey }}>
+>>>>>>> origin/feat-session-kanban-board-4406113728067866336
+=======
+  return (
+    <JulesContext.Provider value={{ client, apiKey, isLoading, setApiKey, clearApiKey }}>
+>>>>>>> origin/fix-remove-debug-logs-16472708773165476071
       {children}
     </JulesContext.Provider>
   );
