@@ -25,6 +25,7 @@ import {
   Kanban,
   Activity as ActivityIcon,
   FolderTree,
+  Search,
 } from "lucide-react";
 import { SessionList } from "@/components/session-list";
 import { NewSessionDialog } from "@/components/new-session-dialog";
@@ -134,6 +135,19 @@ export function AppHeader({
         </div>
 
         <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="hidden md:flex h-8 px-3 hover:bg-white/5 text-white/60"
+            onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
+            title="Search (Cmd+K)"
+          >
+            <Search className="h-3.5 w-3.5 mr-1.5" />
+            <span className="text-[10px] font-mono uppercase tracking-wider">
+              Search
+            </span>
+          </Button>
+
           <Button
             variant="ghost"
             size="sm"

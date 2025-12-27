@@ -62,6 +62,7 @@ import { useSessionKeeperStore } from "@/lib/stores/session-keeper";
 import { AppHeader } from "./layout/app-header";
 import { AppSidebar } from "./layout/app-sidebar";
 import { MainContent } from "./layout/main-content";
+import { SearchCommandDialog } from "./search-command-dialog";
 
 interface AppLayoutProps {
   initialView?: "sessions" | "analytics" | "templates" | "kanban";
@@ -214,6 +215,7 @@ export function AppLayout({ initialView }: AppLayoutProps) {
 
   return (
     <div className="flex h-screen flex-col bg-black max-w-full overflow-hidden">
+      <SearchCommandDialog />
       <Dialog open={isApiKeyDialogOpen} onOpenChange={setIsApiKeyDialogOpen}>
         <DialogContent className="sm:max-w-md bg-zinc-950 border-white/10">
           <DialogHeader>
