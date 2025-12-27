@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useJules } from "@/lib/jules/provider";
 import type { Terminal } from "@xterm/xterm";
 import type { FitAddon } from "@xterm/addon-fit";
 import type { Socket } from "socket.io-client";
@@ -16,6 +17,7 @@ export function IntegratedTerminal({
   workingDir = "",
   className = "",
 }: IntegratedTerminalProps) {
+  const { apiKey } = useJules();
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<Terminal | null>(null);
   const socketRef = useRef<Socket | null>(null);
@@ -109,7 +111,7 @@ export function IntegratedTerminal({
       console.log("Connecting to terminal server:", wsUrl);
 
       socket = io(wsUrl, {
-        query: { sessionId, workingDir },
+        query: { sessionId, workingDir, apiKey },
         transports: ["websocket"], // Force WebSocket to avoid HTTP polling errors
         reconnectionAttempts: 10, // Stop trying after 10 attempts
         reconnectionDelay: 2000, // Wait 2s between attempts
@@ -230,7 +232,7 @@ export function IntegratedTerminal({
         currentXterm.dispose();
       }
     };
-  }, [sessionId, workingDir, isMounted]);
+  }, [sessionId, workingDir, isMounted, apiKey]);
 
   if (!isMounted) {
     return (

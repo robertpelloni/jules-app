@@ -30,7 +30,7 @@ const sessions = new Map();
 io.on("connection", (socket) => {
   console.log(`Client connected: ${socket.id}`);
 
-  const { sessionId, workingDir } = socket.handshake.query;
+  const { sessionId, workingDir, apiKey } = socket.handshake.query;
 
   // Use /workspace for Docker, or parent directory for local development
   const defaultBaseDir = fs.existsSync("/workspace")
@@ -52,6 +52,7 @@ io.on("connection", (socket) => {
       ...process.env,
       TERM: "xterm-256color",
       COLORTERM: "truecolor",
+      JULES_API_KEY: apiKey || "",
     },
   });
 
