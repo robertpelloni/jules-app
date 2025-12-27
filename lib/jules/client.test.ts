@@ -1,19 +1,10 @@
-<<<<<<< HEAD
 import { JulesClient, JulesAPIError, createJulesClient } from "./client";
-=======
-import { JulesClient, createJulesClient } from './client';
->>>>>>> cca362fe49a84150efc5a322c7a17148c86140f9
 
 // Mock global fetch
 global.fetch = jest.fn();
 
-<<<<<<< HEAD
 describe("JulesClient", () => {
   const apiKey = "test-api-key";
-=======
-describe('JulesClient', () => {
-  const mockApiKey = 'test-api-key';
->>>>>>> cca362fe49a84150efc5a322c7a17148c86140f9
   let client: JulesClient;
 
   beforeEach(() => {
@@ -21,7 +12,6 @@ describe('JulesClient', () => {
     client = createJulesClient(apiKey);
   });
 
-<<<<<<< HEAD
   describe("constructor", () => {
     it("should be instantiated with an API key", () => {
       expect(client).toBeInstanceOf(JulesClient);
@@ -33,12 +23,14 @@ describe('JulesClient', () => {
       const mockResponse = {
         sessions: [
           {
+            id: "sessions/sess-1",
             name: "sessions/sess-1",
             state: "ACTIVE",
             createTime: "2023-01-01T00:00:00Z",
             sourceContext: { source: "sources/github/owner/repo" },
           },
           {
+            id: "sessions/sess-2",
             name: "sessions/sess-2",
             state: "COMPLETED",
             createTime: "2023-01-02T00:00:00Z",
@@ -67,57 +59,51 @@ describe('JulesClient', () => {
     });
   });
 
-=======
->>>>>>> cca362fe49a84150efc5a322c7a17148c86140f9
-  describe('createSession', () => {
-    it('should set requirePlanApproval to true', async () => {
+  describe("createSession", () => {
+    it("should set requirePlanApproval to true", async () => {
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: true,
         json: async () => ({
-<<<<<<< HEAD
-          name: 'sessions/session-1',
-=======
-          id: 'session/1',
->>>>>>> cca362fe49a84150efc5a322c7a17148c86140f9
-          createTime: '2023-01-01T00:00:00Z',
-          updateTime: '2023-01-01T00:00:00Z',
+          id: "sessions/session-1",
+          name: "sessions/session-1",
+          createTime: "2023-01-01T00:00:00Z",
+          updateTime: "2023-01-01T00:00:00Z",
         }),
       });
 
       await client.createSession({
-        prompt: 'test prompt',
-        sourceId: 'test/repo',
+        prompt: "test prompt",
+        sourceId: "test/repo",
       });
 
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/jules?path=%2Fsessions'),
+        expect.stringContaining("/api/jules?path=%2Fsessions"),
         expect.objectContaining({
-          method: 'POST',
-          body: expect.stringContaining('"requirePlanApproval":true'),
+          method: "POST",
+          body: expect.stringContaining("\"requirePlanApproval\":true"),
         })
       );
     });
   });
 
-  describe('approvePlan', () => {
-    it('should post to the correct endpoint', async () => {
+  describe("approvePlan", () => {
+    it("should post to the correct endpoint", async () => {
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: true,
         json: async () => ({}),
       });
 
-      await client.approvePlan('session-123');
+      await client.approvePlan("session-123");
 
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/jules?path=%2Fsessions%2Fsession-123%3AapprovePlan'),
+        expect.stringContaining("/api/jules?path=%2Fsessions%2Fsession-123%3AapprovePlan"),
         expect.objectContaining({
-          method: 'POST',
+          method: "POST",
         })
       );
     });
   });
 
-<<<<<<< HEAD
   describe("listActivities", () => {
     const sessionId = "session-123";
 
@@ -139,26 +125,12 @@ describe('JulesClient', () => {
       };
 
       (global.fetch as jest.Mock).mockResolvedValueOnce({
-=======
-  describe('listActivitiesPaged', () => {
-    it('should return activities and next page token', async () => {
-      const mockResponse = {
-        activities: [
-          { name: 'activities/1', createTime: '2023-01-01T00:00:00Z' },
-          { name: 'activities/2', createTime: '2023-01-01T00:00:01Z' },
-        ],
-        nextPageToken: 'next-token',
-      };
-
-      (global.fetch as jest.Mock).mockResolvedValue({
->>>>>>> cca362fe49a84150efc5a322c7a17148c86140f9
         ok: true,
         json: async () => mockResponse,
       });
 
       const activities = await client.listActivities(sessionId);
 
-<<<<<<< HEAD
       expect(activities[0].type).toBe("plan");
       expect(activities[0].content).toContain("Test Plan");
       expect(activities[0].role).toBe("agent");
@@ -250,14 +222,14 @@ describe('JulesClient', () => {
     });
   });
 
-  describe('listActivitiesPaged', () => {
-    it('should return activities and next page token', async () => {
+  describe("listActivitiesPaged", () => {
+    it("should return activities and next page token", async () => {
       const mockResponse = {
         activities: [
-          { name: 'sessions/123/activities/1', createTime: '2023-01-01T00:00:00Z' },
-          { name: 'sessions/123/activities/2', createTime: '2023-01-01T00:00:01Z' },
+          { name: "sessions/123/activities/1", createTime: "2023-01-01T00:00:00Z" },
+          { name: "sessions/123/activities/2", createTime: "2023-01-01T00:00:01Z" },
         ],
-        nextPageToken: 'next-token',
+        nextPageToken: "next-token",
       };
 
       (global.fetch as jest.Mock).mockResolvedValue({
@@ -265,18 +237,15 @@ describe('JulesClient', () => {
         json: async () => mockResponse,
       });
 
-      const result = await client.listActivitiesPaged('session-123', 10, 'prev-token');
+      const result = await client.listActivitiesPaged("session-123", 10, "prev-token");
 
-=======
->>>>>>> cca362fe49a84150efc5a322c7a17148c86140f9
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/jules?path=%2Fsessions%2Fsession-123%2Factivities%3FpageSize%3D10%26pageToken%3Dprev-token'),
+        expect.stringContaining("/api/jules?path=%2Fsessions%2Fsession-123%2Factivities%3FpageSize%3D10%26pageToken%3Dprev-token"),
         expect.any(Object)
       );
       expect(result.activities).toHaveLength(2);
-      expect(result.nextPageToken).toBe('next-token');
-      expect(result.activities[0].id).toBe('1');
-<<<<<<< HEAD
+      expect(result.nextPageToken).toBe("next-token");
+      expect(result.activities[0].id).toBe("1");
     });
   });
 
@@ -297,8 +266,6 @@ describe('JulesClient', () => {
 
       await expect(client.listSessions()).rejects.toThrow(JulesAPIError);
       await expect(client.listSessions()).rejects.toThrow("Unable to connect");
-=======
->>>>>>> cca362fe49a84150efc5a322c7a17148c86140f9
     });
   });
 });

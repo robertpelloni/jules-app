@@ -15,6 +15,8 @@ import { SessionKeeperConfig } from '@/types/jules';
 import { DebateVisualizer } from './debate-visualizer';
 import { MemoryManager } from './memory-manager';
 
+import type { Session } from "@/types/jules";
+
 // Persistent Supervisor State
 interface SupervisorState {
   [sessionId: string]: {
@@ -105,7 +107,7 @@ export function SessionKeeper({ onClose }: { isSidebar?: boolean, onClose?: () =
         const supervisorState: SupervisorState = savedState ? JSON.parse(savedState) : {};
         let stateChanged = false;
 
-        const generateMessage = async (session: any) => {
+        const generateMessage = async (session: Session) => {
             let messageToSend = '';
 
             // DEBATE MODE OR SMART PILOT
@@ -128,7 +130,7 @@ export function SessionKeeper({ onClose }: { isSidebar?: boolean, onClose?: () =
                         sessionId: session.id,
                         type: 'message',
                         role: 'user',
-                        content: session.prompt,
+                        content: session.prompt || '',
                         createdAt: session.createdAt
                     });
                 }
@@ -170,7 +172,7 @@ export function SessionKeeper({ onClose }: { isSidebar?: boolean, onClose?: () =
                         const data = await response.json();
                         messageToSend = data.content;
                         if (data.opinions) {
-                            data.opinions.forEach((op: any) => {
+                            data.opinions.forEach((op: { participant: { provider: string }, content: string }) => {
                                 addLog(`Member (${op.participant.provider}): ${op.content.substring(0, 30)}...`, 'info');
                             });
                         }
@@ -359,15 +361,16 @@ export function SessionKeeper({ onClose }: { isSidebar?: boolean, onClose?: () =
                 updateSessionState(session.id, { error: undefined, ignoreUntil: undefined });
               }
             }
-          } catch (err: any) {
-            console.error(`Error processing session ${session.id}:`, err);
+          } catch (err: unknown) {
+            const error = err as { status?: number; code?: number; message?: string };
+            console.error(`Error processing session ${session.id}:`, error);
             
             // Check for 429 or other errors
-            const is429 = err?.status === 429 || 
-                          err?.code === 429 || 
-                          err?.message?.includes('429') || 
-                          err?.message?.includes('Quota exceeded') ||
-                          err?.message?.includes('RESOURCE_EXHAUSTED');
+            const is429 = error?.status === 429 || 
+                          error?.code === 429 || 
+                          error?.message?.includes('429') || 
+                          error?.message?.includes('Quota exceeded') ||
+                          error?.message?.includes('RESOURCE_EXHAUSTED');
 
             if (is429) {
               const ignoreDuration = 5 * 60 * 1000; // 5 minutes
@@ -381,7 +384,7 @@ export function SessionKeeper({ onClose }: { isSidebar?: boolean, onClose?: () =
                 ignoreUntil: Date.now() + ignoreDuration
               });
             } else {
-              addLog(`Error processing ${session.id.substring(0, 8)}: ${err.message}`, 'error');
+              addLog(`Error processing ${session.id.substring(0, 8)}: ${error.message || 'Unknown error'}`, 'error');
             }
           }
         }
