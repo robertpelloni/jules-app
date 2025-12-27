@@ -99,7 +99,7 @@ export function BroadcastDialog({ sessions }: BroadcastDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-white" title="Broadcast to all open sessions">
+        <Button variant="ghost" size="icon" className="h-7 w-7 text-white hover:bg-white/10" title="Broadcast to all open sessions">
           <Megaphone className="h-4 w-4" />
         </Button>
       </DialogTrigger>

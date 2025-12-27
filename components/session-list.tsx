@@ -285,7 +285,12 @@ export function SessionList({ onSelectSession, selectedSessionId }: SessionListP
                           </Tooltip>
                         </div>
 
-                        {/* Line 2: Status + Last Activity */}
+                        {/* Line 2: Start Time */}
+                        <div className="text-[9px] text-white/30 font-mono leading-tight truncate mb-0.5">
+                          Started {formatDate(session.createdAt)}
+                        </div>
+
+                        {/* Line 3: Status + Last Activity */}
                         <div className="flex items-center gap-2 text-[9px] text-white/40 leading-tight font-mono tracking-wide mb-0.5">
                           <span className={`${statusInfo.color} ${statusInfo.text.includes('Error') ? 'text-white font-bold bg-opacity-100' : 'bg-opacity-20 text-white/60'} px-1 rounded-sm shrink-0`}>
                             {statusInfo.text}
@@ -295,11 +300,6 @@ export function SessionList({ onSelectSession, selectedSessionId }: SessionListP
                               Last action: {lastActivityTime}
                             </span>
                           )}
-                        </div>
-
-                        {/* Line 3: Start Time */}
-                        <div className="text-[9px] text-white/30 font-mono leading-tight truncate mb-0.5">
-                          Started {formatDate(session.createdAt)}
                         </div>
 
                         {/* Line 4: Last Activity Snippet */}
