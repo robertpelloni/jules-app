@@ -23,7 +23,7 @@ export const openaiProvider: ProviderInterface = {
       body: JSON.stringify({
         model: modelToUse,
         messages: msgs,
-        max_tokens: 300,
+        max_completion_tokens: 300,
       }),
     });
 

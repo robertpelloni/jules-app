@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from "react";
+import useSWR from 'swr';
 import { useJules } from "@/lib/jules/provider";
 import { useSessionKeeperStore } from "@/lib/stores/session-keeper";
 import type { Session } from "@/types/jules";
@@ -37,9 +38,6 @@ export function SessionList({ onSelectSession, selectedSessionId }: SessionListP
   // Use sessionStates from store for error/status info
   const { sessionStates } = useSessionKeeperStore(); 
   
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [archivedSessionIds, setArchivedSessionIds] = useState<Set<string>>(new Set());
   const [showArchived, setShowArchived] = useState(false);
@@ -60,42 +58,24 @@ export function SessionList({ onSelectSession, selectedSessionId }: SessionListP
     }
   };
 
-  const loadSessions = useCallback(async () => {
-    if (!client) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await client.listSessions();
-      setSessions(data);
-    } catch (err) {
-      console.error("Failed to load sessions:", err);
-      // Provide helpful error messages
-      if (err instanceof Error) {
-        if (err.message.includes("Invalid API key")) {
-          setError("Invalid API key. Please check your API key and try again.");
-        } else if (err.message.includes("Resource not found")) {
-          // For 404, just show empty state instead of error
-          setSessions([]);
-          setError(null);
-        } else {
-          setError(err.message);
-        }
-      } else {
-        setError('Failed to load sessions');
-      }
-      setSessions([]);
-    } finally {
-      setLoading(false);
-    }
+  const fetcher = useCallback(async () => {
+    if (!client) return [];
+    return client.listSessions();
   }, [client]);
 
-  useEffect(() => {
-    loadSessions();
-  }, [loadSessions]);
+  const { data: sessions = [], error: swrError, isLoading, mutate } = useSWR(
+    client ? 'sessions' : null,
+    fetcher,
+    {
+      refreshInterval: 5000,
+      revalidateOnFocus: true,
+      onError: (err) => {
+        console.error("Failed to load sessions:", err);
+      }
+    }
+  );
+
+  const error = swrError ? (swrError instanceof Error ? swrError.message : 'Failed to load sessions') : null;
 
   const getStatusInfo = (status: Session['status']) => {
     switch (status) {
@@ -133,7 +113,7 @@ export function SessionList({ onSelectSession, selectedSessionId }: SessionListP
       });
   }, [sessions, archivedSessionIds, searchQuery, showArchived]);
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center p-6">
         <p className="text-xs text-muted-foreground">Loading sessions...</p>
@@ -145,7 +125,7 @@ export function SessionList({ onSelectSession, selectedSessionId }: SessionListP
     return (
       <div className="flex flex-col items-center justify-center gap-3 p-6">
         <p className="text-xs text-destructive text-center">{error}</p>
-        <Button variant="outline" size="sm" onClick={loadSessions} className="h-7 text-xs">
+        <Button variant="outline" size="sm" onClick={() => mutate()} className="h-7 text-xs">
           Retry
         </Button>
       </div>
@@ -296,7 +276,9 @@ export function SessionList({ onSelectSession, selectedSessionId }: SessionListP
                           <span className={`${statusInfo.color} ${statusInfo.text.includes('Error') ? 'text-white font-bold bg-opacity-100' : 'bg-opacity-20 text-white/60'} px-1 rounded-sm shrink-0`}>
                             {statusInfo.text}
                           </span>
-                          <SessionHealthBadge session={session} compact />
+                          <div className="flex-shrink-0">
+                            <SessionHealthBadge session={session} compact />
+                          </div>
                           {lastActivityTime && (
                             <span className="text-white/50 truncate">
                               Last action: {lastActivityTime}

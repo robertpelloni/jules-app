@@ -36,6 +36,13 @@ interface NewSessionDialogProps {
   onOpenChange?: (open: boolean) => void;
 }
 
+interface GitHubIssue {
+  number: number;
+  title: string;
+  body: string;
+  pull_request?: unknown;
+}
+
 export function NewSessionDialog({ onSessionCreated, initialValues, trigger, open: controlledOpen, onOpenChange: setControlledOpen }: NewSessionDialogProps) {
   const { client } = useJules();
   const [internalOpen, setInternalOpen] = useState(false);
@@ -128,7 +135,7 @@ export function NewSessionDialog({ onSessionCreated, initialValues, trigger, ope
       if (response.ok) {
         const data = await response.json();
         // Filter out pull requests (which are also issues in GitHub API)
-        const realIssues = data.filter((i: any) => !i.pull_request).map((i: any) => ({ 
+        const realIssues = data.filter((i: GitHubIssue) => !i.pull_request).map((i: GitHubIssue) => ({ 
             number: i.number, 
             title: i.title, 
             body: i.body 

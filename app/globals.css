@@ -183,7 +183,8 @@
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: --alpha(var(--muted-foreground) / 0.5);
+  background: var(--muted-foreground);
+  opacity: 0.8;
 }
 
 ::-webkit-scrollbar-corner {

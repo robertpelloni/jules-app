@@ -178,7 +178,7 @@ A powerful, self-hosted web application for managing Jules AI agent sessions wit
   - ✅ Dashboard metrics for stalled sessions
 
 - **NOTIF-001**: Error Notifications & Toast System ([#13](https://github.com/sbhavani/jules-app/issues/13)) ✅ _Closed_
-- **REFACTOR-001**: Layout Component Decoupling ([#44](https://github.com/sbhavani/jules-app/issues/44)) 🟡 _Open_
+- **REFACTOR-001**: Layout Component Decoupling ([#44](https://github.com/sbhavani/jules-app/issues/44)) ✅ _Closed_
 - **PERF-004**: Reactive Data Fetching ([#45](https://github.com/sbhavani/jules-app/issues/45)) 🟡 _Open_
 - **CLEAN-001**: Remove Debug Logging from Proxy ([#47](https://github.com/sbhavani/jules-app/issues/47)) 🟡 _Open_
 
@@ -233,7 +233,7 @@ A powerful, self-hosted web application for managing Jules AI agent sessions wit
 | [#32](https://github.com/sbhavani/jules-app/issues/32) | ANALYTICS-002 | Code Impact Metrics | 🟡 Open | Feature |
 | [#33](https://github.com/sbhavani/jules-app/issues/33) | ANALYTICS-004 | Session Health Monitoring | ✅ Closed | P1 Important |
 | [#34](https://github.com/sbhavani/jules-app/issues/34) | DEV-001 | Integrated Local Terminal | ✅ Closed | Feature |
-| [#44](https://github.com/sbhavani/jules-app/issues/44) | REFACTOR-001 | Refactor AppLayout 'God Component' | 🟡 Open | Refactor |
+| [#44](https://github.com/sbhavani/jules-app/issues/44) | REFACTOR-001 | Refactor AppLayout 'God Component' | ✅ Closed | Refactor |
 | [#45](https://github.com/sbhavani/jules-app/issues/45) | PERF-004 | Replace Polling with efficient Fetching | 🟡 Open | Performance |
 | [#46](https://github.com/sbhavani/jules-app/issues/46) | TYPE-001 | Improve Type Safety in API Client | 🟡 Open | Type-Safety |
 | [#47](https://github.com/sbhavani/jules-app/issues/47) | CLEAN-001 | Remove Debug Logging from Proxy | 🟡 Open | Cleanup |

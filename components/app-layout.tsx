@@ -59,7 +59,9 @@ import { SessionKeeperManager } from "./session-keeper-manager";
 import { SessionKeeper } from "./SessionKeeper";
 import { useSessionKeeperStore } from "@/lib/stores/session-keeper";
 
-import { BroadcastDialog } from "@/components/broadcast-dialog";
+import { AppHeader } from "./layout/app-header";
+import { AppSidebar } from "./layout/app-sidebar";
+import { MainContent } from "./layout/main-content";
 
 interface AppLayoutProps {
   initialView?: "sessions" | "analytics" | "templates" | "kanban";
@@ -226,202 +228,38 @@ export function AppLayout({ initialView }: AppLayoutProps) {
       
       <SessionKeeperManager />
       
-      {/* Header */}
-      <header className="border-b border-white/[0.08] bg-zinc-950/95 backdrop-blur-sm">
-        <div className="flex h-14 items-center justify-between px-4">
-          <div className="flex items-center gap-3">
-            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-              <SheetTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="md:hidden h-8 w-8"
-                  aria-label="Toggle mobile menu"
-                  aria-expanded={mobileMenuOpen}
-                >
-                  <Menu className="h-4 w-4" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-[280px] p-0 bg-zinc-950 border-white/[0.08]">
-                <SheetHeader className="border-b border-white/[0.08] px-3 py-2.5">
-                  <SheetTitle className="text-[10px] font-bold text-white/40 uppercase tracking-widest">SESSIONS</SheetTitle>
-                </SheetHeader>
-                <SessionList
-                  key={refreshKey}
-                  onSelectSession={handleSessionSelect}
-                  selectedSessionId={selectedSession?.id}
-                />
-              </SheetContent>
-            </Sheet>
-            <h1 className="text-sm font-bold tracking-tight text-white">JULES</h1>
-            <span className="text-[9px] font-mono text-white/30 bg-white/5 px-1.5 py-0.5 rounded-sm">
-              v{process.env.NEXT_PUBLIC_APP_VERSION}
-            </span>
-
-            {/* GitHub Repo Link */}
-            {selectedSession?.sourceId && (
-              <a
-                href={`https://github.com/${selectedSession.sourceId}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-muted-foreground hover:text-white flex items-center gap-1 ml-4"
-              >
-                <span className="opacity-50">Repo:</span> {selectedSession.sourceId}
-              </a>
-            )}
-          </div>
-
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`h-8 px-3 hover:bg-white/5 ${view === 'sessions' ? 'text-white' : 'text-white/60'}`}
-              onClick={() => setView('sessions')}
-            >
-              <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
-              <span className="text-[10px] font-mono uppercase tracking-wider">Sessions</span>
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`h-8 px-3 hover:bg-white/5 ${view === 'analytics' ? 'text-white' : 'text-white/60'}`}
-              onClick={() => setView('analytics')}
-            >
-              <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
-              <span className="text-[10px] font-mono uppercase tracking-wider">Analytics</span>
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`h-8 px-3 hover:bg-white/5 ${view === 'kanban' ? 'text-white' : 'text-white/60'}`}
-              onClick={() => setView('kanban')}
-            >
-              <Kanban className="h-3.5 w-3.5 mr-1.5" />
-              <span className="text-[10px] font-mono uppercase tracking-wider">Kanban</span>
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 px-3 hover:bg-white/5 text-white/60"
-              onClick={() => router.push('/system')}
-            >
-              <FolderTree className="h-3.5 w-3.5 mr-1.5" />
-              <span className="text-[10px] font-mono uppercase tracking-wider">System</span>
-            </Button>
-
-            {terminalAvailable && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className={`h-8 px-3 hover:bg-white/5 ${terminalOpen ? 'text-green-500' : 'text-white/60'}`}
-                onClick={handleToggleTerminal}
-                title="Toggle Terminal (Ctrl+`)"
-              >
-                <TerminalIcon className="h-3.5 w-3.5 mr-1.5" />
-                <span className="text-[10px] font-mono uppercase tracking-wider">Terminal</span>
-              </Button>
-            )}
-            
-            <NewSessionDialog 
-              onSessionCreated={handleSessionCreated} 
-              open={isNewSessionOpen}
-              onOpenChange={setIsNewSessionOpen}
-              initialValues={newSessionInitialValues}
-              trigger={
-                <Button 
-                  className="w-full sm:w-auto h-8 text-[10px] font-mono uppercase tracking-widest bg-purple-600 hover:bg-purple-500 text-white border-0"
-                  onClick={handleOpenNewSession}
-                >
-                  <Plus className="h-3.5 w-3.5 mr-1.5" />
-                  New Session
-                </Button>
-              }
-            />
-
-            <BroadcastDialog sessions={[]} />
-
-            {/* Global Settings Dialog (Controlled) */}
-            <SettingsDialog 
-              open={isSettingsOpen} 
-              onOpenChange={setIsSettingsOpen} 
-              trigger={null} 
-            />
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-white/5 text-white/60">
-                  <Settings className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 bg-zinc-950 border-white/[0.08]">
-                <DropdownMenuItem onClick={() => setView('templates')} className="hover:bg-white/5 text-white/80">
-                  <LayoutTemplate className="mr-2 h-3.5 w-3.5" />
-                  <span className="text-xs uppercase tracking-wide">Manage Templates</span>
-                </DropdownMenuItem>
-
-                <DropdownMenuItem onClick={() => setIsLogPanelOpen(!isLogPanelOpen)} className="hover:bg-white/5 text-white/80">
-                  <ActivityIcon className="mr-2 h-3.5 w-3.5" />
-                  <span className="text-xs uppercase tracking-wide">Session Monitor</span>
-                </DropdownMenuItem>
-
-                <DropdownMenuItem onClick={() => router.push('/system')} className="hover:bg-white/5 text-white/80">
-                  <FolderTree className="mr-2 h-3.5 w-3.5" />
-                  <span className="text-xs uppercase tracking-wide">System Dashboard</span>
-                </DropdownMenuItem>
-
-                <DropdownMenuItem onClick={() => setIsSettingsOpen(true)} className="hover:bg-white/5 text-white/80">
-                  <Settings className="mr-2 h-3.5 w-3.5" />
-                  <span className="text-xs uppercase tracking-wide">Settings</span>
-                </DropdownMenuItem>
-                
-                <DropdownMenuSeparator className="bg-white/10" />
-
-                <DropdownMenuItem onClick={handleLogout} className="hover:bg-white/5 text-white/80">
-                  <LogOut className="mr-2 h-3.5 w-3.5" />
-                  <span className="text-xs uppercase tracking-wide">Logout</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-      </header>
+      <AppHeader
+        view={view}
+        setView={setView}
+        mobileMenuOpen={mobileMenuOpen}
+        setMobileMenuOpen={setMobileMenuOpen}
+        refreshKey={refreshKey}
+        selectedSession={selectedSession}
+        onSelectSession={handleSessionSelect}
+        terminalAvailable={terminalAvailable}
+        terminalOpen={terminalOpen}
+        onToggleTerminal={handleToggleTerminal}
+        isNewSessionOpen={isNewSessionOpen}
+        setIsNewSessionOpen={setIsNewSessionOpen}
+        newSessionInitialValues={newSessionInitialValues}
+        onSessionCreated={handleSessionCreated}
+        onOpenNewSession={handleOpenNewSession}
+        isSettingsOpen={isSettingsOpen}
+        setIsSettingsOpen={setIsSettingsOpen}
+        isLogPanelOpen={isLogPanelOpen}
+        setIsLogPanelOpen={setIsLogPanelOpen}
+        onLogout={handleLogout}
+      />
 
       {/* Main Content Area */}
       <div className="flex flex-1 overflow-hidden min-h-0">
-        {/* Desktop Sidebar (Session List) */}
-        <aside className={`hidden md:flex border-r border-white/[0.08] flex-col bg-zinc-950 transition-all duration-200 ${
-          sidebarCollapsed ? 'md:w-12' : 'md:w-64'
-        }`}>
-          <div className="px-3 py-2 border-b border-white/[0.08] flex items-center justify-between">
-            {!sidebarCollapsed && (
-              <h2 className="text-[10px] font-bold text-white/40 uppercase tracking-widest">SESSIONS</h2>
-            )}
-            <Button
-              variant="ghost"
-              size="icon"
-              className={`h-6 w-6 hover:bg-white/5 text-white/60 ${sidebarCollapsed ? 'mx-auto' : ''}`}
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            >
-              {sidebarCollapsed ? (
-                <ChevronRight className="h-3.5 w-3.5" />
-              ) : (
-                <ChevronLeft className="h-3.5 w-3.5" />
-              )}
-            </Button>
-          </div>
-          <div className="flex-1 overflow-hidden">
-            {!sidebarCollapsed && (
-              <SessionList
-                key={refreshKey}
-                onSelectSession={handleSessionSelect}
-                selectedSessionId={selectedSession?.id}
-              />
-            )}
-          </div>
-        </aside>
+        <AppSidebar
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+          refreshKey={refreshKey}
+          onSelectSession={handleSessionSelect}
+          selectedSessionId={selectedSession?.id}
+        />
 
         {/* Resizable Panel Group (Vertical: Top = Main, Bottom = Logs) */}
         <ResizablePanelGroup 
@@ -432,91 +270,23 @@ export function AppLayout({ initialView }: AppLayoutProps) {
 
           {/* Main Panel: Dashboard */}
           <ResizablePanel defaultSize={isLogPanelOpen ? 70 : 100} minSize={30} className="min-w-0">
-            {/* Main Panel Content */}
-            <div className="flex h-full w-full flex-row min-w-0">
-              <main className="flex-1 overflow-hidden bg-black flex flex-col min-w-0">
-                {view === 'analytics' ? (
-                  <AnalyticsDashboard />
-                ) : view === 'templates' ? (
-                  <TemplatesPage onStartSession={handleStartSessionFromTemplate} />
-                ) : view === 'kanban' ? (
-                  <KanbanBoard onSelectSession={handleSessionSelect} />
-                ) : selectedSession ? (
-                  <ActivityFeed
-                    key={selectedSession.id}
-                    session={selectedSession}
-                    onArchive={handleSessionArchived}
-                    showCodeDiffs={showCodeDiffs}
-                    onToggleCodeDiffs={setShowCodeDiffs}
-                    onActivitiesChange={setCurrentActivities}
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center p-8">
-                    <div className="text-center space-y-4 max-w-sm">
-                      <h2 className="text-sm font-bold text-white/40 uppercase tracking-widest">
-                        NO SESSION
-                      </h2>
-                      <p className="text-[11px] text-white/30 leading-relaxed uppercase tracking-wide font-mono">
-                        Select session or create new
-                      </p>
-                      <div className="pt-2">
-                        <Button
-                          className="w-full sm:w-auto h-8 text-[10px] font-mono uppercase tracking-widest bg-purple-600 hover:bg-purple-500 text-white border-0"
-                          onClick={handleOpenNewSession}
-                        >
-                          <Plus className="h-3.5 w-3.5 mr-1.5" />
-                          New Session
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </main>
-
-              {/* Code Diff Sidebar */}
-              {selectedSession && showCodeDiffs && view === 'sessions' && (
-                <>
-                  {!codeDiffSidebarCollapsed && (
-                    <div
-                      className="w-1 cursor-col-resize bg-transparent hover:bg-blue-500/50 transition-colors z-50"
-                      onMouseDown={startResizing}
-                    />
-                  )}
-                  <aside
-                    className={`hidden md:flex border-l border-white/[0.08] flex-col bg-zinc-950 ${
-                      isResizing ? 'transition-none' : 'transition-all duration-200'
-                    } ${codeDiffSidebarCollapsed ? 'md:w-12' : ''}`}
-                    style={{ width: codeDiffSidebarCollapsed ? undefined : codeSidebarWidth }}
-                  >
-                    <div className="px-3 py-2 border-b border-white/[0.08] flex items-center justify-between">
-                      {!codeDiffSidebarCollapsed && (
-                        <h2 className="text-[10px] font-bold text-white/40 uppercase tracking-widest">CODE CHANGES</h2>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className={`h-6 w-6 hover:bg-white/5 text-white/60 ${codeDiffSidebarCollapsed ? 'mx-auto' : ''}`}
-                        onClick={() => setCodeDiffSidebarCollapsed(!codeDiffSidebarCollapsed)}
-                      >
-                        {codeDiffSidebarCollapsed ? (
-                          <ChevronLeft className="h-3.5 w-3.5" />
-                        ) : (
-                          <ChevronRight className="h-3.5 w-3.5" />
-                        )}
-                      </Button>
-                    </div>
-                    <div className="flex-1 overflow-hidden">
-                      {!codeDiffSidebarCollapsed && (
-                        <CodeDiffSidebar
-                          activities={currentActivities}
-                          repoUrl={selectedSession ? `https://github.com/${selectedSession.sourceId}` : undefined}
-                        />
-                      )}
-                    </div>
-                  </aside>
-                </>
-              )}
-            </div>
+            <MainContent
+              view={view}
+              selectedSession={selectedSession}
+              onSessionSelect={handleSessionSelect}
+              onStartSessionFromTemplate={handleStartSessionFromTemplate}
+              onArchiveSession={handleSessionArchived}
+              showCodeDiffs={showCodeDiffs}
+              onToggleCodeDiffs={setShowCodeDiffs}
+              onActivitiesChange={setCurrentActivities}
+              currentActivities={currentActivities}
+              codeDiffSidebarCollapsed={codeDiffSidebarCollapsed}
+              onToggleCodeDiffSidebar={() => setCodeDiffSidebarCollapsed(!codeDiffSidebarCollapsed)}
+              codeSidebarWidth={codeSidebarWidth}
+              isResizing={isResizing}
+              onStartResizing={startResizing}
+              onOpenNewSession={handleOpenNewSession}
+            />
           </ResizablePanel>
 
           {/* Bottom Panel: System/Logs */}

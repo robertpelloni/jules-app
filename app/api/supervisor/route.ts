@@ -7,8 +7,6 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { messages, provider, apiKey, model, threadId, assistantId, action, participants } = body;
 
-    console.log('[Supervisor API] Request:', { action, provider, model, participantsCount: participants?.length });
-
     // 1. List Models
     if (action === 'list_models') {
        if (!apiKey || !provider) {
@@ -97,7 +95,11 @@ export async function POST(req: Request) {
             model: model || "gpt-4o",
           })
         });
-        if (!assistantResp.ok) throw new Error("Failed to create assistant");
+        if (!assistantResp.ok) {
+            const err = await assistantResp.json().catch(() => ({}));
+            console.error("Failed to create assistant:", err);
+            throw new Error(`Failed to create assistant: ${err.error?.message || assistantResp.statusText}`);
+        }
         const assistantData = await assistantResp.json();
         activeAssistantId = assistantData.id;
       }

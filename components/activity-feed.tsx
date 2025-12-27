@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import useSWR from 'swr';
 import { useJules } from '@/lib/jules/provider';
 import type { Activity, Session } from '@/types/jules';
 import { Card, CardContent } from '@/components/ui/card';
@@ -37,9 +38,6 @@ interface ActivityFeedProps {
 
 export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDiffs, onActivitiesChange }: ActivityFeedProps) {
   const { client } = useJules();
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [approvingPlan, setApprovingPlan] = useState(false);
   const [newActivityIds, setNewActivityIds] = useState<Set<string>>(new Set());
@@ -47,6 +45,8 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [expandedBashOutputs, setExpandedBashOutputs] = useState<Set<string>>(new Set());
   const [isArchived, setIsArchived] = useState(false);
+  const prevIdsRef = useRef<Set<string>>(new Set());
+  const [localError, setLocalError] = useState<string | null>(null);
 
   // Check archive status on session change
   useEffect(() => {
@@ -65,112 +65,76 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
     }
   };
 
-  const loadActivities = useCallback(async (isInitialLoad = true) => {
-    if (!client) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      if (isInitialLoad) setLoading(true);
-      setError(null);
-
-      // Get session details to ensure we have the prompt
-      const sessionDetails = await client.getSession(session.id);
-      
-      const updateActivitiesState = (fetchedActivities: Activity[]) => {
-        // Prepend initial prompt if missing
-        if (sessionDetails.prompt) {
-           const hasPrompt = fetchedActivities.some(a => a.id === 'initial-prompt' || a.content === sessionDetails.prompt);
-           if (!hasPrompt) {
-              fetchedActivities.unshift({
-                id: 'initial-prompt',
-                sessionId: session.id,
-                type: 'message',
-                role: 'user',
-                content: sessionDetails.prompt,
-                createdAt: session.createdAt
-              });
-           }
-        }
-
-        setActivities(prevActivities => {
-          if (prevActivities.length === 0 || isInitialLoad) return fetchedActivities;
-
-          // 1. Identify pending items in current state
-          const pendingItems = prevActivities.filter(a => a.id === 'pending');
-
-          // 2. If no pending items, just trust the server (handles updates/edits)
-          if (pendingItems.length === 0) {
-             // Check if we have new items for animation
-             const prevIds = new Set(prevActivities.map(a => a.id));
-             const newItems = fetchedActivities.filter(a => !prevIds.has(a.id));
-             if (newItems.length > 0) {
-                setNewActivityIds(new Set(newItems.map(a => a.id)));
-                setTimeout(() => setNewActivityIds(new Set()), 500);
-             }
-             return fetchedActivities;
-          }
-
-          // 3. Deduplicate pending items against fetched items
-          // We match by content and role since pending items don't have real IDs yet
-          const fetchedContentCounts = new Map<string, number>();
-          fetchedActivities.forEach(a => {
-            if (a.role === 'user') {
-              fetchedContentCounts.set(a.content, (fetchedContentCounts.get(a.content) || 0) + 1);
-            }
-          });
-
-          const remainingPending = pendingItems.filter(a => {
-             const count = fetchedContentCounts.get(a.content);
-             if (count && count > 0) {
-               fetchedContentCounts.set(a.content, count - 1);
-               return false; // It's now in the server list, remove pending
-             }
-             return true; // Not found on server yet, keep pending
-          });
-
-          // 4. Calculate new IDs for animation
-          const prevIds = new Set(prevActivities.map(a => a.id));
-          const newItems = fetchedActivities.filter(a => !prevIds.has(a.id));
-          if (newItems.length > 0) {
-             setNewActivityIds(new Set(newItems.map(a => a.id)));
-             setTimeout(() => setNewActivityIds(new Set()), 500);
-          }
-
-          // 5. Merge: Server Truth + Remaining Pending
-          return [...fetchedActivities, ...remainingPending];
-        });
-      };
-
-      // Use listActivities with progress callback if supported, otherwise standard list
-      // Assuming client.listActivities supports options based on HEAD code
-      const data = await client.listActivities(session.id);
-      updateActivitiesState(data);
-
-    } catch (err) {
-      console.error('Failed to load activities:', err);
-      if (err instanceof Error && err.message.includes('Resource not found')) {
-        setActivities([]);
-        setError(null);
-      } else {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to load activities';
-        setError(errorMessage);
-        if (isInitialLoad) setActivities([]);
+  const fetcher = useCallback(async () => {
+    if (!client) return [];
+    
+    // Fetch activities
+    const fetchedActivities = await client.listActivities(session.id);
+    
+    // Ensure we have the prompt. If not in session prop, try to fetch session details
+    let prompt = session.prompt;
+    if (!prompt) {
+      try {
+        const sessionDetails = await client.getSession(session.id);
+        prompt = sessionDetails.prompt;
+      } catch (e) {
+        console.warn('Failed to fetch session details for prompt', e);
       }
-    } finally {
-      if (isInitialLoad) setLoading(false);
     }
-  }, [client, session.id, session.createdAt]);
 
-  useEffect(() => {
-    loadActivities(true);
-    if (session.status === 'active' && !isArchived) {
-      // Increased polling interval to 10s to avoid rate limits
-      const interval = setInterval(() => loadActivities(false), 10000);
-      return () => clearInterval(interval);
+    // Prepend initial prompt if missing
+    if (prompt) {
+       const hasPrompt = fetchedActivities.some(a => a.id === 'initial-prompt' || a.content === prompt);
+       if (!hasPrompt) {
+          fetchedActivities.unshift({
+            id: 'initial-prompt',
+            sessionId: session.id,
+            type: 'message',
+            role: 'user',
+            content: prompt,
+            createdAt: session.createdAt
+          });
+       }
     }
-  }, [session.id, session.status, isArchived, loadActivities]);
+    
+    return fetchedActivities;
+  }, [client, session.id, session.prompt, session.createdAt]);
+
+  const { data: activities = [], error: swrError, mutate, isLoading } = useSWR(
+    client ? ['activities', session.id] : null,
+    fetcher,
+    {
+      refreshInterval: (session.status === 'active' && !isArchived) ? 3000 : 0,
+      revalidateOnFocus: true,
+      dedupingInterval: 1000,
+      onSuccess: (data) => {
+        setLocalError(null);
+      },
+      onError: (err) => {
+        console.error('Failed to load activities:', err);
+      }
+    }
+  );
+
+  const error = localError || (swrError ? (swrError instanceof Error ? swrError.message : 'Failed to load activities') : null);
+
+  // Animation logic for new items
+  useEffect(() => {
+    if (activities.length === 0) return;
+
+    const currentIds = new Set(activities.map(a => a.id));
+    
+    // Only animate if we have previous items (not initial load)
+    if (prevIdsRef.current.size > 0) {
+      const newItems = activities.filter(a => !prevIdsRef.current.has(a.id));
+      if (newItems.length > 0) {
+         setNewActivityIds(new Set(newItems.map(a => a.id)));
+         setTimeout(() => setNewActivityIds(new Set()), 500);
+      }
+    }
+    
+    prevIdsRef.current = currentIds;
+  }, [activities]);
 
   useEffect(() => {
     onActivitiesChange(activities);
@@ -180,14 +144,13 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
     if (!client || approvingPlan || isArchived) return;
     try {
       setApprovingPlan(true);
-      setError(null);
+      setLocalError(null);
       await client.approvePlan(session.id);
-      setTimeout(async () => {
-        try { await loadActivities(false); } catch (err) { console.error(err); }
-      }, 1000);
+      // Optimistic update or just trigger revalidation
+      setTimeout(() => mutate(), 1000);
     } catch (err) {
       console.error('Failed to approve plan:', err);
-      setError(err instanceof Error ? err.message : 'Failed to approve plan');
+      setLocalError(err instanceof Error ? err.message : 'Failed to approve plan');
     } finally {
       setApprovingPlan(false);
     }
@@ -197,25 +160,23 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
     if (!client || sending || isArchived) return;
     try {
       setSending(true);
-      setError(null);
+      setLocalError(null);
       const userMessage = await client.createActivity({
         sessionId: session.id,
         content: content.trim(),
       });
-      setActivities(prev => [...prev, userMessage]);
+      
+      // Optimistically update the list
+      await mutate(async (currentData) => {
+        return [...(currentData || []), userMessage];
+      }, { revalidate: false });
 
       // Poll for agent's response after a short delay
-      setTimeout(async () => {
-        try {
-          await loadActivities(false);
-        } catch (err) {
-          console.error("Failed to load new activities:", err);
-        }
-      }, 2000);
+      setTimeout(() => mutate(), 2000);
     } catch (err) {
       console.error("Failed to send message:", err);
       const errorMessage = err instanceof Error ? err.message : "Failed to send message";
-      setError(errorMessage);
+      setLocalError(errorMessage);
     } finally {
       setSending(false);
     }
@@ -348,7 +309,7 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
   const statusInfo = getStatusInfo();
   const pullRequest = session.outputs?.find(o => o.pullRequest)?.pullRequest;
 
-  if (loading && activities.length === 0) {
+  if (isLoading && activities.length === 0) {
     return (
       <div className="flex items-center justify-center h-full bg-black">
         <p className="text-[10px] font-mono text-white/40 uppercase tracking-widest">
@@ -464,7 +425,7 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
         <div className="border-b border-white/[0.08] bg-red-950/20 px-4 py-3">
           <div className="flex items-center justify-between gap-2">
             <p className="text-[11px] font-mono text-red-400 uppercase tracking-wide">{error}</p>
-            <Button variant="outline" size="sm" onClick={() => loadActivities(true)} className="h-7 text-[10px] border-white/10 hover:bg-white/5 text-white/80">Retry</Button>
+            <Button variant="outline" size="sm" onClick={() => mutate()} className="h-7 text-[10px] border-white/10 hover:bg-white/5 text-white/80">Retry</Button>
           </div>
         </div>
       )}
@@ -472,7 +433,7 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
       <div className="flex-1 overflow-hidden relative group">
         <ScrollArea className="h-full" ref={scrollAreaRef} id="activity-feed-scroll-area">
           <div className="p-3 space-y-2.5">
-            {filteredActivities.length === 0 && !loading && !error && (
+            {filteredActivities.length === 0 && !isLoading && !error && (
               <div className="flex items-center justify-center min-h-[200px]">
                 <div className="text-center space-y-2">
                   <p className="text-[10px] font-mono text-white/40 uppercase tracking-widest">No activities yet</p>

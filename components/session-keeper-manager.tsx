@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { useJules } from '@/lib/jules/provider';
 import { useSessionKeeperStore } from '@/lib/stores/session-keeper';
+import { Session, Activity } from '@/types/jules';
 
 // Persistent Supervisor State
 interface SupervisorState {
@@ -62,7 +63,7 @@ export function SessionKeeperManager() {
             participants: config.debateParticipants?.length
         });
 
-        const generateMessage = async (session: any) => {
+        const generateMessage = async (session: Session) => {
             let messageToSend = '';
 
             // DEBATE MODE OR SMART PILOT
@@ -70,7 +71,7 @@ export function SessionKeeperManager() {
               try {
                 // Fetch ALL activities
                 const activities = await client.listActivities(session.id);
-                if (session.prompt && !activities.some((a: any) => a.content === session.prompt)) {
+                if (session.prompt && !activities.some((a: Activity) => a.content === session.prompt)) {
                     activities.unshift({
                         id: 'initial-prompt',
                         sessionId: session.id,
@@ -78,9 +79,9 @@ export function SessionKeeperManager() {
                         role: 'user',
                         content: session.prompt,
                         createdAt: session.createdAt
-                    } as any);
+                    } as Activity);
                 }
-                const sortedActivities = activities.sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+                const sortedActivities = activities.sort((a: Activity, b: Activity) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
                 // Debate / Conference Logic
                 let mode = 'single';
@@ -106,7 +107,7 @@ export function SessionKeeperManager() {
                     addLog(`Convening ${mode === 'conference' ? 'Conference' : 'Council'} (${validParticipants.length} members)...`, 'info');
 
                     // Prepare simple history for debate (stateless usually)
-                    const history = sortedActivities.map((a: any) => ({
+                    const history = sortedActivities.map((a: Activity) => ({
                         role: a.role === 'agent' ? 'assistant' : 'user',
                         content: a.content
                     })).slice(-config.contextMessageCount);
@@ -136,7 +137,7 @@ export function SessionKeeperManager() {
                         });
 
                         if (data.opinions) {
-                            data.opinions.forEach((op: any) => {
+                            data.opinions.forEach((op: { participant: { provider: string }, content: string }) => {
                                 addLog(`Member (${op.participant.provider}): ${op.content.substring(0, 30)}...`, 'info');
                             });
                         }
@@ -161,7 +162,7 @@ export function SessionKeeperManager() {
                     // Identify NEW activities
                     let newActivities = sortedActivities;
                     if (sessionState.lastProcessedActivityTimestamp) {
-                      newActivities = sortedActivities.filter((a: any) => new Date(a.createdAt).getTime() > new Date(sessionState.lastProcessedActivityTimestamp).getTime());
+                      newActivities = sortedActivities.filter((a: Activity) => new Date(a.createdAt).getTime() > new Date(sessionState.lastProcessedActivityTimestamp).getTime());
                     }
 
                     const isStateful = config.supervisorProvider === 'openai-assistants';
@@ -169,10 +170,10 @@ export function SessionKeeperManager() {
 
                     if (newActivities.length > 0) {
                       if (sessionState.history.length === 0 && !sessionState.openaiThreadId) {
-                        const fullSummary = newActivities.map((a: any) => `${a.role.toUpperCase()}: ${a.content}`).join('\n\n');
+                        const fullSummary = newActivities.map((a: Activity) => `${a.role.toUpperCase()}: ${a.content}`).join('\n\n');
                         messagesToSend.push({ role: 'user', content: `Here is the full conversation history so far. Please analyze the state and provide the next instruction:\n\n${fullSummary}` });
                       } else {
-                        const updates = newActivities.map((a: any) => `${a.role.toUpperCase()}: ${a.content}`).join('\n\n');
+                        const updates = newActivities.map((a: Activity) => `${a.role.toUpperCase()}: ${a.content}`).join('\n\n');
                         messagesToSend.push({ role: 'user', content: `Here are the latest updates since your last instruction:\n\n${updates}` });
                       }
                       sessionState.lastProcessedActivityTimestamp = newActivities[newActivities.length - 1].createdAt;
@@ -293,9 +294,10 @@ export function SessionKeeperManager() {
               addLog(`Nudge sent`, 'action');
               incrementStat('totalNudges');
             }
-          } catch (err: any) {
-            const isRateLimit = err.message?.includes('429') || err.status === 429;
-            const errorMsg = isRateLimit ? 'Rate Limit (429)' : (err.message || 'Unknown error');
+          } catch (err: unknown) {
+            const error = err as { message?: string; status?: number };
+            const isRateLimit = error.message?.includes('429') || error.status === 429;
+            const errorMsg = isRateLimit ? 'Rate Limit (429)' : (error.message || 'Unknown error');
             
             addLog(`Error processing ${session.id.substring(0, 8)}: ${errorMsg}`, 'error');
             

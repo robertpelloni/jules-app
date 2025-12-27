@@ -10,6 +10,9 @@ All notable changes to this project will be documented in this file.
   - **Analytics**: New "Stalled Sessions" metric in the Analytics Dashboard.
   - **Logic**: Automatic detection of stalled sessions based on inactivity thresholds (5m warning, 30m critical).
 
+### Refactored
+- **App Layout**: Decomposed the monolithic `AppLayout` component into smaller, manageable parts (`AppHeader`, `AppSidebar`, `MainContent`) to improve maintainability and readability.
+
 ## [0.2.8] - 2025-12-26
 
 ### Added

@@ -294,11 +294,7 @@ export class JulesClient {
         return bTime.localeCompare(aTime);
       });
 
-      console.log(
-        "[Jules Client] Loaded sources (sorted by activity):",
-        sources.length,
-        sources,
-      );
+
     } catch (error) {
       console.error(
         "[Jules Client] Failed to sort sources by activity:",
@@ -395,7 +391,7 @@ export class JulesClient {
       requirePlanApproval: true // Enable plan approval as per requirements
     };
 
-    console.log("[Jules Client] Creating session with:", requestBody);
+
 
     const response = await this.request<ApiSession>("/sessions", {
       method: "POST",

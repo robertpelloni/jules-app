@@ -1,10 +1,12 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
+import useSWR from 'swr';
 import { useJules } from '@/lib/jules/provider';
 import { useSessionKeeperStore } from '@/lib/stores/session-keeper';
 import type { Session, Source, Activity } from '@/types/jules';
 import { calculateSessionHealth } from '@/lib/health';
+import { calculateDiffStats } from '@/lib/diff-utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -15,59 +17,50 @@ import {
   AreaChart, Area
 } from 'recharts';
 import { format, subDays, isAfter, parseISO, differenceInMinutes, startOfDay } from 'date-fns';
-import { Loader2, RefreshCw, BarChart3, Clock, CheckCircle2, Zap, MessageSquare, Users, AlertCircle } from 'lucide-react';
+import { Loader2, RefreshCw, BarChart3, Clock, CheckCircle2, Zap, MessageSquare, Users, AlertCircle, Code2, FileCode } from 'lucide-react';
 
 export function AnalyticsDashboard() {
   const { client } = useJules();
   const { stats: keeperStats } = useSessionKeeperStore();
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [sources, setSources] = useState<Source[]>([]);
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [dateRange, setDateRange] = useState('30');
 
-  const fetchData = useCallback(async () => {
-    if (!client) return;
+  const fetcher = useCallback(async () => {
+    if (!client) return { sessions: [], sources: [], activities: [] };
 
-    try {
-      const [sessionsData, sourcesData] = await Promise.all([
-        client.listSessions(),
-        client.listSources()
-      ]);
+    const [sessionsData, sourcesData] = await Promise.all([
+      client.listSessions(),
+      client.listSources()
+    ]);
 
-      setSessions(sessionsData);
-      setSources(sourcesData);
+    // Fetch activities for the most recent 20 sessions to avoid rate limits
+    // Sort sessions by updated date desc
+    const sortedSessions = [...sessionsData].sort((a, b) =>
+      new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+    ).slice(0, 20);
 
-      // Fetch activities for the most recent 20 sessions to avoid rate limits
-      // Sort sessions by updated date desc
-      const sortedSessions = [...sessionsData].sort((a, b) =>
-        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-      ).slice(0, 20);
+    const activitiesPromises = sortedSessions.map(session =>
+      client.listActivities(session.id).catch(() => [] as Activity[])
+    );
 
-      const activitiesPromises = sortedSessions.map(session =>
-        client.listActivities(session.id).catch(() => [] as Activity[])
-      );
-
-      const activitiesResults = await Promise.all(activitiesPromises);
-      const allActivities = activitiesResults.flat();
-      setActivities(allActivities);
-
-    } catch (error) {
-      console.error('Failed to fetch analytics data:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
+    const activitiesResults = await Promise.all(activitiesPromises);
+    const allActivities = activitiesResults.flat();
+    
+    return { sessions: sessionsData, sources: sourcesData, activities: allActivities };
   }, [client]);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  const { data, error, mutate, isLoading, isValidating } = useSWR(
+    client ? 'analytics' : null,
+    fetcher,
+    {
+      refreshInterval: 60000, // 1 minute
+      revalidateOnFocus: false,
+    }
+  );
+
+  const { sessions, sources, activities } = data || { sessions: [], sources: [], activities: [] };
 
   const handleRefresh = () => {
-    setRefreshing(true);
-    fetchData();
+    mutate();
   };
 
   const filteredData = useMemo(() => {
@@ -153,6 +146,20 @@ export function AnalyticsDashboard() {
         count
       }));
 
+    // Code Impact Metrics
+    let totalAdditions = 0;
+    let totalDeletions = 0;
+    let totalFilesChanged = 0;
+
+    currentActivities.forEach(activity => {
+      if (activity.diff) {
+        const stats = calculateDiffStats(activity.diff);
+        totalAdditions += stats.additions;
+        totalDeletions += stats.deletions;
+        totalFilesChanged += stats.filesChanged;
+      }
+    });
+
     return {
       totalSessions,
       activeSessions,
@@ -162,11 +169,17 @@ export function AnalyticsDashboard() {
       avgDuration,
       activityData,
       repoData,
-      timelineData: timelineDataSorted
+      timelineData: timelineDataSorted,
+      codeImpact: {
+        additions: totalAdditions,
+        deletions: totalDeletions,
+        filesChanged: totalFilesChanged,
+        netChange: totalAdditions - totalDeletions
+      }
     };
   }, [filteredData, sources]);
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="flex flex-col items-center gap-2">
@@ -201,8 +214,8 @@ export function AnalyticsDashboard() {
               <SelectItem value="90" className="text-xs">Last 3 months</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" size="icon" onClick={handleRefresh} disabled={refreshing} aria-label="Refresh analytics" className="h-8 w-8 hover:bg-primary/10 hover:border-primary/50 transition-colors">
-            <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin text-primary' : ''}`} />
+          <Button variant="outline" size="icon" onClick={handleRefresh} disabled={isValidating} aria-label="Refresh analytics" className="h-8 w-8 hover:bg-primary/10 hover:border-primary/50 transition-colors">
+            <RefreshCw className={`h-3.5 w-3.5 ${isValidating ? 'animate-spin text-primary' : ''}`} />
           </Button>
         </div>
       </div>
@@ -253,6 +266,74 @@ export function AnalyticsDashboard() {
                 <div className="text-2xl font-bold tracking-tight">{keeperStats.totalDebates}</div>
                 <p className="text-[10px] text-muted-foreground mt-0.5">
                   multi-agent sessions
+                </p>
+              </CardContent>
+            </Card>
+          </BorderGlow>
+        </div>
+
+        {/* Code Impact Metrics */}
+        <div className="grid gap-3 md:grid-cols-4">
+          <BorderGlow glowColor="rgba(34, 197, 94, 0.4)">
+            <Card className="border-l-2 border-l-green-500 bg-card/95 backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 pt-3">
+                <CardTitle className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Lines Added</CardTitle>
+                <div className="h-6 w-6 rounded bg-green-500/10 flex items-center justify-center">
+                  <Code2 className="h-3 w-3 text-green-500" />
+                </div>
+              </CardHeader>
+              <CardContent className="pb-3">
+                <div className="text-2xl font-bold tracking-tight text-green-500">+{stats.codeImpact.additions}</div>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  new code written
+                </p>
+              </CardContent>
+            </Card>
+          </BorderGlow>
+          <BorderGlow glowColor="rgba(239, 68, 68, 0.4)">
+            <Card className="border-l-2 border-l-red-500 bg-card/95 backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 pt-3">
+                <CardTitle className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Lines Removed</CardTitle>
+                <div className="h-6 w-6 rounded bg-red-500/10 flex items-center justify-center">
+                  <Code2 className="h-3 w-3 text-red-500" />
+                </div>
+              </CardHeader>
+              <CardContent className="pb-3">
+                <div className="text-2xl font-bold tracking-tight text-red-500">-{stats.codeImpact.deletions}</div>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  code deleted
+                </p>
+              </CardContent>
+            </Card>
+          </BorderGlow>
+          <BorderGlow glowColor="rgba(168, 85, 247, 0.4)">
+            <Card className="border-l-2 border-l-purple-500 bg-card/95 backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 pt-3">
+                <CardTitle className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Net Change</CardTitle>
+                <div className="h-6 w-6 rounded bg-purple-500/10 flex items-center justify-center">
+                  <Code2 className="h-3 w-3 text-purple-500" />
+                </div>
+              </CardHeader>
+              <CardContent className="pb-3">
+                <div className="text-2xl font-bold tracking-tight">{stats.codeImpact.netChange > 0 ? '+' : ''}{stats.codeImpact.netChange}</div>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  total impact
+                </p>
+              </CardContent>
+            </Card>
+          </BorderGlow>
+          <BorderGlow glowColor="rgba(59, 130, 246, 0.4)">
+            <Card className="border-l-2 border-l-blue-500 bg-card/95 backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 pt-3">
+                <CardTitle className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Files Changed</CardTitle>
+                <div className="h-6 w-6 rounded bg-blue-500/10 flex items-center justify-center">
+                  <FileCode className="h-3 w-3 text-blue-500" />
+                </div>
+              </CardHeader>
+              <CardContent className="pb-3">
+                <div className="text-2xl font-bold tracking-tight">{stats.codeImpact.filesChanged}</div>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  files modified
                 </p>
               </CardContent>
             </Card>

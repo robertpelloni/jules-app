@@ -1,5 +1,10 @@
 import { CompletionParams, CompletionResult, ProviderInterface } from '../types';
 
+interface GeminiModel {
+  name: string;
+  supportedGenerationMethods?: string[];
+}
+
 export const geminiProvider: ProviderInterface = {
   async complete(params: CompletionParams): Promise<CompletionResult> {
     const { messages, apiKey, model, systemPrompt } = params;
@@ -70,8 +75,8 @@ export const geminiProvider: ProviderInterface = {
       }
       const data = await response.json();
       return data.models
-        .filter((m: any) => m.name.includes('gemini') && m.supportedGenerationMethods?.includes('generateContent'))
-        .map((m: any) => m.name.replace('models/', ''));
+        .filter((m: GeminiModel) => m.name.includes('gemini') && m.supportedGenerationMethods?.includes('generateContent'))
+        .map((m: GeminiModel) => m.name.replace('models/', ''));
     } catch (error) {
       console.error('Error listing Gemini models:', error);
       return ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-1.0-pro'];
