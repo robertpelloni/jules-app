@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 - **UI Regressions**: Restored the "Broadcast" button and fixed the Log Panel layout (moved to bottom vertical split).
 - **Rendering**: Fixed blank screens in "Session Monitor" and "Manage Templates" dialogs.
+- **Activity Feed**: Fixed a bug where activity updates (e.g., status changes, artifacts) were ignored due to aggressive client-side filtering. Now correctly merges server state with local pending messages.
 
 ## [0.2.6] - 2025-12-26
 

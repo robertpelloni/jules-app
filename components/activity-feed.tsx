@@ -96,36 +96,49 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
         setActivities(prevActivities => {
           if (prevActivities.length === 0 || isInitialLoad) return fetchedActivities;
 
-          const newActivities = fetchedActivities.filter(
-            newAct => !prevActivities.some(prevAct => prevAct.id === newAct.id)
-          );
+          // 1. Identify pending items in current state
+          const pendingItems = prevActivities.filter(a => a.id === 'pending');
 
-          if (newActivities.length > 0) {
-            setNewActivityIds(new Set(newActivities.map(a => a.id)));
-            setTimeout(() => setNewActivityIds(new Set()), 500);
-
-            // Deduplicate pending messages
-            const newContentCounts = new Map<string, number>();
-            newActivities.forEach(a => {
-              if (a.role === 'user') {
-                newContentCounts.set(a.content, (newContentCounts.get(a.content) || 0) + 1);
-              }
-            });
-
-            const filteredPrev = prevActivities.filter(a => {
-              if (a.id === 'pending' && a.role === 'user') {
-                const count = newContentCounts.get(a.content);
-                if (count && count > 0) {
-                  newContentCounts.set(a.content, count - 1);
-                  return false; // Remove this pending item
-                }
-              }
-              return true;
-            });
-
-            return [...filteredPrev, ...newActivities];
+          // 2. If no pending items, just trust the server (handles updates/edits)
+          if (pendingItems.length === 0) {
+             // Check if we have new items for animation
+             const prevIds = new Set(prevActivities.map(a => a.id));
+             const newItems = fetchedActivities.filter(a => !prevIds.has(a.id));
+             if (newItems.length > 0) {
+                setNewActivityIds(new Set(newItems.map(a => a.id)));
+                setTimeout(() => setNewActivityIds(new Set()), 500);
+             }
+             return fetchedActivities;
           }
-          return prevActivities;
+
+          // 3. Deduplicate pending items against fetched items
+          // We match by content and role since pending items don't have real IDs yet
+          const fetchedContentCounts = new Map<string, number>();
+          fetchedActivities.forEach(a => {
+            if (a.role === 'user') {
+              fetchedContentCounts.set(a.content, (fetchedContentCounts.get(a.content) || 0) + 1);
+            }
+          });
+
+          const remainingPending = pendingItems.filter(a => {
+             const count = fetchedContentCounts.get(a.content);
+             if (count && count > 0) {
+               fetchedContentCounts.set(a.content, count - 1);
+               return false; // It's now in the server list, remove pending
+             }
+             return true; // Not found on server yet, keep pending
+          });
+
+          // 4. Calculate new IDs for animation
+          const prevIds = new Set(prevActivities.map(a => a.id));
+          const newItems = fetchedActivities.filter(a => !prevIds.has(a.id));
+          if (newItems.length > 0) {
+             setNewActivityIds(new Set(newItems.map(a => a.id)));
+             setTimeout(() => setNewActivityIds(new Set()), 500);
+          }
+
+          // 5. Merge: Server Truth + Remaining Pending
+          return [...fetchedActivities, ...remainingPending];
         });
       };
 

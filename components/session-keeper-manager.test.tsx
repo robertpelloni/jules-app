@@ -27,12 +27,15 @@ describe('SessionKeeperManager', () => {
   const mockSetStatusSummary = jest.fn();
   const mockAddLog = jest.fn();
   const mockIncrementStat = jest.fn();
+  const mockUpdateSessionState = jest.fn();
+  const mockAddDebate = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
 
     (useJules as jest.Mock).mockReturnValue({
       client: mockClient,
+      apiKey: 'test-api-key',
     });
 
     (useRouter as jest.Mock).mockReturnValue({
@@ -51,14 +54,21 @@ describe('SessionKeeperManager', () => {
         debateEnabled: false,
       },
       addLog: mockAddLog,
+      addDebate: mockAddDebate,
       setStatusSummary: mockSetStatusSummary,
       incrementStat: mockIncrementStat,
+      updateSessionState: mockUpdateSessionState,
     });
   });
 
   it('should do nothing if disabled', () => {
     (useSessionKeeperStore as unknown as jest.Mock).mockReturnValue({
       config: { isEnabled: false },
+      setStatusSummary: mockSetStatusSummary,
+      addLog: mockAddLog,
+      addDebate: mockAddDebate,
+      updateSessionState: mockUpdateSessionState,
+      incrementStat: mockIncrementStat,
     });
 
     render(<SessionKeeperManager />);
@@ -130,8 +140,10 @@ describe('SessionKeeperManager', () => {
           customMessages: {}
         },
         addLog: mockAddLog,
+        addDebate: mockAddDebate,
         setStatusSummary: mockSetStatusSummary,
         incrementStat: mockIncrementStat,
+        updateSessionState: mockUpdateSessionState,
       });
 
     const oldDate = new Date(Date.now() - 15 * 60 * 1000).toISOString();

@@ -33,7 +33,7 @@ Object.defineProperty(global, "crypto", {
 });
 
 describe("Templates Utility", () => {
-  const TEMPLATES_KEY = "jules-session-templates";
+  const TEMPLATES_KEY = "jules-user-templates";
 
   beforeAll(() => {
     // Define window.localStorage manually for Node environment
@@ -99,14 +99,17 @@ describe("Templates Utility", () => {
       localStorageMock.setItem(TEMPLATES_KEY, JSON.stringify([t1, t2]));
 
       const templates = getTemplates();
-      expect(templates).toHaveLength(2);
-      expect(templates[0].id).toBe("2"); // Most recent first
-      expect(templates[1].id).toBe("1");
+      // Filter out prebuilt templates for this test
+      const userTemplates = templates.filter(t => !t.isPrebuilt);
+      
+      expect(userTemplates).toHaveLength(2);
+      expect(userTemplates[0].id).toBe("2"); // Most recent first
+      expect(userTemplates[1].id).toBe("1");
     });
   });
 
   describe("saveTemplate", () => {
-    it("should create new template and preserve prebuilt ones", () => {
+    it("should create new template", () => {
       const input = {
         name: "New Template",
         description: "Desc",
@@ -122,18 +125,9 @@ describe("Templates Utility", () => {
       expect(result.updatedAt).toBeDefined();
 
       const stored = JSON.parse(localStorageMock.getItem(TEMPLATES_KEY)!);
-      // Should have at least 6: Bolt + Palette + Sentinel + Guardian + Echo + New
-      expect(stored.length).toBeGreaterThan(5);
-      expect(stored).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ id: "test-uuid" }),
-          expect.objectContaining({ id: "bolt-performance-agent" }),
-          expect.objectContaining({ id: "palette-ux-agent" }),
-          expect.objectContaining({ id: "sentinel-security-agent" }),
-          expect.objectContaining({ id: "guardian-test-agent" }),
-          expect.objectContaining({ id: "echo-reproduction-agent" }),
-        ]),
-      );
+      // Should have 1 user template
+      expect(stored).toHaveLength(1);
+      expect(stored[0].id).toBe("test-uuid");
     });
 
     it("should update existing template", () => {

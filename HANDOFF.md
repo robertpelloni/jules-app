@@ -9,13 +9,13 @@
 ## Recent Changes
 1.  **Terminal Integration**: Implemented secure `JULES_API_KEY` injection into the integrated terminal.
 2.  **Template Management**: Improved `TemplateFormDialog` with tag input (Badges) and auto-renaming for clones.
-3.  **UI Fixes**: Restored Broadcast button, fixed Log Panel layout, fixed blank screens in dialogs.
-4.  **Documentation**: Updated `ROADMAP.md` and `CHANGELOG.md`.
+3.  **Activity Feed Logic**: Refactored `updateActivitiesState` to correctly handle server-side updates while preserving local pending messages.
+4.  **UI Fixes**: Restored Broadcast button, fixed Log Panel layout, fixed blank screens in dialogs.
+5.  **Documentation**: Updated `ROADMAP.md` and `CHANGELOG.md`.
 
 ## Next Steps
-1.  **Testing**: Run full test suite (`npm test`) to ensure no regressions.
-2.  **Deployment**: Push to remote and trigger deployment.
-3.  **Roadmap**: All planned items for this cycle are complete. Consider new features or tech debt.
+1.  **Deployment**: Push to remote and trigger deployment.
+2.  **Roadmap**: All planned items for this cycle are complete. Consider new features or tech debt.
 
 ## Known Issues
 - None currently blocking.
