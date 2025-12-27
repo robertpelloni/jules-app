@@ -167,16 +167,17 @@ A powerful, self-hosted web application for managing Jules AI agent sessions wit
   - ✅ Status columns (Running, Waiting, Done)
   - ✅ Quick actions
 
-- **SESSION-010**: GitHub Issue Integration ([#49](https://github.com/sbhavani/jules-app/issues/49)) 🟡 _Open_
-  - 🟡 Select active GitHub issue in New Session dialog
-  - 🟡 Pre-fill prompt with issue context
-  - 🟡 Auto-suggest branch names
+- **SESSION-010: GitHub Issue Integration** ([#49](https://github.com/sbhavani/jules-app/issues/49)) ✅ _Closed_
+  - ✅ Select active GitHub issue in New Session dialog
+  - ✅ Pre-fill prompt with issue context
+  - ✅ Auto-suggest branch names
 
-- **ANALYTICS-004**: Session Health Monitoring ([#33](https://github.com/sbhavani/jules-app/issues/33)) 🟡 _Open_
-  - 🟡 Detect stalled agents
-  - 🟡 Health scores
+- **ANALYTICS-004**: Session Health Monitoring ([#33](https://github.com/sbhavani/jules-app/issues/33)) ✅ _Closed_
+  - ✅ Detect stalled agents (5m warning, 30m critical)
+  - ✅ Health scores (Visual badges)
+  - ✅ Dashboard metrics for stalled sessions
 
-- **NOTIF-001**: Error Notifications & Toast System ([#13](https://github.com/sbhavani/jules-app/issues/13)) 🟡 _Open_
+- **NOTIF-001**: Error Notifications & Toast System ([#13](https://github.com/sbhavani/jules-app/issues/13)) ✅ _Closed_
 - **REFACTOR-001**: Layout Component Decoupling ([#44](https://github.com/sbhavani/jules-app/issues/44)) 🟡 _Open_
 - **PERF-004**: Reactive Data Fetching ([#45](https://github.com/sbhavani/jules-app/issues/45)) 🟡 _Open_
 - **CLEAN-001**: Remove Debug Logging from Proxy ([#47](https://github.com/sbhavani/jules-app/issues/47)) 🟡 _Open_
@@ -214,8 +215,8 @@ A powerful, self-hosted web application for managing Jules AI agent sessions wit
 | [#10](https://github.com/sbhavani/jules-app/issues/10) | UI-002 | Dark Mode Support | ✅ Closed | P1 Important |
 | [#11](https://github.com/sbhavani/jules-app/issues/11) | UI-003 | Loading States & Skeleton Loaders | ✅ Closed | P1 Important |
 | [#12](https://github.com/sbhavani/jules-app/issues/12) | SEARCH-001 | Session Search & Filtering | ✅ Closed | P1 Important |
-| [#13](https://github.com/sbhavani/jules-app/issues/13) | NOTIF-001 | Error Notifications & Toast System | 🟡 Open | P1 Important |
-| [#49](https://github.com/sbhavani/jules-app/issues/49) | SESSION-010 | GitHub Issue Integration | 🟡 Open | P1 Important |
+| [#13](https://github.com/sbhavani/jules-app/issues/13) | NOTIF-001 | Error Notifications & Toast System | ✅ Closed | P1 Important |
+| [#49](https://github.com/sbhavani/jules-app/issues/49) | SESSION-010 | GitHub Issue Integration | ✅ Closed | P1 Important |
 | [#14](https://github.com/sbhavani/jules-app/issues/14) | SESSION-005 | Session Templates | ✅ Closed | P2 Nice to Have |
 | [#15](https://github.com/sbhavani/jules-app/issues/15) | ACTIVITY-003 | Rich Message Formatting | ✅ Closed | P2 Nice to Have |
 | [#16](https://github.com/sbhavani/jules-app/issues/16) | EXPORT-001 | Export Session Data | 🟡 Open | P2 Nice to Have |
@@ -230,7 +231,7 @@ A powerful, self-hosted web application for managing Jules AI agent sessions wit
 | [#30](https://github.com/sbhavani/jules-app/issues/30) | ORCH-003 | "The Librarian" Auto-Docs | 🟡 Open | Feature |
 | [#31](https://github.com/sbhavani/jules-app/issues/31) | SESSION-009 | Kanban Board View | ✅ Closed | P1 Important |
 | [#32](https://github.com/sbhavani/jules-app/issues/32) | ANALYTICS-002 | Code Impact Metrics | 🟡 Open | Feature |
-| [#33](https://github.com/sbhavani/jules-app/issues/33) | ANALYTICS-004 | Session Health Monitoring | 🟡 Open | P1 Important |
+| [#33](https://github.com/sbhavani/jules-app/issues/33) | ANALYTICS-004 | Session Health Monitoring | ✅ Closed | P1 Important |
 | [#34](https://github.com/sbhavani/jules-app/issues/34) | DEV-001 | Integrated Local Terminal | ✅ Closed | Feature |
 | [#44](https://github.com/sbhavani/jules-app/issues/44) | REFACTOR-001 | Refactor AppLayout 'God Component' | 🟡 Open | Refactor |
 | [#45](https://github.com/sbhavani/jules-app/issues/45) | PERF-004 | Replace Polling with efficient Fetching | 🟡 Open | Performance |

@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useJules } from '@/lib/jules/provider';
 import { useSessionKeeperStore } from '@/lib/stores/session-keeper';
 import type { Session, Source, Activity } from '@/types/jules';
+import { calculateSessionHealth } from '@/lib/health';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -14,7 +15,7 @@ import {
   AreaChart, Area
 } from 'recharts';
 import { format, subDays, isAfter, parseISO, differenceInMinutes, startOfDay } from 'date-fns';
-import { Loader2, RefreshCw, BarChart3, Clock, CheckCircle2, Zap, MessageSquare, Users } from 'lucide-react';
+import { Loader2, RefreshCw, BarChart3, Clock, CheckCircle2, Zap, MessageSquare, Users, AlertCircle } from 'lucide-react';
 
 export function AnalyticsDashboard() {
   const { client } = useJules();
@@ -91,6 +92,11 @@ export function AnalyticsDashboard() {
     const completedSessions = currentSessions.filter(s => s.status === 'completed').length;
     const failedSessions = currentSessions.filter(s => s.status === 'failed').length;
 
+    const stalledSessions = currentSessions.filter(s => {
+      const health = calculateSessionHealth(s);
+      return health.status === 'stalled' || health.status === 'critical';
+    }).length;
+
     // Success rate
     const finishedSessions = completedSessions + failedSessions;
     const successRate = finishedSessions > 0
@@ -151,6 +157,7 @@ export function AnalyticsDashboard() {
       totalSessions,
       activeSessions,
       completedSessions,
+      stalledSessions,
       successRate,
       avgDuration,
       activityData,
@@ -253,7 +260,7 @@ export function AnalyticsDashboard() {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-6">
           <BorderGlow glowColor="rgba(255, 255, 255, 0.3)">
             <Card className="border-l-2 border-l-white/50 bg-card/95 backdrop-blur-sm">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 pt-3">
@@ -282,6 +289,22 @@ export function AnalyticsDashboard() {
                 <div className="text-2xl font-bold tracking-tight">{stats.activeSessions}</div>
                 <p className="text-[10px] text-muted-foreground mt-0.5">
                   currently running
+                </p>
+              </CardContent>
+            </Card>
+          </BorderGlow>
+          <BorderGlow glowColor="rgba(239, 68, 68, 0.5)">
+            <Card className="border-l-2 border-l-red-500 bg-card/95 backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 pt-3">
+                <CardTitle className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Stalled Sessions</CardTitle>
+                <div className="h-6 w-6 rounded bg-red-500/10 flex items-center justify-center">
+                  <AlertCircle className="h-3 w-3 text-red-500" />
+                </div>
+              </CardHeader>
+              <CardContent className="pb-3">
+                <div className="text-2xl font-bold tracking-tight">{stats.stalledSessions}</div>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  needing attention
                 </p>
               </CardContent>
             </Card>

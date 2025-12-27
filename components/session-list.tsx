@@ -19,6 +19,7 @@ import { CardSpotlight } from '@/components/ui/card-spotlight';
 import { formatDistanceToNow, isValid, parseISO, isToday } from 'date-fns';
 import { getArchivedSessions } from '@/lib/archive';
 import { BroadcastDialog } from "@/components/broadcast-dialog";
+import { SessionHealthBadge } from "./session-health-badge";
 
 function truncateText(text: string, maxLength: number) {
   if (!text) return '';
@@ -295,6 +296,7 @@ export function SessionList({ onSelectSession, selectedSessionId }: SessionListP
                           <span className={`${statusInfo.color} ${statusInfo.text.includes('Error') ? 'text-white font-bold bg-opacity-100' : 'bg-opacity-20 text-white/60'} px-1 rounded-sm shrink-0`}>
                             {statusInfo.text}
                           </span>
+                          <SessionHealthBadge session={session} compact />
                           {lastActivityTime && (
                             <span className="text-white/50 truncate">
                               Last action: {lastActivityTime}

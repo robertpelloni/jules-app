@@ -15,6 +15,7 @@ import { BashOutput } from '@/components/ui/bash-output';
 import { ActivityContent } from './activity-content';
 import { ActivityInput } from './activity-input';
 import { BorderGlow } from '@/components/ui/border-glow';
+import { SessionHealthBadge } from './session-health-badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -368,6 +369,7 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
                 <span>{statusInfo.icon}</span>
                 <span>{statusInfo.label}</span>
               </div>
+              <SessionHealthBadge session={session} />
               {pullRequest && (
                 <a
                   href={pullRequest.url}

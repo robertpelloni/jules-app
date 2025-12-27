@@ -54,7 +54,7 @@ import {
 } from "@/components/ui/dialog";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { SessionKeeperLogPanel } from "./session-keeper-log-panel";
-import { SessionKeeperSettings } from "./session-keeper-settings";
+import { SettingsDialog } from "./settings-dialog";
 import { SessionKeeperManager } from "./session-keeper-manager";
 import { SessionKeeper } from "./SessionKeeper";
 import { useSessionKeeperStore } from "@/lib/stores/session-keeper";
@@ -343,10 +343,8 @@ export function AppLayout({ initialView }: AppLayoutProps) {
 
             <BroadcastDialog sessions={[]} />
 
-            {/* Session Keeper Settings (Controlled) */}
-            <SessionKeeperSettings 
-              config={config}
-              onConfigChange={setConfig}
+            {/* Global Settings Dialog (Controlled) */}
+            <SettingsDialog 
               open={isSettingsOpen} 
               onOpenChange={setIsSettingsOpen} 
               trigger={null} 
@@ -375,8 +373,8 @@ export function AppLayout({ initialView }: AppLayoutProps) {
                 </DropdownMenuItem>
 
                 <DropdownMenuItem onClick={() => setIsSettingsOpen(true)} className="hover:bg-white/5 text-white/80">
-                  <Brain className="mr-2 h-3.5 w-3.5" />
-                  <span className="text-xs uppercase tracking-wide">Supervisor Settings</span>
+                  <Settings className="mr-2 h-3.5 w-3.5" />
+                  <span className="text-xs uppercase tracking-wide">Settings</span>
                 </DropdownMenuItem>
                 
                 <DropdownMenuSeparator className="bg-white/10" />

@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.9] - 2025-12-27
+
+### Added
+- **Session Health Monitoring**: New system to detect and visualize session health.
+  - **Health Badges**: Visual indicators (Healthy, Stalled, Critical) in Session List and Activity Feed.
+  - **Analytics**: New "Stalled Sessions" metric in the Analytics Dashboard.
+  - **Logic**: Automatic detection of stalled sessions based on inactivity thresholds (5m warning, 30m critical).
+
+## [0.2.8] - 2025-12-26
+
+### Added
+- **GitHub Issue Integration**: New feature in "New Session" dialog to fetch and select open issues from the repository. Pre-fills session title and prompt with issue details.
+- **Settings Dialog**: Centralized settings management with tabs for "Integrations" (GitHub Token) and "Supervisor".
+- **Notifications**: Integrated `sonner` for toast notifications across the app.
+
+### Changed
+- **UI**: Replaced the standalone "Supervisor Settings" dialog with the new unified "Settings" dialog.
+
 ## [0.2.7] - 2025-12-26
 
 ### Added

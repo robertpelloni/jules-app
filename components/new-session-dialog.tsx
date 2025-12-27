@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Combobox } from '@/components/ui/combobox';
-import { Plus, Loader2, Save, Sparkles } from 'lucide-react';
+import { Plus, Loader2, Save, Sparkles, Github } from 'lucide-react';
 import { TemplateFormDialog } from '@/components/template-form-dialog';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
@@ -50,6 +50,10 @@ export function NewSessionDialog({ onSessionCreated, initialValues, trigger, ope
   const [templates, setTemplates] = useState<SessionTemplate[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   
+  const [issues, setIssues] = useState<{ number: number; title: string; body: string }[]>([]);
+  const [loadingIssues, setLoadingIssues] = useState(false);
+  const [selectedIssueId, setSelectedIssueId] = useState<string>('');
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -107,6 +111,47 @@ export function NewSessionDialog({ onSessionCreated, initialValues, trigger, ope
   const loadTemplatesList = useCallback(() => {
     setTemplates(getTemplates());
   }, []);
+
+  const loadIssues = useCallback(async (repoName: string) => {
+    const token = localStorage.getItem('github_pat');
+    if (!token || !repoName) return;
+
+    try {
+      setLoadingIssues(true);
+      const response = await fetch(`https://api.github.com/repos/${repoName}/issues?state=open`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/vnd.github.v3+json',
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        // Filter out pull requests (which are also issues in GitHub API)
+        const realIssues = data.filter((i: any) => !i.pull_request).map((i: any) => ({ 
+            number: i.number, 
+            title: i.title, 
+            body: i.body 
+        }));
+        setIssues(realIssues);
+      }
+    } catch (err) {
+      console.error('Failed to load issues', err);
+    } finally {
+      setLoadingIssues(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (formData.sourceId) {
+       const source = sources.find(s => s.id === formData.sourceId);
+       if (source) {
+         loadIssues(source.name);
+       }
+    } else {
+        setIssues([]);
+    }
+  }, [formData.sourceId, sources, loadIssues]);
 
   useEffect(() => {
     if (open) {
@@ -168,6 +213,19 @@ export function NewSessionDialog({ onSessionCreated, initialValues, trigger, ope
         ...prev,
         title: template.title || prev.title,
         prompt: template.prompt
+      }));
+    }
+  };
+
+  const handleIssueSelect = (issueNumber: string) => {
+    setSelectedIssueId(issueNumber);
+    const issue = issues.find(i => i.number.toString() === issueNumber);
+    if (issue) {
+      setFormData(prev => ({
+        ...prev,
+        title: `Fix: ${issue.title}`,
+        prompt: `Please address the following issue:\n\n# ${issue.title}\n\n${issue.body || ''}`,
+        startingBranch: `issue-${issue.number}`
       }));
     }
   };
@@ -283,6 +341,28 @@ export function NewSessionDialog({ onSessionCreated, initialValues, trigger, ope
                 </p>
               )}
             </div>
+
+            {formData.sourceId && (issues.length > 0 || loadingIssues) && (
+              <div className="space-y-1.5">
+                <Label htmlFor="issue" className="text-xs font-semibold flex items-center gap-1.5">
+                  <Github className="h-3 w-3" />
+                  Select Issue (Optional)
+                </Label>
+                <Combobox
+                  id="issue"
+                  options={issues.map((issue) => ({
+                    value: issue.number.toString(),
+                    label: `#${issue.number}: ${issue.title}`,
+                  }))}
+                  value={selectedIssueId}
+                  onValueChange={handleIssueSelect}
+                  placeholder={loadingIssues ? "Loading issues..." : "Select an issue to fix"}
+                  searchPlaceholder="Search issues..."
+                  emptyMessage="No open issues found."
+                  className="text-xs"
+                />
+              </div>
+            )}
 
             <div className="space-y-1.5">
               <Label htmlFor="branch" className="text-xs font-semibold">Branch Name (Optional)</Label>
