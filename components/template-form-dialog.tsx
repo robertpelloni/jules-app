@@ -14,7 +14,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { X } from "lucide-react";
 
 interface TemplateFormDialogProps {
   open: boolean;
@@ -31,24 +33,24 @@ export function TemplateFormDialog({
   onSave,
   initialValues,
 }: TemplateFormDialogProps) {
+  const [tagInput, setTagInput] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     prompt: "",
     title: "",
-    tags: "", // Storing as string for input, will parse to array on save
+    tags: [] as string[],
   });
 
   useEffect(() => {
     if (open) {
       if (template) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setFormData({
-          name: template.name,
+          name: template.isPrebuilt ? `${template.name} (Copy)` : template.name,
           description: template.description,
           prompt: template.prompt,
           title: template.title || "",
-          tags: template.tags?.join(", ") || "", // Convert array to comma-separated string
+          tags: template.tags || [],
         });
       } else if (initialValues) {
         setFormData({
@@ -56,7 +58,7 @@ export function TemplateFormDialog({
           description: initialValues.description || "",
           prompt: initialValues.prompt || "",
           title: initialValues.title || "",
-          tags: initialValues.tags?.join(", ") || "",
+          tags: initialValues.tags || [],
         });
       } else {
         setFormData({
@@ -64,22 +66,38 @@ export function TemplateFormDialog({
           description: "",
           prompt: "",
           title: "",
-          tags: "",
+          tags: [],
         });
       }
+      setTagInput("");
     }
   }, [open, template, initialValues]);
 
   const isPrebuilt = template?.isPrebuilt;
 
+  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      const newTag = tagInput.trim();
+      if (newTag && !formData.tags.includes(newTag)) {
+        setFormData((prev) => ({ ...prev, tags: [...prev.tags, newTag] }));
+        setTagInput("");
+      }
+    } else if (e.key === "Backspace" && !tagInput && formData.tags.length > 0) {
+      setFormData((prev) => ({ ...prev, tags: prev.tags.slice(0, -1) }));
+    }
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      tags: prev.tags.filter((t) => t !== tagToRemove),
+    }));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const parsedTags = formData.tags
-        .split(",")
-        .map((tag) => tag.trim())
-        .filter((tag) => tag !== "");
-      
       // If it's a prebuilt template, we don't pass the ID, forcing a new creation (clone)
       saveTemplate({
         id: isPrebuilt ? undefined : template?.id,
@@ -87,11 +105,13 @@ export function TemplateFormDialog({
         description: formData.description,
         prompt: formData.prompt,
         title: formData.title,
-        tags: parsedTags,
+        tags: formData.tags,
       });
       onSave();
       onOpenChange(false);
-      toast.success(isPrebuilt ? "Template cloned successfully" : "Template saved successfully");
+      toast.success(
+        isPrebuilt ? "Template cloned successfully" : "Template saved successfully"
+      );
     } catch (error) {
       console.error("Failed to save template:", error);
       toast.error("Failed to save template");
@@ -103,15 +123,17 @@ export function TemplateFormDialog({
       <DialogContent className="sm:max-w-[600px] border-purple-500/20 shadow-[0_0_15px_rgba(168,85,247,0.15)]">
         <DialogHeader>
           <DialogTitle>
-            {template 
-              ? (isPrebuilt ? "Clone System Template" : "Edit Template") 
+            {template
+              ? isPrebuilt
+                ? "Clone System Template"
+                : "Edit Template"
               : "Create New Template"}
           </DialogTitle>
           <DialogDescription>
             {template
-              ? (isPrebuilt 
-                  ? "This is a system template. Saving will create a customizable copy." 
-                  : "Update the details for this session template.")
+              ? isPrebuilt
+                ? "This is a system template. Saving will create a customizable copy."
+                : "Update the details for this session template."
               : "Configure a new template for quick session creation."}
           </DialogDescription>
         </DialogHeader>
@@ -173,17 +195,35 @@ export function TemplateFormDialog({
 
           <div className="space-y-1.5">
             <Label htmlFor="tags" className="text-xs font-semibold">
-              Tags (comma-separated, optional)
+              Tags
             </Label>
-            <Input
-              id="tags"
-              value={formData.tags}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, tags: e.target.value }))
-              }
-              placeholder="e.g., frontend, refactor, react"
-              className="h-9 text-xs"
-            />
+            <div className="flex flex-wrap gap-2 p-2 border rounded-md bg-background min-h-[38px] focus-within:ring-1 focus-within:ring-ring">
+              {formData.tags.map((tag) => (
+                <Badge
+                  key={tag}
+                  variant="secondary"
+                  className="text-[10px] h-5 px-1.5 gap-1"
+                >
+                  {tag}
+                  <X
+                    className="h-3 w-3 cursor-pointer hover:text-destructive"
+                    onClick={() => removeTag(tag)}
+                  />
+                </Badge>
+              ))}
+              <input
+                id="tags"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={handleTagKeyDown}
+                placeholder={
+                  formData.tags.length === 0
+                    ? "e.g., frontend, refactor (Press Enter)"
+                    : ""
+                }
+                className="flex-1 bg-transparent border-none outline-none text-xs min-w-[120px] h-5"
+              />
+            </div>
           </div>
 
           <div className="space-y-1.5">
@@ -215,8 +255,10 @@ export function TemplateFormDialog({
               type="submit"
               className="h-8 text-[10px] font-mono uppercase tracking-widest"
             >
-              {template 
-                ? (isPrebuilt ? "Clone Template" : "Save Changes") 
+              {template
+                ? isPrebuilt
+                  ? "Clone Template"
+                  : "Save Changes"
                 : "Create Template"}
             </Button>
           </div>

@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.7] - 2025-12-26
+
+### Added
+- **Template Management**: Enhanced `TemplateFormDialog` with a proper tag input system (using Badges) and auto-renaming logic when cloning system templates.
+- **Terminal Integration**: Securely inject `JULES_API_KEY` into the integrated terminal session, allowing CLI tools to work out-of-the-box.
+
+### Fixed
+- **UI Regressions**: Restored the "Broadcast" button and fixed the Log Panel layout (moved to bottom vertical split).
+- **Rendering**: Fixed blank screens in "Session Monitor" and "Manage Templates" dialogs.
+
 ## [0.2.6] - 2025-12-26
 
 ### Added

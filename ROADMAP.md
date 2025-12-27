@@ -37,7 +37,8 @@
 - **Collaboration**:
   - **Broadcast Messages**: Send messages to all open sessions simultaneously.
   - **Kanban Board**: Manage sessions in a Kanban style (Running, Waiting, Done).
+  - **Terminal Integration Polish**: Secure API key injection into the integrated terminal environment.
+  - **Template Management**: Improved template creation UX with tag inputs and auto-renaming for clones.
 
 ## Planned / Pending
-- **Terminal Integration Polish**: Verify secure API key passing and connection resilience.
-- **Template Management**: Refine template creation/editing flow.
+- **None**: All planned items for this cycle are complete.
