@@ -11,6 +11,7 @@
     - Expanded test coverage for `ActivityFeed` (archived states, approval buttons).
     - Verified `SessionKeeperManager` logic tests.
     - Added integration tests for `SystemDashboard`.
+    - Fixed E2E test configuration (port conflicts) and verified all tests pass.
 2.  **Terminal Integration**: Implemented secure `JULES_API_KEY` injection into the integrated terminal.
 3.  **Template Management**: Improved `TemplateFormDialog` with tag input (Badges) and auto-renaming for clones.
 4.  **Activity Feed Logic**: Refactored `updateActivitiesState` to correctly handle server-side updates while preserving local pending messages.
@@ -19,8 +20,7 @@
 
 ## Next Steps
 1.  **Deployment**: Push to remote and trigger deployment.
-2.  **E2E Testing**: Consider adding Playwright/Cypress for full end-to-end testing.
-3.  **Roadmap**: All planned items for this cycle are complete. Consider new features or tech debt.
+2.  **Roadmap**: All planned items for this cycle are complete. Consider new features or tech debt.
 
 ## Known Issues
 - None currently blocking.

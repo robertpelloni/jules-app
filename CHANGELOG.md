@@ -10,6 +10,9 @@ All notable changes to this project will be documented in this file.
   - Added comprehensive tests for `ActivityFeed` covering rendering, grouping, messaging, and archived states.
   - Verified tests for `SessionKeeperManager`.
 
+### Fixed
+- **E2E Testing**: Resolved port conflicts in E2E tests by configuring a dedicated port (3005) and custom startup script.
+
 ### Performance
 - **Session Rendering**: Optimized `ActivityFeed` by implementing memoized `ActivityItem` and `ActivityGroup` components to prevent unnecessary re-renders in large sessions.
 
