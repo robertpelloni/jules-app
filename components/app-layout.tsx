@@ -40,6 +40,7 @@ import {
   Kanban,
   Activity as ActivityIcon,
   FolderTree,
+  Brain,
 } from "lucide-react";
 import { TerminalPanel } from "./terminal-panel";
 import { useTerminalAvailable } from "@/hooks/use-terminal-available";
@@ -371,6 +372,11 @@ export function AppLayout({ initialView }: AppLayoutProps) {
                 <DropdownMenuItem onClick={() => router.push('/system')} className="hover:bg-white/5 text-white/80">
                   <FolderTree className="mr-2 h-3.5 w-3.5" />
                   <span className="text-xs uppercase tracking-wide">System Dashboard</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem onClick={() => setIsSettingsOpen(true)} className="hover:bg-white/5 text-white/80">
+                  <Brain className="mr-2 h-3.5 w-3.5" />
+                  <span className="text-xs uppercase tracking-wide">Supervisor Settings</span>
                 </DropdownMenuItem>
                 
                 <DropdownMenuSeparator className="bg-white/10" />
