@@ -150,6 +150,7 @@ export function AnalyticsDashboard() {
     let totalAdditions = 0;
     let totalDeletions = 0;
     let totalFilesChanged = 0;
+    const churnMap = new Map<string, { additions: number, deletions: number }>();
 
     currentActivities.forEach(activity => {
       if (activity.diff) {
@@ -157,8 +158,23 @@ export function AnalyticsDashboard() {
         totalAdditions += stats.additions;
         totalDeletions += stats.deletions;
         totalFilesChanged += stats.filesChanged;
+
+        const isoDate = startOfDay(parseISO(activity.createdAt)).toISOString();
+        const current = churnMap.get(isoDate) || { additions: 0, deletions: 0 };
+        churnMap.set(isoDate, {
+            additions: current.additions + stats.additions,
+            deletions: current.deletions + stats.deletions
+        });
       }
     });
+
+    const churnData = Array.from(churnMap.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([isoDate, data]) => ({
+        date: format(parseISO(isoDate), 'MMM dd'),
+        additions: data.additions,
+        deletions: data.deletions
+      }));
 
     return {
       totalSessions,
@@ -170,6 +186,7 @@ export function AnalyticsDashboard() {
       activityData,
       repoData,
       timelineData: timelineDataSorted,
+      churnData,
       codeImpact: {
         additions: totalAdditions,
         deletions: totalDeletions,
@@ -487,6 +504,35 @@ export function AnalyticsDashboard() {
                     activeDot={{ r: 6, strokeWidth: 2 }}
                   />
                 </AreaChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </BorderGlow>
+      </div>
+
+      {/* Code Churn Chart */}
+      <div className="relative">
+        <BorderGlow glowColor="rgba(34, 197, 94, 0.4)">
+          <Card className="bg-card/95 backdrop-blur-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold">Code Churn</CardTitle>
+              <CardDescription className="text-[10px]">
+                Additions vs Deletions over time
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pb-3">
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart data={stats.churnData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" opacity={0.3} />
+                  <XAxis dataKey="date" fontSize={10} tickLine={false} axisLine={false} stroke="#888888" />
+                  <YAxis fontSize={10} tickLine={false} axisLine={false} stroke="#888888" />
+                  <Tooltip
+                     cursor={{fill: 'transparent'}}
+                     contentStyle={{ backgroundColor: 'var(--background)', borderRadius: '8px', border: '1px solid var(--border)', color: 'var(--foreground)' }}
+                  />
+                  <Bar dataKey="additions" fill="#22c55e" stackId="a" radius={[0, 0, 4, 4]} />
+                  <Bar dataKey="deletions" fill="#ef4444" stackId="a" radius={[4, 4, 0, 0]} />
+                </BarChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>

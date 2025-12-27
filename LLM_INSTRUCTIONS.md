@@ -18,11 +18,11 @@ Jules UI is a modern, developer-first interface for Google's Jules AI agent. It 
 -   **Icons**: Lucide React.
 
 ## Versioning & Changelog
--   **Single Source of Truth**: The version number is stored in `VERSION.md`.
+-   **Single Source of Truth**: The version number is stored in `VERSION`.
 -   **Update Protocol**:
-    1.  Read `VERSION.md`.
+    1.  Read `VERSION`.
     2.  Increment the version number (SemVer).
-    3.  Update `VERSION.md`.
+    3.  Update `VERSION`.
     4.  Update `package.json`.
     5.  Update `CHANGELOG.md` with a new section for the version.
     6.  Commit with message: `chore: bump version to X.Y.Z`.
@@ -37,7 +37,7 @@ The project relies heavily on submodules in `external/`.
 See `ROADMAP.md` for the current status of features.
 
 ## Handoff Protocol
-When finishing a session, update `HANDOFF.md` with:
+When finishing a session, update `docs/HANDOFF_DATE_SESSION.md` with:
 1.  Current state of the project.
 2.  Recent changes.
 3.  Known issues.
@@ -48,5 +48,5 @@ When finishing a session, update `HANDOFF.md` with:
 All agents (Claude, Gemini, GPT, Copilot) must:
 1.  **Plan**: Outline steps before executing.
 2.  **Context**: Read this file and `ROADMAP.md` before starting.
-3.  **Version**: Check `VERSION.md` and increment for significant changes.
+3.  **Version**: Check `VERSION` and increment for significant changes.
 4.  **Test**: Verify builds after changes.

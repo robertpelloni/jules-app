@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.2] - 2025-12-27
+
+### Added
+- **Tests**:
+  - Added E2E/Integration tests for the System Dashboard (`app/system/page.test.tsx`).
+  - Added comprehensive tests for `ActivityFeed` covering rendering, grouping, messaging, and archived states.
+  - Verified tests for `SessionKeeperManager`.
+
+### Performance
+- **Session Rendering**: Optimized `ActivityFeed` by implementing memoized `ActivityItem` and `ActivityGroup` components to prevent unnecessary re-renders in large sessions.
+
+## [0.3.1] - 2025-12-27
+
+### Added
+- **Code Churn Analytics**: New stacked bar chart in the Analytics Dashboard to visualize code additions and deletions over time.
+- **Metrics**: Daily aggregation of code impact stats (additions/deletions) from session activities.
+
+## [0.3.0] - 2025-12-27
+
+### Added
+- **Documentation Overhaul**: Centralized all AI instructions into `LLM_INSTRUCTIONS.md`.
+- **Versioning System**: Implemented strict versioning with `VERSION` file as the single source of truth.
+- **System Dashboard**: New dashboard at `/system` to visualize submodule status and versions.
+
+### Changed
+- **Agent Protocols**: Updated `AGENTS.md`, `GEMINI.md`, and `CLAUDE.md` to reference the master instruction file.
+- **Project Structure**: Standardized documentation and versioning workflows.
+
 ## [0.2.9] - 2025-12-27
 
 ### Added
