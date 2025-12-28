@@ -1,74 +1,60 @@
+import { Message, Participant } from './types';
 import { getProvider } from './providers';
 
-interface Participant {
-  provider: string;
-  model: string;
-  apiKey: string;
-  role?: string; // e.g. "Security Expert", "Performance Expert"
-}
+export async function runDebate({ history, participants, rounds = 1 }: {
+    history: Message[];
+    participants: Participant[];
+    rounds?: number;
+}): Promise<{ content: string; history: Message[] }> {
 
-interface DebateParams {
-  history: { role: string; content: string }[];
-  participants: Participant[];
-  judge?: Participant; // If null, use the first participant as judge
-}
+    const currentHistory = [...history];
+    let resultLog = '';
 
-export async function runDebate(params: DebateParams) {
-  const { history, participants, judge } = params;
+    // Only run one round per call for now to keep it stateless/interactive?
+    // The previous implementation implied running the whole debate.
+    // Let's run one full cycle (each participant speaks once).
 
-  // 1. Collect Opinions
-  const opinions = await Promise.all(participants.map(async (p) => {
-    try {
+    for (const p of participants) {
         const provider = getProvider(p.provider);
-        if (!provider) throw new Error(`Provider ${p.provider} not found`);
+        if (!provider) {
+            console.warn(`Provider ${p.provider} not found for participant ${p.name}`);
+            continue;
+        }
 
-        const sysPrompt = `You are a ${p.role || 'project supervisor'} participating in a debate about the next steps for an AI agent.
-Analyze the history and provide your recommendation. Be concise.`;
+        const systemPrompt = `You are ${p.name}, acting as a ${p.role}.
 
-        const result = await provider.complete({
-            messages: history,
-            apiKey: p.apiKey,
-            model: p.model,
-            systemPrompt: sysPrompt
-        });
+        Instructions:
+        ${p.systemPrompt}
 
-        return { participant: p, content: result.content };
-    } catch (e) {
-        console.error(`Participant ${p.provider}/${p.model} failed:`, e);
-        return { participant: p, error: e instanceof Error ? e.message : 'Unknown error', content: '' };
+        Review the conversation history and provide your input.
+        Be constructive, specific, and concise.`;
+
+        try {
+            // Call provider
+            const response = await provider.complete({
+                messages: currentHistory,
+                model: p.model,
+                apiKey: p.apiKey,
+                systemPrompt
+            });
+
+            // Append to history
+            // We use 'assistant' role, but we might want to prefix content with name if the provider doesn't support 'name' strictly.
+            // But let's try using 'name' property if possible, or just append to content for clarity in the UI.
+            const content = response.content;
+            const msg: Message = {
+                role: 'assistant',
+                content: content,
+                name: p.id // use ID as name to be safe with regex validation (OpenAI requires specific format)
+            };
+
+            currentHistory.push(msg);
+            resultLog += `\n\n**${p.name} (${p.role}):**\n${content}`;
+        } catch (err) {
+            console.error(`Error processing turn for ${p.name}:`, err);
+            resultLog += `\n\n**${p.name}:** [Error generating response]`;
+        }
     }
-  }));
 
-  // 2. Synthesize (Judge)
-  const validOpinions = opinions.filter(o => !o.error && o.content);
-
-  if (validOpinions.length === 0) {
-      throw new Error("All debate participants failed.");
-  }
-
-  const opinionText = validOpinions.map(o => `### ${o.participant.role || o.participant.model} (${o.participant.provider}):\n${o.content}`).join('\n\n');
-
-  const judgeParticipant = judge || participants[0];
-  const judgeProvider = getProvider(judgeParticipant.provider);
-  if (!judgeProvider) throw new Error("Judge provider not found");
-
-  const synthesisPrompt = `You are the Chief Supervisor. You have heard opinions from your council regarding the AI agent's status.
-
-COUNCIL OPINIONS:
-${opinionText}
-
-Based on these opinions and the history, provide the SINGLE final instruction for the agent.
-Synthesize the best points. Be direct and directive. Do not mention "The Council" in your final instruction to the agent, just give the instruction.`;
-
-  const finalResult = await judgeProvider.complete({
-      messages: history, // Give judge full history too
-      apiKey: judgeParticipant.apiKey,
-      model: judgeParticipant.model,
-      systemPrompt: synthesisPrompt
-  });
-
-  return {
-      content: finalResult.content,
-      opinions: validOpinions
-  };
+    return { content: resultLog, history: currentHistory };
 }
