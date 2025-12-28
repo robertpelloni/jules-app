@@ -12,47 +12,26 @@
 ## ✨ Key Features
 
 - 🔄 **Real-Time Updates** - Live activity feed with auto-polling
-<<<<<<< HEAD
-<<<<<<< HEAD
 - 🤖 **Auto-Pilot (Session Keeper)** - Keep sessions active automatically with smart nudges and plan approvals.
-- ⚖️ **Council Debate Mode** - Multi-agent debate system to guide the primary agent.
-=======
->>>>>>> origin/fix-remove-debug-logs-16472708773165476071
+- ⚖️ **Council Debate Mode** - Multi-agent debate system (Architect vs Security) to guide the primary agent.
+- 🛡️ **Deep Code Analysis** - Parallel code audits for Security, Performance, and Maintainability.
 - 📊 **Code Diff Viewer** - Visualize git patches and changes instantly
+- 📁 **Artifact Browser** - Browse and review generated files (diffs, logs, media) with one click.
+- 📋 **Kanban Board** - Visual session management (Active, Paused, Completed).
 - 💻 **Integrated Terminal** - Full web-based terminal with local machine access
 - 📈 **Analytics Dashboard** - Track session metrics and trends
-- 🔍 **Smart Search** - Find sessions by repository or title
+- ⚙️ **System Dashboard** - View submodules, build versions, and project structure.
 - 📱 **Mobile-First** - Fully responsive design
 - 🔒 **Secure** - Container isolation and API keys stored locally
-<<<<<<< HEAD
-=======
-- 📊 **Code Diff Viewer** - Visualize git patches and changes instantly
-- 💻 **Terminal Inspector** - Detailed bash output analysis (execution coming soon)
-- 📈 **Analytics Dashboard** - Track session metrics and trends
-- 🔍 **Smart Search** - Find sessions by repository or title
-- 📱 **Mobile-First** - Fully responsive design
-- 🔒 **Secure** - API keys stored locally in browser
->>>>>>> origin/feat-session-kanban-board-4406113728067866336
-=======
->>>>>>> origin/fix-remove-debug-logs-16472708773165476071
 
 ## 🚀 Quick Start
 
 **Prerequisites:** Node.js 18+, Jules API key from [jules.google.com](https://jules.google.com), and a connected GitHub repository.
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> origin/fix-remove-debug-logs-16472708773165476071
 ### Option 1: Standalone Mode
 
 Run just the Next.js app without the terminal server:
 
-<<<<<<< HEAD
-=======
->>>>>>> origin/feat-session-kanban-board-4406113728067866336
-=======
->>>>>>> origin/fix-remove-debug-logs-16472708773165476071
 ```bash
 # Clone and install
 git clone <your-repo-url>
@@ -63,10 +42,6 @@ npm install
 npm run dev
 ```
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> origin/fix-remove-debug-logs-16472708773165476071
 Open [http://localhost:3000](http://localhost:3000) - the Terminal button will be visible but show setup instructions when clicked.
 
 **To hide the Terminal button completely**, add to `.env.local`:
@@ -117,7 +92,6 @@ Open [http://localhost:3000](http://localhost:3000) - the Terminal will connect 
 
 **Note:** Your Jules API key is stored securely in browser localStorage. See [docs/TERMINAL.md](docs/TERMINAL.md) for detailed terminal setup and usage.
 
-<<<<<<< HEAD
 ## 🤖 Auto-Pilot (Session Keeper)
 
 The **Session Keeper** is a background utility that ensures your Jules sessions remain active and productive.
@@ -129,31 +103,16 @@ The **Session Keeper** is a background utility that ensures your Jules sessions 
 
 Access these settings via the **Gear Icon** in the top right or the **Logs** panel at the bottom of the screen.
 
-=======
->>>>>>> origin/fix-remove-debug-logs-16472708773165476071
 ## 📸 More Screenshots
 
 ![Integrated Terminal](public/assets/jules-terminal.png)
 *Integrated Terminal - Full web-based terminal with real-time command execution and output*
 
-<<<<<<< HEAD
-=======
-Open [http://localhost:3000](http://localhost:3000) and enter your Jules API key when prompted. Your key is stored securely in browser localStorage.
-
-## 📸 More Screenshots
-
->>>>>>> origin/feat-session-kanban-board-4406113728067866336
-=======
->>>>>>> origin/fix-remove-debug-logs-16472708773165476071
 ![Dashboard View](public/assets/dashboard-screenshot.png)
 *Analytics Dashboard - Track session success rates, duration, and activity volume*
 
 ## 🛠️ Tech Stack
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> origin/fix-remove-debug-logs-16472708773165476071
 **Frontend:** [Next.js 16](https://nextjs.org/), [TypeScript](https://www.typescriptlang.org/), [Tailwind CSS](https://tailwindcss.com/), [shadcn/ui](https://ui.shadcn.com/), [xterm.js](https://xtermjs.org/)
 
 **Terminal Server:** [Node.js](https://nodejs.org/), [Socket.io](https://socket.io/), [node-pty](https://github.com/microsoft/node-pty)
@@ -161,12 +120,6 @@ Open [http://localhost:3000](http://localhost:3000) and enter your Jules API key
   - **Pre-installed Tools:** `gemini-cli`, `python3`, `git`, `bash`
 
 **Infrastructure:** [Docker](https://www.docker.com/), [Docker Compose](https://docs.docker.com/compose/)
-<<<<<<< HEAD
-=======
-Built with [Next.js 16](https://nextjs.org/), [TypeScript](https://www.typescriptlang.org/), [Tailwind CSS](https://tailwindcss.com/), and [shadcn/ui](https://ui.shadcn.com/).
->>>>>>> origin/feat-session-kanban-board-4406113728067866336
-=======
->>>>>>> origin/fix-remove-debug-logs-16472708773165476071
 
 ## 🔧 Development
 
@@ -177,15 +130,9 @@ npm run lint     # Run linter
 npm test         # Run tests
 ```
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 ### SDK Reference
 The project includes the official Python SDK as a reference submodule at `jules-sdk-reference`. This is used to ensure the TypeScript client implementation (`lib/jules/client.ts`) remains compliant with the official API models and logic.
 
-=======
->>>>>>> origin/feat-session-kanban-board-4406113728067866336
-=======
->>>>>>> origin/fix-remove-debug-logs-16472708773165476071
 ## 📚 API Integration
 
 Integrates with Jules API (`https://jules.googleapis.com/v1alpha`) for session management, activity streaming, and real-time updates. See [developers.google.com/jules/api](https://developers.google.com/jules/api) for full documentation.
@@ -200,12 +147,4 @@ MIT License - see LICENSE file for details.
 
 ---
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 Built with ❤️ for the Jules Community
-=======
-Built with ❤️ for the Jules community
->>>>>>> origin/feat-session-kanban-board-4406113728067866336
-=======
-Built with ❤️ for the Jules community
->>>>>>> origin/fix-remove-debug-logs-16472708773165476071
