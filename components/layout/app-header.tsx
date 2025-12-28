@@ -193,6 +193,20 @@ export function AppHeader({
           <Button
             variant="ghost"
             size="sm"
+            className={`h-8 px-3 hover:bg-white/5 ${
+              isLogPanelOpen ? "text-white" : "text-white/60"
+            }`}
+            onClick={() => setIsLogPanelOpen(!isLogPanelOpen)}
+          >
+            <ActivityIcon className="h-3.5 w-3.5 mr-1.5" />
+            <span className="text-[10px] font-mono uppercase tracking-wider">
+              Monitor
+            </span>
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
             className="h-8 px-3 hover:bg-white/5 text-white/60"
             onClick={() => router.push("/system")}
           >

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { useJules } from '@/lib/jules/provider';
 import { useSessionKeeperStore } from '@/lib/stores/session-keeper';
 import { Session, Activity } from '@/types/jules';
@@ -17,6 +18,7 @@ interface SupervisorState {
 
 export function SessionKeeperManager() {
   const { client, apiKey } = useJules();
+  const router = useRouter();
   
   // Use granular selectors to prevent re-renders when other parts of the store (like statusSummary) change
   const config = useSessionKeeperStore(state => state.config);
@@ -28,6 +30,7 @@ export function SessionKeeperManager() {
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const processingRef = useRef(false);
+  const hasSwitchedRef = useRef(false);
 
   useEffect(() => {
     if (intervalRef.current) {
@@ -47,6 +50,7 @@ export function SessionKeeperManager() {
     const runLoop = async () => {
       if (processingRef.current) return;
       processingRef.current = true;
+      hasSwitchedRef.current = false;
 
       try {
         const sessions = await client.listSessions();
@@ -240,13 +244,33 @@ export function SessionKeeperManager() {
         };
 
         for (const session of monitoredSessions) {
+          // Check if session is ignored due to error
+          const { sessionStates } = useSessionKeeperStore.getState();
+          const sessionState = sessionStates[session.id];
+          if (sessionState?.ignoreUntil && sessionState.ignoreUntil > Date.now()) {
+            continue;
+          }
+
           try {
+            // Helper to switch session safely
+            const safeSwitch = (targetId: string) => {
+              const cleanId = targetId.replace('sessions/', '');
+              const targetPath = `/?sessionId=${cleanId}`;
+              if (config.autoSwitch && !hasSwitchedRef.current) {
+                 router.push(targetPath);
+                 hasSwitchedRef.current = true;
+              }
+            };
+
             // Clear previous error if any
-            updateSessionState(session.id, { error: undefined });
+            if (sessionState?.error) {
+              updateSessionState(session.id, { error: undefined });
+            }
 
             // 1. Resume Paused/Completed/Failed
             if (session.status === 'paused' || session.status === 'completed' || session.status === 'failed') {
                addLog(`Resuming ${session.status} session ${session.id.substring(0, 8)}...`, 'action');
+               safeSwitch(session.id);
                
                const message = await generateMessage(session);
                await client.resumeSession(session.id, message);
@@ -258,6 +282,7 @@ export function SessionKeeperManager() {
             // 2. Approve Plans
             if (session.status === 'awaiting_approval' || session.rawState === 'AWAITING_PLAN_APPROVAL') {
               addLog(`Approving plan for session ${session.id.substring(0, 8)}...`, 'action');
+              safeSwitch(session.id);
               await client.approvePlan(session.id);
               addLog(`Plan approved for ${session.id.substring(0, 8)}`, 'action');
               incrementStat('totalApprovals');
@@ -279,7 +304,8 @@ export function SessionKeeperManager() {
                }
             }
 
-            if (diffMinutes > threshold) {
+            ifsafeSwitch(session.id);
+               (diffMinutes > threshold) {
               const messageToSend = await generateMessage(session);
               if (!messageToSend) {
                   addLog(`Skipped ${session.id.substring(0, 8)}: No messages configured`, 'skip');
@@ -302,12 +328,15 @@ export function SessionKeeperManager() {
             
             addLog(`Error processing ${session.id.substring(0, 8)}: ${errorMsg}`, 'error');
             
+            const ignoreDuration = isRateLimit ? 5 * 60 * 1000 : 0; // 5 minutes for 429
+
             updateSessionState(session.id, { 
               error: { 
                 code: isRateLimit ? 429 : 500, 
                 message: errorMsg, 
                 timestamp: Date.now() 
-              } 
+              },
+              ignoreUntil: isRateLimit ? Date.now() + ignoreDuration : undefined
             });
           }
           // Add a delay to prevent rate limiting (increased to 3s)

@@ -42,12 +42,6 @@ export function SessionKeeper({ onClose }: { isSidebar?: boolean, onClose?: () =
 
   const [sessions, setSessions] = useState<{ id: string; title: string }[]>([]);
 
-  // Refs for interval and preventing race conditions
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const processingRef = useRef(false);
-  const hasSwitchedRef = useRef(false);
-  const nextCheckRef = useRef<number>(0);
-
   // Helper wrapper for addLog to match existing signature
   const addLog = (message: string, type: 'info' | 'action' | 'error' | 'skip') => {
     if (type === 'info') return;
@@ -63,355 +57,6 @@ export function SessionKeeper({ onClose }: { isSidebar?: boolean, onClose?: () =
     }
   }, [client]);
 
-  // Main Loop
-  useEffect(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-
-    if (!config.isEnabled || !client || !apiKey) {
-      setStatusSummary({ monitoringCount: 0 });
-      return;
-    }
-
-    const runLoop = async () => {
-      if (processingRef.current) return;
-      processingRef.current = true;
-      hasSwitchedRef.current = false;
-
-      const nextCheck = Date.now() + (config.checkIntervalSeconds * 1000);
-      nextCheckRef.current = nextCheck;
-      setStatusSummary({ nextCheckIn: nextCheck });
-
-      try {
-        addLog('Checking sessions...', 'info');
-        const currentSessions = await client.listSessions();
-        const archived = getArchivedSessions();
-        const activeSessions = currentSessions.filter(s => !archived.has(s.id));
-
-        setStatusSummary({ monitoringCount: activeSessions.length });
-
-        // Debug Log
-        console.log('[SessionKeeper] Checking sessions:', activeSessions.map(s => ({
-          id: s.id,
-          status: s.status,
-          rawState: s.rawState,
-          lastActivityAt: s.lastActivityAt
-        })));
-
-        const now = new Date();
-
-        // Load Supervisor State
-        const savedState = localStorage.getItem('jules_supervisor_state');
-        const supervisorState: SupervisorState = savedState ? JSON.parse(savedState) : {};
-        let stateChanged = false;
-
-        const generateMessage = async (session: Session) => {
-            let messageToSend = '';
-
-            // DEBATE MODE OR SMART PILOT
-            if ((config.debateEnabled && config.debateParticipants && config.debateParticipants.length > 0) || (config.smartPilotEnabled && config.supervisorApiKey)) {
-              try {
-                // Fetch ALL activities
-                const activities = await client.listActivities(session.id);
-                
-                // Update last activity snippet in store
-                if (activities.length > 0) {
-                  const lastActivity = activities[activities.length - 1];
-                  updateSessionState(session.id, {
-                    lastActivitySnippet: lastActivity.content
-                  });
-                }
-
-                if (session.prompt && !activities.some(a => a.content === session.prompt)) {
-                    activities.unshift({
-                        id: 'initial-prompt',
-                        sessionId: session.id,
-                        type: 'message',
-                        role: 'user',
-                        content: session.prompt || '',
-                        createdAt: session.createdAt
-                    });
-                }
-                const sortedActivities = activities.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-
-                // Debate / Conference Logic
-                let mode = 'single';
-                let isDebateOrConference = !!config.debateEnabled;
-                
-                if (isDebateOrConference) {
-                    mode = 'debate';
-                }
-
-                // Double-check safeguard
-                if (mode === 'single') {
-                    isDebateOrConference = false;
-                }
-
-                if (isDebateOrConference && config.debateParticipants && config.debateParticipants.length > 0) {
-                    addLog(`Convening ${mode === 'conference' ? 'Conference' : 'Council'} (${config.debateParticipants.length} members)...`, 'info');
-
-                    // Prepare simple history for debate (stateless usually)
-                    const history = sortedActivities.map(a => ({
-                        role: a.role === 'agent' ? 'assistant' : 'user',
-                        content: a.content
-                    })).slice(-config.contextMessageCount);
-
-                    const response = await fetch('/api/supervisor', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            action: mode,
-                            messages: history,
-                            participants: config.debateParticipants
-                        })
-                    });
-
-                    if (response.ok) {
-                        const data = await response.json();
-                        messageToSend = data.content;
-                        if (data.opinions) {
-                            data.opinions.forEach((op: { participant: { provider: string }, content: string }) => {
-                                addLog(`Member (${op.participant.provider}): ${op.content.substring(0, 30)}...`, 'info');
-                            });
-                        }
-                        addLog(`${mode === 'conference' ? 'Conference' : 'Council'} Result: "${messageToSend.substring(0, 30)}..."`, 'action');
-                    } else {
-                        const err = await response.json().catch(() => ({}));
-                        throw new Error(`${mode} failed: ${err.error || 'Unknown'}`);
-                    }
-
-                }
-                // Single Supervisor Logic
-                else if (config.smartPilotEnabled) {
-                    addLog(`Asking Supervisor (${config.supervisorProvider})...`, 'info');
-
-                    // State Management
-                    if (!supervisorState[session.id]) {
-                      supervisorState[session.id] = { lastProcessedActivityTimestamp: '', history: [] };
-                    }
-                    const sessionState = supervisorState[session.id];
-
-                    // Identify NEW activities
-                    let newActivities = sortedActivities;
-                    if (sessionState.lastProcessedActivityTimestamp) {
-                      newActivities = sortedActivities.filter(a => new Date(a.createdAt).getTime() > new Date(sessionState.lastProcessedActivityTimestamp).getTime());
-                    }
-
-                    const isStateful = config.supervisorProvider === 'openai-assistants';
-                    let messagesToSend: { role: string, content: string }[] = [];
-
-                    if (newActivities.length > 0) {
-                      if (sessionState.history.length === 0 && !sessionState.openaiThreadId) {
-                        const fullSummary = newActivities.map(a => `${a.role.toUpperCase()}: ${a.content}`).join('\n\n');
-                        messagesToSend.push({ role: 'user', content: `Here is the full conversation history so far. Please analyze the state and provide the next instruction:\n\n${fullSummary}` });
-                      } else {
-                        const updates = newActivities.map(a => `${a.role.toUpperCase()}: ${a.content}`).join('\n\n');
-                        messagesToSend.push({ role: 'user', content: `Here are the latest updates since your last instruction:\n\n${updates}` });
-                      }
-                      sessionState.lastProcessedActivityTimestamp = newActivities[newActivities.length - 1].createdAt;
-                    } else if (sessionState.history.length > 0 || sessionState.openaiThreadId) {
-                       messagesToSend.push({ role: 'user', content: "The agent has been inactive for a while. Please provide a nudge or follow-up instruction." });
-                    }
-
-                    if (!isStateful) {
-                      messagesToSend = [...sessionState.history, ...messagesToSend].slice(-config.contextMessageCount);
-                    }
-
-                    const response = await fetch('/api/supervisor', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        messages: messagesToSend,
-                        provider: config.supervisorProvider,
-                        apiKey: config.supervisorApiKey,
-                        model: config.supervisorModel,
-                        threadId: sessionState.openaiThreadId,
-                        assistantId: sessionState.openaiAssistantId
-                      })
-                    });
-
-                    if (response.ok) {
-                      const data = await response.json();
-                      if (data.content) {
-                        messageToSend = data.content;
-                        addLog(`Supervisor says: "${messageToSend.substring(0, 30)}..."`, 'action');
-                        if (isStateful) {
-                          sessionState.openaiThreadId = data.threadId;
-                          sessionState.openaiAssistantId = data.assistantId;
-                          sessionState.history.push(...messagesToSend);
-                          sessionState.history.push({ role: 'assistant', content: messageToSend });
-                        } else {
-                          sessionState.history = [...messagesToSend, { role: 'assistant', content: messageToSend }];
-                        }
-                        stateChanged = true;
-                      }
-                    } else {
-                       throw new Error('Supervisor API failed');
-                    }
-                }
-              } catch (err) {
-                console.error('Supervisor/Debate Error:', err);
-                addLog(`Auto-Pilot error: ${err instanceof Error ? err.message : 'Unknown'}`, 'error');
-                throw err; // Re-throw to be caught by session loop
-              }
-            }
-
-            // Fallback if smart pilot disabled or failed
-            if (!messageToSend) {
-              let messages = config.messages;
-              if (config.customMessages && config.customMessages[session.id] && config.customMessages[session.id].length > 0) {
-                messages = config.customMessages[session.id];
-              }
-              
-              if (messages.length === 0) {
-                // Default fallback if no messages configured
-                return "Please resume working on this task.";
-              }
-              messageToSend = messages[Math.floor(Math.random() * messages.length)];
-            }
-            return messageToSend;
-        };
-
-        for (const session of activeSessions) {
-          // Check if session is ignored due to error
-          const sessionState = sessionStates[session.id];
-          if (sessionState?.ignoreUntil && sessionState.ignoreUntil > Date.now()) {
-            const remaining = Math.ceil((sessionState.ignoreUntil - Date.now()) / 60000);
-            addLog(`Skipping ${session.id.substring(0, 8)} (Ignored for ${remaining}m due to error)`, 'skip');
-            continue;
-          }
-
-          try {
-            // Helper to switch session safely
-            const safeSwitch = (targetId: string) => {
-              const cleanId = targetId.replace('sessions/', '');
-              const targetPath = `/?sessionId=${cleanId}`;
-              if (config.autoSwitch && !hasSwitchedRef.current) {
-                 router.push(targetPath);
-                 hasSwitchedRef.current = true;
-              }
-            };
-
-            // 1. Resume Paused/Completed/Failed
-            if (session.status === 'paused' || session.status === 'completed' || session.status === 'failed') {
-               addLog(`Resuming ${session.status} session ${session.id.substring(0, 8)}...`, 'action');
-               safeSwitch(session.id);
-               
-               const message = await generateMessage(session);
-               await client.resumeSession(session.id, message);
-               
-               addLog(`Resumed ${session.id.substring(0, 8)}`, 'action');
-               setStatusSummary({ lastAction: `Resumed ${session.id.substring(0,8)}` });
-               
-               // Clear error if successful
-               if (sessionState?.error) {
-                 updateSessionState(session.id, { error: undefined, ignoreUntil: undefined });
-               }
-               continue;
-            }
-
-            // 2. Approve Plans
-            if (session.status === 'awaiting_approval' || session.rawState === 'AWAITING_PLAN_APPROVAL') {
-              addLog(`Approving plan for session ${session.id.substring(0, 8)}...`, 'action');
-              safeSwitch(session.id);
-              await client.approvePlan(session.id);
-              addLog(`Plan approved for ${session.id.substring(0, 8)}`, 'action');
-              setStatusSummary({ lastAction: `Approved Plan ${session.id.substring(0,8)}` });
-              continue;
-            }
-
-            // 3. Check for Inactivity & Nudge
-            const lastActivityTime = session.lastActivityAt ? new Date(session.lastActivityAt) : new Date(session.updatedAt);
-            const diffMs = now.getTime() - lastActivityTime.getTime();
-            const diffMinutes = diffMs / 60000;
-
-            // Determine threshold
-            let threshold = config.inactivityThresholdMinutes;
-            if (session.rawState === 'IN_PROGRESS') {
-               threshold = config.activeWorkThresholdMinutes;
-               // Guard: If actively working (<30s), always skip
-               if (diffMs < 30000) {
-                 addLog(`Skipped ${session.id.substring(0, 8)}: Working (Active < 30s)`, 'skip');
-                 continue;
-               }
-            }
-
-            if (diffMinutes > threshold) {
-              safeSwitch(session.id);
-              
-              const messageToSend = await generateMessage(session);
-              if (!messageToSend) {
-                  addLog(`Skipped ${session.id.substring(0, 8)}: No messages configured`, 'skip');
-                  continue;
-              }
-              
-              addLog(`Sending nudge to ${session.id.substring(0, 8)} (${Math.round(diffMinutes)}m inactive)`, 'action');
-              await client.createActivity({
-                sessionId: session.id,
-                content: messageToSend,
-                type: 'message'
-              });
-              addLog(`Nudge sent`, 'action');
-              setStatusSummary({ lastAction: `Nudged ${session.id.substring(0,8)}` });
-              
-              // Clear error if successful
-              if (sessionState?.error) {
-                updateSessionState(session.id, { error: undefined, ignoreUntil: undefined });
-              }
-            }
-          } catch (err: unknown) {
-            const error = err as { status?: number; code?: number; message?: string };
-            console.error(`Error processing session ${session.id}:`, error);
-            
-            // Check for 429 or other errors
-            const is429 = error?.status === 429 || 
-                          error?.code === 429 || 
-                          error?.message?.includes('429') || 
-                          error?.message?.includes('Quota exceeded') ||
-                          error?.message?.includes('RESOURCE_EXHAUSTED');
-
-            if (is429) {
-              const ignoreDuration = 5 * 60 * 1000; // 5 minutes
-              addLog(`Rate limit hit for ${session.id.substring(0, 8)}. Ignoring for 5m.`, 'error');
-              updateSessionState(session.id, {
-                error: {
-                  code: 429,
-                  message: 'Rate Limit Exceeded (429)',
-                  timestamp: Date.now()
-                },
-                ignoreUntil: Date.now() + ignoreDuration
-              });
-            } else {
-              addLog(`Error processing ${session.id.substring(0, 8)}: ${error.message || 'Unknown error'}`, 'error');
-            }
-          }
-        }
-
-        // Save State if changed
-        if (stateChanged) {
-          localStorage.setItem('jules_supervisor_state', JSON.stringify(supervisorState));
-        }
-
-      } catch (error) {
-        console.error('Session Keeper Error:', error);
-        addLog(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
-      } finally {
-        processingRef.current = false;
-      }
-    };
-
-    runLoop();
-    intervalRef.current = setInterval(runLoop, config.checkIntervalSeconds * 1000);
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, [config, client, apiKey, router, pathname, addLogToStore, setStatusSummary, updateSessionState, sessionStates]);
-
   const clearSupervisorMemory = (sessionId: string) => {
     const savedState = localStorage.getItem('jules_supervisor_state');
     if (savedState) {
@@ -424,7 +69,7 @@ export function SessionKeeper({ onClose }: { isSidebar?: boolean, onClose?: () =
     }
   };
 
-  if (!apiKey) return null;
+  // if (!apiKey) return null; // Removed to prevent blank panel
 
   return (
     <div className="h-full flex flex-col bg-zinc-950 border-l border-white/5">
@@ -465,6 +110,11 @@ export function SessionKeeper({ onClose }: { isSidebar?: boolean, onClose?: () =
         </div>
       </div>
 
+      {!apiKey ? (
+        <div className="flex-1 flex items-center justify-center text-white/40 text-xs font-mono">
+          API Key Required to Monitor Sessions
+        </div>
+      ) : (
       <div className="flex-1 overflow-hidden flex flex-col p-4 gap-4">
         {/* Status Cards */}
         <div className="grid grid-cols-2 gap-3">
@@ -530,6 +180,7 @@ export function SessionKeeper({ onClose }: { isSidebar?: boolean, onClose?: () =
           </TabsContent>
         </Tabs>
       </div>
+      )}
     </div>
   );
 }
