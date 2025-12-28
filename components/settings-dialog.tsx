@@ -27,12 +27,17 @@ export function SettingsDialog({ open: propOpen, onOpenChange: propOnOpenChange,
   const open = propOpen !== undefined ? propOpen : internalOpen;
   const onOpenChange = propOnOpenChange || setInternalOpen;
 
+  // Initialize token from localStorage on mount if available
   useEffect(() => {
-    if (open) {
-      const token = localStorage.getItem('github_pat');
-      if (token) setGithubToken(token);
+    if (typeof window !== 'undefined') {
+      // Use setTimeout to avoid synchronous state updates during render phase
+      const timer = setTimeout(() => {
+        const token = localStorage.getItem('github_pat');
+        if (token) setGithubToken(token);
+      }, 0);
+      return () => clearTimeout(timer);
     }
-  }, [open]);
+  }, []);
 
   const handleSaveGithub = () => {
     localStorage.setItem('github_pat', githubToken);

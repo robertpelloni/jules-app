@@ -1,11 +1,10 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 import useSWR from 'swr';
 import { useJules } from "@/lib/jules/provider";
 import { useSessionKeeperStore } from "@/lib/stores/session-keeper";
 import type { Session } from "@/types/jules";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, X, Archive, ArchiveRestore } from "lucide-react";
@@ -39,12 +38,13 @@ export function SessionList({ onSelectSession, selectedSessionId }: SessionListP
   const { sessionStates } = useSessionKeeperStore(); 
   
   const [searchQuery, setSearchQuery] = useState("");
-  const [archivedSessionIds, setArchivedSessionIds] = useState<Set<string>>(new Set());
+  const [archivedSessionIds, setArchivedSessionIds] = useState<Set<string>>(() => {
+    if (typeof window !== 'undefined') {
+      return getArchivedSessions();
+    }
+    return new Set();
+  });
   const [showArchived, setShowArchived] = useState(false);
-
-  useEffect(() => {
-    setArchivedSessionIds(getArchivedSessions());
-  }, []);
 
   const formatDate = (dateString: string) => {
     if (!dateString) return 'Unknown date';

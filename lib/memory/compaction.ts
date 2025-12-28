@@ -1,4 +1,5 @@
 import { generateText } from '../orchestration/providers';
+import { Activity } from '@/types/jules';
 
 export interface MemoryFile {
   version: string;
@@ -11,7 +12,7 @@ export interface MemoryFile {
 }
 
 export async function compactSessionHistory(
-  activities: any[],
+  activities: Activity[],
   config: { provider: string; apiKey: string; model: string }
 ): Promise<MemoryFile> {
   

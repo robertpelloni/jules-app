@@ -4,44 +4,6 @@ import { useState, useCallback, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useJules } from "@/lib/jules/provider";
 import type { Session, Activity, SessionTemplate } from "@/types/jules";
-import { SessionList } from "./session-list";
-import { ActivityFeed } from "./activity-feed";
-import { CodeDiffSidebar } from "./code-diff-sidebar";
-import { AnalyticsDashboard } from "./analytics-dashboard";
-import { NewSessionDialog } from "./new-session-dialog";
-import { TemplatesPage } from "./templates-page";
-import { KanbanBoard } from "./kanban-board";
-import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
-import {
-  Menu,
-  LogOut,
-  Settings,
-  BarChart3,
-  MessageSquare,
-  ChevronLeft,
-  ChevronRight,
-  Terminal as TerminalIcon,
-  LayoutTemplate,
-  Plus,
-  Kanban,
-  Activity as ActivityIcon,
-  FolderTree,
-  Brain,
-} from "lucide-react";
 import { TerminalPanel } from "./terminal-panel";
 import { useTerminalAvailable } from "@/hooks/use-terminal-available";
 import { ApiKeySetupForm } from "./api-key-setup";
@@ -53,8 +15,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
-import { SessionKeeperLogPanel } from "./session-keeper-log-panel";
-import { SettingsDialog } from "./settings-dialog";
 import { SessionKeeperManager } from "./session-keeper-manager";
 import { SessionKeeper } from "./SessionKeeper";
 import { useSessionKeeperStore } from "@/lib/stores/session-keeper";
@@ -105,12 +65,17 @@ export function AppLayout({ initialView }: AppLayoutProps) {
   const [isApiKeyDialogOpen, setIsApiKeyDialogOpen] = useState(false);
 
   useEffect(() => {
-    if (!apiKey) {
-      setIsApiKeyDialogOpen(true);
-    } else {
-      setIsApiKeyDialogOpen(false);
-    }
-  }, [apiKey]);
+    // Only update if the value actually changes to avoid unnecessary renders
+    // Use setTimeout to avoid synchronous state updates during render phase
+    const timer = setTimeout(() => {
+      if (!apiKey && !isApiKeyDialogOpen) {
+        setIsApiKeyDialogOpen(true);
+      } else if (apiKey && isApiKeyDialogOpen) {
+        setIsApiKeyDialogOpen(false);
+      }
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [apiKey, isApiKeyDialogOpen]);
 
   const handleApiKeySuccess = () => {
     setIsApiKeyDialogOpen(false);

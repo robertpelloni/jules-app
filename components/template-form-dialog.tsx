@@ -42,34 +42,40 @@ export function TemplateFormDialog({
     tags: [] as string[],
   });
 
+  // Reset form when dialog opens or template changes
   useEffect(() => {
     if (open) {
-      if (template) {
-        setFormData({
-          name: template.isPrebuilt ? `${template.name} (Copy)` : template.name,
-          description: template.description,
-          prompt: template.prompt,
-          title: template.title || "",
-          tags: template.tags || [],
-        });
-      } else if (initialValues) {
-        setFormData({
-          name: initialValues.name || "",
-          description: initialValues.description || "",
-          prompt: initialValues.prompt || "",
-          title: initialValues.title || "",
-          tags: initialValues.tags || [],
-        });
-      } else {
-        setFormData({
-          name: "",
-          description: "",
-          prompt: "",
-          title: "",
-          tags: [],
-        });
-      }
-      setTagInput("");
+      // Use a timeout to push this to the next tick, avoiding synchronous state updates during render phase
+      // if this effect was triggered by a parent render
+      const timer = setTimeout(() => {
+        if (template) {
+          setFormData({
+            name: template.isPrebuilt ? `${template.name} (Copy)` : template.name,
+            description: template.description,
+            prompt: template.prompt,
+            title: template.title || "",
+            tags: template.tags || [],
+          });
+        } else if (initialValues) {
+          setFormData({
+            name: initialValues.name || "",
+            description: initialValues.description || "",
+            prompt: initialValues.prompt || "",
+            title: initialValues.title || "",
+            tags: initialValues.tags || [],
+          });
+        } else {
+          setFormData({
+            name: "",
+            description: "",
+            prompt: "",
+            title: "",
+            tags: [],
+          });
+        }
+        setTagInput("");
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [open, template, initialValues]);
 

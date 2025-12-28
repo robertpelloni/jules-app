@@ -17,7 +17,7 @@ export function DebateVisualizer() {
   if (debates.length === 0) {
     return (
       <div className="text-center text-muted-foreground p-4 text-sm">
-        No debates recorded yet. Enable "Council Mode" in Session Keeper settings to see multi-agent interactions here.
+        No debates recorded yet. Enable &quot;Council Mode&quot; in Session Keeper settings to see multi-agent interactions here.
       </div>
     );
   }
