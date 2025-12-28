@@ -12,6 +12,9 @@ services:
     environment:
       - NODE_ENV=production
       - SESSION_SECRET=${SESSION_SECRET:-change_me_in_prod}
+      - DATABASE_URL=file:/app/prisma/prod.db
+    volumes:
+      - jules-data:/app/prisma
     depends_on:
       - terminal-server
     networks:
@@ -38,6 +41,7 @@ services:
 
 volumes:
   terminal-history:
+  jules-data:
 
 networks:
   jules-network:

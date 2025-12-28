@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { SessionTemplate } from '@/types/jules';
-import { saveTemplate } from '@/lib/templates';
+import { useJules } from '@/lib/jules/provider';
 import {
   Dialog,
   DialogContent,
@@ -24,24 +24,24 @@ interface TemplateFormDialogProps {
 }
 
 export function TemplateFormDialog({ open, onOpenChange, template, onSave, initialValues }: TemplateFormDialogProps) {
+  const { client } = useJules();
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     prompt: '',
     title: '',
-    tags: '' // Storing as string for input, will parse to array on save
+    tags: ''
   });
 
   useEffect(() => {
     if (open) {
       if (template) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setFormData({
           name: template.name,
           description: template.description,
           prompt: template.prompt,
           title: template.title || '',
-          tags: template.tags?.join(', ') || '' // Convert array to comma-separated string
+          tags: template.tags ? template.tags.join(', ') : ''
         });
       } else if (initialValues) {
         setFormData({
@@ -57,18 +57,25 @@ export function TemplateFormDialog({ open, onOpenChange, template, onSave, initi
     }
   }, [open, template, initialValues]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!client) return;
+
     try {
       const parsedTags = formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag !== '');
-      saveTemplate({
-        id: template?.id,
+      const data = {
         name: formData.name,
         description: formData.description,
         prompt: formData.prompt,
         title: formData.title,
         tags: parsedTags,
-      });
+      };
+
+      if (template?.id) {
+          await client.updateTemplate(template.id, data);
+      } else {
+          await client.createTemplate(data);
+      }
       onSave();
       onOpenChange(false);
     } catch (error) {
@@ -78,7 +85,7 @@ export function TemplateFormDialog({ open, onOpenChange, template, onSave, initi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] border-purple-500/20 shadow-[0_0_15px_rgba(168,85,247,0.15)]">
+      <DialogContent className="sm:max-w-[600px] border-purple-500/20 shadow-[0_0_15px_rgba(168,85,247,0.15)] bg-zinc-950 text-white">
         <DialogHeader>
           <DialogTitle>{template ? 'Edit Template' : 'Create New Template'}</DialogTitle>
           <DialogDescription>
@@ -94,7 +101,7 @@ export function TemplateFormDialog({ open, onOpenChange, template, onSave, initi
               value={formData.name}
               onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
               placeholder="e.g., React Component Refactor"
-              className="h-9 text-xs"
+              className="h-9 text-xs bg-zinc-900 border-zinc-700"
               required
             />
           </div>
@@ -106,7 +113,7 @@ export function TemplateFormDialog({ open, onOpenChange, template, onSave, initi
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
               placeholder="Brief description of what this template does"
-              className="h-9 text-xs"
+              className="h-9 text-xs bg-zinc-900 border-zinc-700"
               required
             />
           </div>
@@ -118,7 +125,7 @@ export function TemplateFormDialog({ open, onOpenChange, template, onSave, initi
               value={formData.title}
               onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
               placeholder="e.g., Refactor Component"
-              className="h-9 text-xs"
+              className="h-9 text-xs bg-zinc-900 border-zinc-700"
             />
           </div>
 
@@ -129,7 +136,7 @@ export function TemplateFormDialog({ open, onOpenChange, template, onSave, initi
               value={formData.tags}
               onChange={(e) => setFormData(prev => ({ ...prev, tags: e.target.value }))}
               placeholder="e.g., frontend, refactor, react"
-              className="h-9 text-xs"
+              className="h-9 text-xs bg-zinc-900 border-zinc-700"
             />
           </div>
 
@@ -140,7 +147,7 @@ export function TemplateFormDialog({ open, onOpenChange, template, onSave, initi
               value={formData.prompt}
               onChange={(e) => setFormData(prev => ({ ...prev, prompt: e.target.value }))}
               placeholder="Enter the detailed instructions for Jules..."
-              className="min-h-[100px] h-[200px] max-h-[300px] overflow-y-auto text-xs font-mono"
+              className="min-h-[100px] h-[200px] max-h-[300px] overflow-y-auto text-xs font-mono bg-zinc-900 border-zinc-700"
               required
             />
           </div>

@@ -63,3 +63,5 @@ next-env.d.ts
 >>>>>>> origin/feat-session-kanban-board-4406113728067866336
 =======
 >>>>>>> origin/fix-remove-debug-logs-16472708773165476071
+
+/lib/generated/prisma

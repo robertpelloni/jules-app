@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.0] - 2025-12-28
+
+### Added
+- **Persistent Storage:** Integrated **Prisma** and **SQLite** for server-side data persistence.
+- **Server-Side Templates:** Replaced client-side `localStorage` templates with a database-backed API (`/api/templates`).
+- **Database Migrations:** Added Prisma schema and migration workflow.
+- **Production Persistence:** Docker configuration now includes a persistent volume for the SQLite database.
+
 ## [0.5.1] - 2025-12-28
 
 ### Added

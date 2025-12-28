@@ -26,7 +26,6 @@ export class JulesClient {
 
     if (!response.ok) {
       const errorText = await response.text();
-      // Handle 401 specifically?
       if (response.status === 401) {
           // Could trigger a re-login flow or event
       }
@@ -37,6 +36,7 @@ export class JulesClient {
     return text ? JSON.parse(text) : null;
   }
 
+  // Session Management
   async listSessions(): Promise<Session[]> {
     return this.fetch<Session[]>('/sessions');
   }
@@ -88,26 +88,36 @@ export class JulesClient {
     });
   }
 
+  // Template Management (Local API)
+  private async fetchLocal<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+      const res = await fetch(endpoint, {
+          ...options,
+          headers: { 'Content-Type': 'application/json', ...options.headers }
+      });
+      if (!res.ok) throw new Error(`Local API Error: ${res.statusText}`);
+      return res.json();
+  }
+
   async listTemplates(): Promise<SessionTemplate[]> {
-    return this.fetch<SessionTemplate[]>('/templates');
+    return this.fetchLocal<SessionTemplate[]>('/api/templates');
   }
 
   async createTemplate(template: Omit<SessionTemplate, 'id' | 'createdAt' | 'updatedAt'>): Promise<SessionTemplate> {
-    return this.fetch<SessionTemplate>('/templates', {
+    return this.fetchLocal<SessionTemplate>('/api/templates', {
       method: 'POST',
       body: JSON.stringify(template),
     });
   }
 
   async updateTemplate(id: string, template: Partial<SessionTemplate>): Promise<SessionTemplate> {
-    return this.fetch<SessionTemplate>(`/templates/${id}`, {
+    return this.fetchLocal<SessionTemplate>(`/api/templates/${id}`, {
       method: 'PUT',
       body: JSON.stringify(template),
     });
   }
 
   async deleteTemplate(id: string): Promise<void> {
-    return this.fetch<void>(`/templates/${id}`, {
+    return this.fetchLocal<void>(`/api/templates/${id}`, {
       method: 'DELETE',
     });
   }

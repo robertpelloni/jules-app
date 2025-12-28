@@ -7,6 +7,9 @@ WORKDIR /app
 
 # Copy package files
 COPY package.json package-lock.json* ./
+# Copy prisma schema
+COPY prisma ./prisma/
+
 RUN npm ci
 
 # Development image
@@ -15,6 +18,8 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NODE_ENV=development
+# Generate Prisma Client
+RUN npx prisma generate
 CMD ["npm", "run", "dev"]
 
 # Rebuild the source code only when needed
@@ -26,6 +31,8 @@ COPY . .
 # Disable telemetry during build
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# Generate Prisma Client
+RUN npx prisma generate
 RUN npm run build
 
 # Production image, copy all the files and run next
@@ -44,6 +51,8 @@ COPY --from=builder /app/public ./public
 # Copy standalone build
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+# Copy prisma schema and migrations for runtime (if needed for migration)
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 
 USER nextjs
 
