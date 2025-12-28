@@ -13,10 +13,11 @@ import { NewSessionDialog } from './new-session-dialog';
 import { TemplatesPage } from './templates-page';
 import { SessionKeeperSettings } from './session-keeper-settings';
 import { SessionKeeperLogPanel } from './session-keeper-log-panel';
+import { ArtifactBrowser } from './artifact-browser';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { Menu, LogOut, Settings, BarChart3, MessageSquare, ChevronLeft, ChevronRight, Terminal as TerminalIcon, LayoutTemplate, Plus, Activity as ActivityIcon, LayoutGrid, Cpu } from 'lucide-react';
+import { Menu, LogOut, Settings, BarChart3, MessageSquare, ChevronLeft, ChevronRight, Terminal as TerminalIcon, LayoutTemplate, Plus, Activity as ActivityIcon, LayoutGrid, Cpu, Files } from 'lucide-react';
 import { TerminalPanel } from './terminal-panel';
 import { useTerminalAvailable } from '@/hooks/use-terminal-available';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
@@ -28,7 +29,7 @@ export function AppLayout() {
   const router = useRouter();
   const { isAvailable: terminalAvailable } = useTerminalAvailable();
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
-  const [view, setView] = useState<'sessions' | 'analytics' | 'templates' | 'board'>('sessions');
+  const [view, setView] = useState<'sessions' | 'analytics' | 'templates' | 'board' | 'artifacts'>('sessions');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -45,7 +46,6 @@ export function AppLayout() {
     return false;
   });
 
-  // State for New Session Dialog (Controlled)
   const [isNewSessionOpen, setIsNewSessionOpen] = useState(false);
   const [newSessionInitialValues, setNewSessionInitialValues] = useState<{
     sourceId?: string;
@@ -54,12 +54,10 @@ export function AppLayout() {
     startingBranch?: string;
   } | undefined>(undefined);
 
-  // Sync session selection with URL query param
   useEffect(() => {
     const sessionId = searchParams.get('sessionId');
     if (sessionId && client) {
       if (selectedSession?.id !== sessionId) {
-        // Load session details
         client.getSession(sessionId)
           .then(session => {
             setSelectedSession(session);
@@ -105,7 +103,6 @@ export function AppLayout() {
     setSelectedSession(session);
     setView('sessions');
     setMobileMenuOpen(false);
-    // Update URL without refreshing
     const newParams = new URLSearchParams(searchParams.toString());
     newParams.set('sessionId', session.id);
     router.push(`/?${newParams.toString()}`);
@@ -114,11 +111,6 @@ export function AppLayout() {
   const handleSessionCreated = () => {
     setRefreshKey((prev) => prev + 1);
     setIsNewSessionOpen(false);
-  };
-
-  const handleSessionArchived = () => {
-    // Refresh the session list to update the archived/active status
-    setRefreshKey((prev) => prev + 1);
   };
 
   const handleLogout = () => {
@@ -150,7 +142,6 @@ export function AppLayout() {
   return (
     <div className="flex h-screen flex-col bg-black max-w-full overflow-hidden">
       <SessionKeeperManager />
-      {/* Header */}
       <header className="border-b border-white/[0.08] bg-zinc-950/95 backdrop-blur-sm">
         <div className="flex h-14 items-center justify-between px-4">
           <div className="flex items-center gap-3">
@@ -172,9 +163,8 @@ export function AppLayout() {
               </SheetContent>
             </Sheet>
             <h1 className="text-sm font-bold tracking-tight text-white">JULES</h1>
-            <span className="text-[10px] font-mono text-white/30 ml-2">v0.4.0</span>
+            <span className="text-[10px] font-mono text-white/30 ml-2">v0.4.1</span>
 
-            {/* GitHub Repo Link */}
             {selectedSession?.sourceId && (
               <a
                 href={`https://github.com/${selectedSession.sourceId}`}
@@ -211,6 +201,17 @@ export function AppLayout() {
             <Button
               variant="ghost"
               size="sm"
+              className={`h-8 px-3 hover:bg-white/5 ${view === 'artifacts' ? 'text-white' : 'text-white/60'}`}
+              onClick={() => setView('artifacts')}
+              title="Browse Artifacts"
+            >
+              <Files className="h-3.5 w-3.5 mr-1.5" />
+              <span className="text-[10px] font-mono uppercase tracking-wider">Files</span>
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
               className={`h-8 px-3 hover:bg-white/5 ${view === 'analytics' ? 'text-white' : 'text-white/60'}`}
               onClick={() => setView('analytics')}
             >
@@ -218,7 +219,6 @@ export function AppLayout() {
               <span className="text-[10px] font-mono uppercase tracking-wider">Analytics</span>
             </Button>
 
-            {/* Logs Toggle */}
             <Button
               variant="ghost"
               size="sm"
@@ -259,7 +259,6 @@ export function AppLayout() {
               }
             />
 
-            {/* Session Keeper Settings (Moved to header, removed Sidebar toggle) */}
             <SessionKeeperSettings />
 
             <DropdownMenu>
@@ -291,9 +290,7 @@ export function AppLayout() {
         </div>
       </header>
 
-      {/* Main Content Area */}
       <div className="flex flex-1 overflow-hidden min-h-0">
-        {/* Desktop Sidebar (Session List) */}
         <aside className={`hidden md:flex border-r border-white/[0.08] flex-col bg-zinc-950 transition-all duration-200 ${
           sidebarCollapsed ? 'md:w-12' : 'md:w-64'
         }`}>
@@ -325,20 +322,18 @@ export function AppLayout() {
           </div>
         </aside>
 
-        {/* Resizable Panel Group (Vertical: Top = Main, Bottom = Logs) */}
         <ResizablePanelGroup direction="vertical" className="flex-1 min-w-0">
-
-          {/* Top Panel: Dashboard */}
           <ResizablePanel defaultSize={isLogPanelOpen ? 70 : 100} className="min-h-0">
             <ResizablePanelGroup direction="horizontal" className="flex-1 h-full">
               <ResizablePanel defaultSize={100} minSize={30} className="min-w-0">
-                {/* Main Panel Content */}
                 <div className="flex h-full w-full flex-row min-w-0">
                   <main className="flex-1 overflow-hidden bg-black flex flex-col min-w-0">
                     {view === 'analytics' ? (
                       <AnalyticsDashboard />
                     ) : view === 'board' ? (
                       <SessionBoard />
+                    ) : view === 'artifacts' && selectedSession ? (
+                      <ArtifactBrowser session={selectedSession} />
                     ) : view === 'templates' ? (
                       <TemplatesPage onStartSession={handleStartSessionFromTemplate} />
                     ) : selectedSession ? (
@@ -373,7 +368,6 @@ export function AppLayout() {
                     )}
                   </main>
 
-                  {/* Code Diff Sidebar (Existing) - Kept inside Main Panel */}
                   {selectedSession && showCodeDiffs && view === 'sessions' && (
                     <>
                       {!codeDiffSidebarCollapsed && (
@@ -421,7 +415,6 @@ export function AppLayout() {
             </ResizablePanelGroup>
           </ResizablePanel>
 
-          {/* Bottom Panel: Logs */}
           {isLogPanelOpen && (
             <>
               <ResizableHandle withHandle />
@@ -434,7 +427,6 @@ export function AppLayout() {
         </ResizablePanelGroup>
       </div>
 
-      {/* Terminal Panel */}
       {terminalAvailable && (
         <TerminalPanel
           sessionId={selectedSession?.id || 'global'}

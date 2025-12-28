@@ -1,4 +1,4 @@
-# GEMINI Instructions
+# CLAUDE Instructions
 
 **Primary Reference:** Please refer to `docs/LLM_INSTRUCTIONS.md` for universal guidelines, coding standards, and workflow protocols.
 

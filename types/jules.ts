@@ -31,6 +31,9 @@ export interface Session {
 }
 
 export interface Artifact {
+  id?: string;
+  name?: string; // Resource name
+  createTime?: string;
   changeSet?: {
     gitPatch?: {
       unidiffPatch?: string;
