@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.3] - 2025-12-27
+
+### Added
+- **Deep Code Review:** Integrated `ArtifactBrowser` with `DebateDialog` to allow "Review this File" functionality.
+- **Debate Enhancements:** Lifted `DebateDialog` to `AppLayout` for global access and pre-filling context.
+
 ## [0.4.2] - 2025-12-27
 
 ### Added

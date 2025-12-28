@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useJules } from '@/lib/jules/provider';
-import type { Session, Activity, SessionTemplate } from '@/types/jules';
+import type { Session, Activity, SessionTemplate, Artifact } from '@/types/jules';
 import { SessionList } from './session-list';
 import { ActivityFeed } from './activity-feed';
 import { CodeDiffSidebar } from './code-diff-sidebar';
@@ -14,6 +14,7 @@ import { TemplatesPage } from './templates-page';
 import { SessionKeeperSettings } from './session-keeper-settings';
 import { SessionKeeperLogPanel } from './session-keeper-log-panel';
 import { ArtifactBrowser } from './artifact-browser';
+import { DebateDialog } from './debate-dialog';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
@@ -53,6 +54,23 @@ export function AppLayout() {
     prompt?: string;
     startingBranch?: string;
   } | undefined>(undefined);
+
+  // Debate Dialog State
+  const [debateOpen, setDebateOpen] = useState(false);
+  const [debateTopic, setDebateTopic] = useState('');
+  const [debateContext, setDebateContext] = useState('');
+
+  const handleStartDebate = (topic?: string, context?: string) => {
+      setDebateTopic(topic || '');
+      setDebateContext(context || '');
+      setDebateOpen(true);
+  };
+
+  const handleReviewArtifact = (artifact: Artifact) => {
+      const content = artifact.changeSet?.gitPatch?.unidiffPatch || artifact.changeSet?.unidiffPatch || '';
+      handleStartDebate(`Code Review: ${artifact.name || 'Artifact'}`, content);
+      setView('sessions');
+  };
 
   useEffect(() => {
     const sessionId = searchParams.get('sessionId');
@@ -113,6 +131,10 @@ export function AppLayout() {
     setIsNewSessionOpen(false);
   };
 
+  const handleSessionArchived = () => {
+    setRefreshKey((prev) => prev + 1);
+  };
+
   const handleLogout = () => {
     clearApiKey();
     setSelectedSession(null);
@@ -163,7 +185,7 @@ export function AppLayout() {
               </SheetContent>
             </Sheet>
             <h1 className="text-sm font-bold tracking-tight text-white">JULES</h1>
-            <span className="text-[10px] font-mono text-white/30 ml-2">v0.4.1</span>
+            <span className="text-[10px] font-mono text-white/30 ml-2">v0.4.3</span>
 
             {selectedSession?.sourceId && (
               <a
@@ -333,7 +355,7 @@ export function AppLayout() {
                     ) : view === 'board' ? (
                       <SessionBoard />
                     ) : view === 'artifacts' && selectedSession ? (
-                      <ArtifactBrowser session={selectedSession} />
+                      <ArtifactBrowser session={selectedSession} onReview={handleReviewArtifact} />
                     ) : view === 'templates' ? (
                       <TemplatesPage onStartSession={handleStartSessionFromTemplate} />
                     ) : selectedSession ? (
@@ -344,6 +366,7 @@ export function AppLayout() {
                         showCodeDiffs={showCodeDiffs}
                         onToggleCodeDiffs={setShowCodeDiffs}
                         onActivitiesChange={setCurrentActivities}
+                        onStartDebate={() => handleStartDebate()}
                       />
                     ) : (
                       <div className="flex h-full items-center justify-center p-8">
@@ -433,6 +456,17 @@ export function AppLayout() {
           repositoryPath=""
           isOpen={terminalOpen}
           onToggle={handleToggleTerminal}
+        />
+      )}
+
+      {selectedSession && (
+        <DebateDialog
+          sessionId={selectedSession.id}
+          open={debateOpen}
+          onOpenChange={setDebateOpen}
+          initialTopic={debateTopic}
+          initialContext={debateContext}
+          onDebateStart={() => setRefreshKey(prev => prev + 1)}
         />
       )}
     </div>
