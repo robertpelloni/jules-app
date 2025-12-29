@@ -19,6 +19,7 @@
   - Settings UI with visual feedback.
   - Logs Panel.
   - Analytics Integration (Nudges, Approvals, Debates metrics).
+  - **Code Churn Analytics**: Visualizing code additions and deletions over time.
   - **Council Debate Visualization**: Visualizing the multi-agent debate process in the UI.
   - **Memory Manager**: Context compaction and repo-level memory storage.
 - **UI Enhancements**:
@@ -34,11 +35,21 @@
   - Submodule Synchronization.
   - **System Dashboard**: A dedicated page to view submodule versions, build info, and project structure.
   - **Real-time Submodule Status**: Live git status checks and commit dates in System Dashboard.
+  - **Session Health Monitoring**: Health badges and stalled session detection.
 - **Collaboration**:
   - **Broadcast Messages**: Send messages to all open sessions simultaneously.
   - **Kanban Board**: Manage sessions in a Kanban style (Running, Waiting, Done).
   - **Terminal Integration Polish**: Secure API key injection into the integrated terminal environment.
   - **Template Management**: Improved template creation UX with tag inputs and auto-renaming for clones.
+  - **GitHub Issue Integration**: Integration with GitHub Issues for new sessions.
 
 ## Planned / Pending
 - **None**: All planned items for this cycle are complete.
+## Planned / Pending
+- **None**: All planned items for this cycle are complete.
+
+## Planned / Pending
+- **None**: All planned items for this cycle are complete.
+
+
+

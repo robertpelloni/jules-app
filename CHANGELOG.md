@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.4] - 2025-12-29
+
+### Changed
+- **Submodules**: Updated submodule information.
+- **Documentation**: Updated ROADMAP.md and synchronized LLM instructions.
+- **Versioning**: Bumped version to 0.3.4.
+
 ## [0.3.3] - 2025-12-27
 
 ### Changed
@@ -147,3 +154,23 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 - **Build Errors**: Resolved type mismatches and missing methods in `JulesClient`.
 - **Merge Conflicts**: Fixed conflicts in `session-list.tsx` and `activity-feed.tsx`.
+- **Session List**: Updated to support filtering and passing sessions to the Broadcast Dialog.
+- **Jules Client**: Added `updateSession` method and improved type definitions.
+
+### Fixed
+- **Build Errors**: Resolved type mismatches and missing methods in `JulesClient`.
+- **Merge Conflicts**: Fixed conflicts in `session-list.tsx` and `activity-feed.tsx`.
+
+- **Session List**: Updated to support filtering and passing sessions to the Broadcast Dialog.
+- **Jules Client**: Added `updateSession` method and improved type definitions.
+
+### Fixed
+- **Build Errors**: Resolved type mismatches and missing methods in `JulesClient`.
+- **Merge Conflicts**: Fixed conflicts in `session-list.tsx` and `activity-feed.tsx`.
+
+
+
+### Fixed
+- **Build Errors**: Resolved type mismatches and missing methods in `JulesClient`.
+- **Merge Conflicts**: Fixed conflicts in `session-list.tsx` and `activity-feed.tsx`.
+

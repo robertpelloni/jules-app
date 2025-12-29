@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2025-12-28T04:06:07.144Z",
+  "generatedAt": "2025-12-29T04:32:30.344Z",
   "submodules": [
     {
       "path": "external/antigravity-jules-orchestration",
-      "commit": "129b73eb04dece6d2da9a7b7c667bed8de4ba61b",
-      "describe": "(v2.6.1-1-g129b73e)",
-      "lastUpdated": "2025-12-19 22:35:24 -0500"
+      "commit": "71f92ab85e64f9e44329a70b6b50871131c68907",
+      "describe": "(v2.6.1-11-g71f92ab)",
+      "lastUpdated": "2025-12-27 23:45:58 -0500"
     },
     {
       "path": "external/gemini-cli-jules",
