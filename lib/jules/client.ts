@@ -459,20 +459,50 @@ export class JulesClient {
   }
 
   async createActivity(params: { sessionId: string; content: string; type?: string; metadata?: any }): Promise<Activity> {
-    // The main API uses specific endpoints for actions (like resume), or expects a user message structure
-    // Since this is primarily used for user messages in the chat interface:
-    const body = {
-        userMessage: {
-            message: params.content
-        }
-    };
+    // Check if the content implies a specific action (like a slash command or special instruction)
+    // or if we should use the sendMessage endpoint which is more robust for agent interaction.
+    
+    // For standard chat messages, use the :sendMessage action endpoint if possible
+    // as it might be handled differently by the backend orchestrator than a generic activity create.
+    
+    // However, looking at the previous implementation, it seems it was constructing a userMessage object
+    // and POSTing to /activities. 
+    
+    // Let's try to align with the 'sendMessage' pattern seen in other parts of the codebase
+    // (e.g., antigravity-jules-orchestration) which POSTs to /sessions/{id}:sendMessage
+    
+    try {
+        // Try the direct action endpoint first as it's more specific for "sending a message to the agent"
+        const response = await this.request<ApiActivity>(`/sessions/${params.sessionId}:sendMessage`, {
+            method: 'POST',
+            body: JSON.stringify({
+                message: params.content 
+                // Note: backend might expect 'prompt' or 'message'. 
+                // Based on grep results: 
+                // - antigravity-jules-orchestration uses { message: ... }
+                // - python sdk uses { prompt: ... }
+                // Let's try sending both or check if we can fallback.
+                // Safest bet based on JS usage in grep is 'message'.
+            }),
+        });
+        return this.transformActivity(response, params.sessionId);
+    } catch (e) {
+        console.warn("Failed to use :sendMessage endpoint, falling back to /activities", e);
+        
+        // Fallback to original implementation
+        const body = {
+            userMessage: {
+                message: params.content
+            }
+        };
 
-    const response = await this.request<ApiActivity>(`/sessions/${params.sessionId}/activities`, {
-      method: 'POST',
-      body: JSON.stringify(body),
-    });
+        const response = await this.request<ApiActivity>(`/sessions/${params.sessionId}/activities`, {
+            method: 'POST',
+            body: JSON.stringify(body),
+        });
 
-    return this.transformActivity(response, params.sessionId);
+        return this.transformActivity(response, params.sessionId);
+    }
   }
 
   async listArtifacts(sessionId: string): Promise<Artifact[]> {

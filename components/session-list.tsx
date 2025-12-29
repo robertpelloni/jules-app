@@ -59,7 +59,11 @@ export function SessionList({ onSelectSession, selectedSessionId, className }: S
               "justify-start h-auto py-3 px-3 w-full text-left flex flex-col items-start gap-1 transition-all",
               selectedSessionId === session.id ? "bg-white/10" : "hover:bg-white/5"
             )}
-            onClick={() => onSelectSession(session)}
+            onClick={() => {
+                if (selectedSessionId !== session.id) {
+                    onSelectSession(session);
+                }
+            }}
           >
             <div className="flex items-center justify-between w-full">
                 <span className="font-semibold text-sm truncate w-[85%]">{session.title || 'Untitled Session'}</span>
