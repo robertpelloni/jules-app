@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useJules } from "@/lib/jules/provider";
-import type { Session, Activity, SessionTemplate } from "@/types/jules";
+import type { Session, Activity, SessionTemplate, Artifact } from "@/types/jules";
 import { TerminalPanel } from "./terminal-panel";
 import { useTerminalAvailable } from "@/hooks/use-terminal-available";
 import { ApiKeySetupForm } from "./api-key-setup";
@@ -18,6 +18,7 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/componen
 import { SessionKeeperManager } from "./session-keeper-manager";
 import { SessionKeeper } from "./SessionKeeper";
 import { useSessionKeeperStore } from "@/lib/stores/session-keeper";
+import { DebateDialog } from './debate-dialog';
 
 import { AppHeader } from "./layout/app-header";
 import { AppSidebar } from "./layout/app-sidebar";
@@ -35,7 +36,7 @@ export function AppLayout({ initialView }: AppLayoutProps) {
   const router = useRouter();
   const { isAvailable: terminalAvailable } = useTerminalAvailable();
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
-  const [view, setView] = useState<'sessions' | 'analytics' | 'templates' | 'kanban'>('sessions');
+  const [view, setView] = useState<'sessions' | 'analytics' | 'templates' | 'kanban' | 'board' | 'artifacts'>('sessions');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -52,7 +53,6 @@ export function AppLayout({ initialView }: AppLayoutProps) {
     return false;
   });
 
-  // State for New Session Dialog (Controlled)
   const [isNewSessionOpen, setIsNewSessionOpen] = useState(false);
   const [newSessionInitialValues, setNewSessionInitialValues] = useState<{
     sourceId?: string;
@@ -81,12 +81,28 @@ export function AppLayout({ initialView }: AppLayoutProps) {
     setIsApiKeyDialogOpen(false);
   };
 
+  // Debate Dialog State
+  const [debateOpen, setDebateOpen] = useState(false);
+  const [debateTopic, setDebateTopic] = useState('');
+  const [debateContext, setDebateContext] = useState('');
+
+  const handleStartDebate = (topic?: string, context?: string) => {
+      setDebateTopic(topic || '');
+      setDebateContext(context || '');
+      setDebateOpen(true);
+  };
+
+  const handleReviewArtifact = (artifact: Artifact) => {
+      const content = artifact.changeSet?.gitPatch?.unidiffPatch || artifact.changeSet?.unidiffPatch || '';
+      handleStartDebate(`Code Review: ${artifact.name || 'Artifact'}`, content);
+      setView('sessions');
+  };
+
   // Sync session selection with URL query param
   useEffect(() => {
     const sessionId = searchParams.get('sessionId');
     if (sessionId && client) {
       if (selectedSession?.id !== sessionId) {
-        // Load session details
         client.getSession(sessionId)
           .then(session => {
             setSelectedSession(session);
@@ -94,7 +110,6 @@ export function AppLayout({ initialView }: AppLayoutProps) {
           })
           .catch(err => {
             console.error('Failed to load session from URL', err);
-            // Optionally clear param if invalid
           });
       }
     }
@@ -133,7 +148,6 @@ export function AppLayout({ initialView }: AppLayoutProps) {
     setSelectedSession(session);
     setView('sessions');
     setMobileMenuOpen(false);
-    // Update URL without refreshing
     const newParams = new URLSearchParams(searchParams.toString());
     newParams.set('sessionId', session.id);
     router.push(`/?${newParams.toString()}`);
@@ -145,7 +159,6 @@ export function AppLayout({ initialView }: AppLayoutProps) {
   };
 
   const handleSessionArchived = () => {
-    // Refresh the session list to update the archived/active status
     setRefreshKey((prev) => prev + 1);
   };
 
@@ -218,7 +231,6 @@ export function AppLayout({ initialView }: AppLayoutProps) {
         onLogout={handleLogout}
       />
 
-      {/* Main Content Area */}
       <div className="flex flex-1 overflow-hidden min-h-0">
         <AppSidebar
           collapsed={sidebarCollapsed}
@@ -253,6 +265,8 @@ export function AppLayout({ initialView }: AppLayoutProps) {
               isResizing={isResizing}
               onStartResizing={startResizing}
               onOpenNewSession={handleOpenNewSession}
+              onReviewArtifact={handleReviewArtifact}
+              onStartDebate={handleStartDebate}
             />
           </ResizablePanel>
 
@@ -272,13 +286,23 @@ export function AppLayout({ initialView }: AppLayoutProps) {
         </ResizablePanelGroup>
       </div>
 
-      {/* Terminal Panel */}
       {terminalAvailable && (
         <TerminalPanel
           sessionId={selectedSession?.id || 'global'}
           repositoryPath=""
           isOpen={terminalOpen}
           onToggle={handleToggleTerminal}
+        />
+      )}
+
+      {selectedSession && (
+        <DebateDialog
+          sessionId={selectedSession.id}
+          open={debateOpen}
+          onOpenChange={setDebateOpen}
+          initialTopic={debateTopic}
+          initialContext={debateContext}
+          onDebateStart={() => setRefreshKey(prev => prev + 1)}
         />
       )}
     </div>

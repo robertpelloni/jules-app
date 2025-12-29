@@ -1,73 +1,85 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  type ReactNode,
-} from "react";
-import { JulesClient } from "./client";
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
+import { JulesClient } from './client';
+import { useRouter } from 'next/navigation';
 
 interface JulesContextType {
   client: JulesClient | null;
-  apiKey: string | null;
   isLoading: boolean;
-  setApiKey: (key: string) => void;
-  clearApiKey: () => void;
+  apiKey: string | null;
+  setApiKey: (key: string) => Promise<void>;
+  clearApiKey: () => Promise<void>;
   refreshTrigger: number;
   triggerRefresh: () => void;
 }
 
 const JulesContext = createContext<JulesContextType | undefined>(undefined);
 
-export function JulesProvider({ children }: { children: ReactNode }) {
-  // Use lazy initializer for apiKey to avoid setApiKeyState in useEffect if possible,
-  // but we need to check localStorage which is client-side only.
-  const [apiKey, setApiKeyState] = useState<string | null>(null);
+export function JulesProvider({ children }: { children: React.ReactNode }) {
   const [client, setClient] = useState<JulesClient | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const router = useRouter();
+  const initialized = useRef(false);
+  // Track apiKey presence for UI components that rely on it
+  const [hasApiKey, setHasApiKey] = useState(false);
 
   useEffect(() => {
-    // This effect runs on mount to load the key.
-    // The linter warning about "synchronous setState" in effect is usually relevant if it triggers loops
-    // but here we want to initialize from storage.
-    // We can suppress the warning or structure it differently.
-    const stored = localStorage.getItem('jules-api-key');
-    if (stored) {
-      setApiKeyState(stored);
-      setClient(new JulesClient(stored));
-    }
-    setIsLoading(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (initialized.current) return;
+    initialized.current = true;
+
+    const checkSession = async () => {
+        try {
+            const res = await fetch('/api/auth/me');
+            if (res.ok) {
+                setClient(new JulesClient());
+                setHasApiKey(true);
+            } else {
+                setClient(null);
+                setHasApiKey(false);
+            }
+        } catch {
+            setClient(null);
+            setHasApiKey(false);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    checkSession();
   }, []);
 
-  const setApiKey = (key: string) => {
-    localStorage.setItem("jules-api-key", key);
-    setApiKeyState(key);
-    setClient(new JulesClient(key));
-  };
+  const setApiKey = useCallback(async (key: string) => {
+    await fetch('/api/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ apiKey: key })
+    });
+    setClient(new JulesClient());
+    setHasApiKey(true);
+    router.refresh();
+  }, [router]);
 
-  const clearApiKey = () => {
-    localStorage.removeItem("jules-api-key");
-    setApiKeyState(null);
+  const clearApiKey = useCallback(async () => {
+    await fetch('/api/auth/logout', { method: 'POST' });
     setClient(null);
-  };
+    setHasApiKey(false);
+    router.push('/login');
+  }, [router]);
 
-  const triggerRefresh = () => {
+  const triggerRefresh = useCallback(() => {
     setRefreshTrigger(prev => prev + 1);
-  };
+  }, []);
 
   return (
-    <JulesContext.Provider value={{
-      client,
-      apiKey,
-      isLoading,
-      setApiKey,
-      clearApiKey,
-      refreshTrigger,
-      triggerRefresh
+    <JulesContext.Provider value={{ 
+        client, 
+        isLoading, 
+        apiKey: hasApiKey ? 'present' : null, // Providing a truthy value when authenticated to satisfy interface
+        setApiKey, 
+        clearApiKey, 
+        refreshTrigger, 
+        triggerRefresh 
     }}>
       {children}
     </JulesContext.Provider>

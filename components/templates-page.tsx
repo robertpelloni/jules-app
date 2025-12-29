@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { SessionTemplate } from "@/types/jules";
-import { getTemplates, deleteTemplate, saveTemplate } from "@/lib/templates";
+import { useJules } from '@/lib/jules/provider';
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,8 +11,8 @@ import {
   CardDescription,
   CardFooter,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge"; // Import Badge
-import { Plus, Trash2, Edit2, Play, LayoutTemplate, Star } from "lucide-react"; // Import Star
+import { Badge } from "@/components/ui/badge";
+import { Plus, Trash2, Edit2, Play, LayoutTemplate, Star } from "lucide-react";
 import { TemplateFormDialog } from "./template-form-dialog";
 import { toast } from "sonner";
 
@@ -21,24 +21,31 @@ interface TemplatesPageProps {
 }
 
 export function TemplatesPage({ onStartSession }: TemplatesPageProps) {
+  const { client } = useJules();
   const [templates, setTemplates] = useState<SessionTemplate[]>([]);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] =
     useState<SessionTemplate | null>(null);
 
-  const loadTemplates = useCallback(() => {
-    setTemplates(getTemplates());
-  }, []);
+  const loadTemplates = useCallback(async () => {
+    if (!client) return;
+    try {
+      const data = await client.listTemplates();
+      setTemplates(data);
+    } catch (error) {
+      console.error('Failed to load templates:', error);
+    }
+  }, [client]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadTemplates();
   }, [loadTemplates]);
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
+    if (!client) return;
     if (confirm("Are you sure you want to delete this template?")) {
       try {
-        deleteTemplate(id);
+        await client.deleteTemplate(id);
         loadTemplates();
         toast.success("Template deleted");
       } catch (error) {
@@ -48,12 +55,10 @@ export function TemplatesPage({ onStartSession }: TemplatesPageProps) {
     }
   };
 
-  const handleToggleFavorite = (template: SessionTemplate) => {
+  const handleToggleFavorite = async (template: SessionTemplate) => {
+    if (!client) return;
     try {
-      saveTemplate({
-        ...template,
-        isFavorite: !template.isFavorite,
-      });
+      await client.updateTemplate(template.id, { isFavorite: !template.isFavorite });
       loadTemplates();
       toast.success(template.isFavorite ? "Removed from favorites" : "Added to favorites");
     } catch (error) {

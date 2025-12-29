@@ -20,3 +20,7 @@
 
 - **GitHub CLI**:
   - The GitHub CLI (`gh`) is always available. Use it for creating pull requests, managing issues, and other GitHub-integrated workflows.
+
+## Model-Specific Notes
+*   Follow the Git Workflow described in the universal instructions.
+*   Prioritize "developer-first" UX in all implementations.

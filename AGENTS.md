@@ -6,3 +6,7 @@
 -   **Plan**: Always outline steps before executing complex tasks.
 -   **Context**: Read `LLM_INSTRUCTIONS.md` to understand the project structure and constraints.
 -   **Tools**: Use provided tools efficiently; avoid redundant calls.
+
+## Model-Specific Notes
+*   Follow the Git Workflow described in the universal instructions.
+*   Prioritize "developer-first" UX in all implementations.

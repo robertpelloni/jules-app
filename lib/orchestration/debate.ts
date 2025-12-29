@@ -1,131 +1,83 @@
+import { Message, Participant, DebateResult, DebateRound, DebateTurn } from './types';
 import { getProvider } from './providers';
 
-interface Participant {
-  provider: string;
-  model: string;
-  apiKey: string;
-  role?: string; // e.g. "Security Expert", "Performance Expert"
-}
+export async function runDebate({ history, participants, rounds = 1, topic }: {
+    history: Message[];
+    participants: Participant[];
+    rounds?: number;
+    topic?: string;
+}): Promise<DebateResult> {
 
-interface DebateParams {
-  history: { role: string; content: string }[];
-  participants: Participant[];
-  judge?: Participant; // If null, use the first participant as judge
-}
+    const currentHistory = [...history];
+    const debateRounds: DebateRound[] = [];
 
-export async function runDebate(params: DebateParams) {
-  const { history, participants, judge } = params;
+    for (let i = 0; i < rounds; i++) {
+        const turns: DebateTurn[] = [];
 
-  // 1. Collect Opinions
-  const opinions = [];
-  for (const p of participants) {
-    try {
-        const provider = getProvider(p.provider);
-        if (!provider) throw new Error(`Provider ${p.provider} not found`);
+        for (const p of participants) {
+            const provider = getProvider(p.provider);
+            if (!provider) {
+                console.warn(`Provider ${p.provider} not found for participant ${p.name}`);
+                continue;
+            }
 
-        const sysPrompt = `You are a ${p.role || 'project supervisor'} participating in a debate about the next steps for an AI agent.
-Analyze the history and provide your recommendation. Be concise.`;
+            const systemPrompt = `You are ${p.name}, acting as a ${p.role}.
+            ${topic ? `Topic: ${topic}` : ''}
 
-        const result = await provider.complete({
-            messages: history,
-            apiKey: p.apiKey,
-            model: p.model,
-            systemPrompt: sysPrompt
+            Instructions:
+            ${p.systemPrompt}
+
+            Review the conversation history and provide your input.
+            Be constructive, specific, and concise.`;
+
+            try {
+                // Call provider
+                const response = await provider.complete({
+                    messages: currentHistory,
+                    model: p.model,
+                    apiKey: p.apiKey,
+                    systemPrompt
+                });
+
+                const content = response.content;
+                const msg: Message = {
+                    role: 'assistant',
+                    content: content,
+                    name: p.id
+                };
+
+                currentHistory.push(msg);
+
+                turns.push({
+                    participantId: p.id,
+                    participantName: p.name,
+                    role: p.role,
+                    content,
+                    timestamp: new Date().toISOString()
+                });
+
+            } catch (err) {
+                console.error(`Error processing turn for ${p.name}:`, err);
+                turns.push({
+                    participantId: p.id,
+                    participantName: p.name,
+                    role: p.role,
+                    content: `[Error: ${err instanceof Error ? err.message : 'Unknown error'}]`,
+                    timestamp: new Date().toISOString()
+                });
+            }
+        }
+
+        debateRounds.push({
+            roundNumber: i + 1,
+            turns
         });
-
-        opinions.push({ participant: p, content: result.content });
-        // Small delay to avoid rate limits
-        await new Promise(resolve => setTimeout(resolve, 1000));
-    } catch (e) {
-        console.error(`Participant ${p.provider}/${p.model} failed:`, e);
-        opinions.push({ participant: p, error: e instanceof Error ? e.message : 'Unknown error', content: '' });
     }
-  }
 
-  // 2. Synthesize (Judge)
-  const validOpinions = opinions.filter(o => !o.error && o.content);
-
-  if (validOpinions.length === 0) {
-      const errors = opinions.map(o => `${o.participant.role || o.participant.model}: ${o.error}`).join('; ');
-      throw new Error(`All debate participants failed. Details: ${errors}`);
-  }
-
-  // If we have at least one valid opinion, proceed even if others failed
-  if (validOpinions.length < participants.length) {
-      console.warn(`Some participants failed, proceeding with ${validOpinions.length}/${participants.length} opinions.`);
-  }
-
-  const opinionText = validOpinions.map(o => `### ${o.participant.role || o.participant.model} (${o.participant.provider}):\n${o.content}`).join('\n\n');
-
-  const judgeParticipant = judge || participants[0];
-  const judgeProvider = getProvider(judgeParticipant.provider);
-  if (!judgeProvider) throw new Error("Judge provider not found");
-
-  const synthesisPrompt = `You are the Chief Supervisor. You have heard opinions from your council regarding the AI agent's status.
-
-COUNCIL OPINIONS:
-${opinionText}
-
-Based on these opinions and the history, provide the SINGLE final instruction for the agent.
-Synthesize the best points. Be direct and directive. Do not mention "The Council" in your final instruction to the agent, just give the instruction.`;
-
-  const finalResult = await judgeProvider.complete({
-      messages: history, // Give judge full history too
-      apiKey: judgeParticipant.apiKey,
-      model: judgeParticipant.model,
-      systemPrompt: synthesisPrompt
-  });
-
-  return {
-      content: finalResult.content,
-      opinions: validOpinions
-  };
-}
-
-export async function runConference(params: DebateParams) {
-  const { history, participants } = params;
-
-  // 1. Collect Opinions
-  const opinions = [];
-  for (const p of participants) {
-    try {
-        const provider = getProvider(p.provider);
-        if (!provider) throw new Error(`Provider ${p.provider} not found`);
-
-        const sysPrompt = `You are a ${p.role || 'project supervisor'} participating in a round-table conference about the next steps for an AI agent.
-Analyze the history and provide your recommendation. Be concise.`;
-
-        const result = await provider.complete({
-            messages: history,
-            apiKey: p.apiKey,
-            model: p.model,
-            systemPrompt: sysPrompt
-        });
-
-        opinions.push({ participant: p, content: result.content });
-        // Small delay to avoid rate limits
-        await new Promise(resolve => setTimeout(resolve, 1000));
-    } catch (e) {
-        console.error(`Participant ${p.provider}/${p.model} failed:`, e);
-        opinions.push({ participant: p, error: e instanceof Error ? e.message : 'Unknown error', content: '' });
-    }
-  }
-
-  const validOpinions = opinions.filter(o => !o.error && o.content);
-
-  if (validOpinions.length === 0) {
-      const errors = opinions.map(o => `${o.participant.role || o.participant.model}: ${o.error}`).join('; ');
-      throw new Error(`All conference participants failed. Details: ${errors}`);
-  }
-
-  // 2. Format as "Role (Model): Content"
-  const content = validOpinions.map(o => {
-      const name = o.participant.role ? `${o.participant.role} (${o.participant.model})` : o.participant.model;
-      return `**${name}**: ${o.content}`;
-  }).join('\n\n');
-
-  return {
-      content,
-      opinions: validOpinions
-  };
+    return {
+        topic,
+        rounds: debateRounds,
+        summary: `Debate completed (${rounds} round${rounds > 1 ? 's' : ''}).`,
+        history: currentHistory
+    };
 }
