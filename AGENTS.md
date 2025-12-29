@@ -1,7 +1,5 @@
-# AGENTS Instructions
+See `INSTRUCTIONS.md` for the primary directives.
 
-**Primary Reference:** Please refer to `docs/LLM_INSTRUCTIONS.md` for universal guidelines, coding standards, and workflow protocols.
-
-## Model-Specific Notes
-*   Follow the Git Workflow described in the universal instructions.
-*   Prioritize "developer-first" UX in all implementations.
+**AGENTS.md Context:**
+- This file acts as a directory for agent capabilities.
+- All agents must respect the "Session Keeper" protocol (auto-pilot).

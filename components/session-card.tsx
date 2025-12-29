@@ -45,7 +45,7 @@ export function SessionCard({ session }: SessionCardProps) {
       </CardHeader>
       <CardContent className="p-4">
         <p className="text-xs text-white/50">
-          {session.summary || 'No summary available.'}
+           {session.prompt?.substring(0, 100) || 'No summary available.'}...
         </p>
       </CardContent>
     </motion.div>

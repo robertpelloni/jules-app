@@ -75,24 +75,15 @@ export function SessionKeeperSettings({
   const config = propConfig || localConfig;
   const sessions = propSessions || []; // Fallback to empty if not provided in standalone mode
 
-  // Sync from storage if standalone
-  useEffect(() => {
-      if (!propConfig) {
-          const stored = localStorage.getItem('jules-session-keeper-config');
-          if (stored) {
-              try { setLocalConfig({ ...DEFAULT_CONFIG, ...JSON.parse(stored) }); }
-              catch(e) { console.error(e); }
-          }
-      }
-  }, [propConfig]);
+  // NOTE: We rely on the parent (SystemDashboard) or store to provide the initial config via props.
+  // We no longer sync from localStorage here for standalone mode as we moved to server-side persistence.
 
   const handleConfigChange = (newConfig: SessionKeeperConfig) => {
       if (propOnChange) {
           propOnChange(newConfig);
       } else {
+          // If used uncontrolled (unlikely now), just set local state
           setLocalConfig(newConfig);
-          localStorage.setItem('jules-session-keeper-config', JSON.stringify(newConfig));
-          window.dispatchEvent(new Event('jules-config-updated'));
       }
   };
 

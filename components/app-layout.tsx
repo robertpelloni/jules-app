@@ -126,9 +126,18 @@ export function AppLayout() {
     router.push(`/?${newParams.toString()}`);
   };
 
-  const handleSessionCreated = () => {
+  const handleSessionSelectById = (sessionId: string) => {
+    if (client) {
+        client.getSession(sessionId).then(handleSessionSelect).catch(console.error);
+    }
+  };
+
+  const handleSessionCreated = (sessionId: string) => {
     setRefreshKey((prev) => prev + 1);
     setIsNewSessionOpen(false);
+    if (client) {
+      client.getSession(sessionId).then(handleSessionSelect).catch(console.error);
+    }
   };
 
   const handleSessionArchived = () => {
@@ -179,7 +188,7 @@ export function AppLayout() {
                 </SheetHeader>
                 <SessionList
                   key={refreshKey}
-                  onSelectSession={handleSessionSelect}
+                  onSelectSession={handleSessionSelectById}
                   selectedSessionId={selectedSession?.id}
                 />
               </SheetContent>
@@ -337,7 +346,7 @@ export function AppLayout() {
             {!sidebarCollapsed && (
               <SessionList
                 key={refreshKey}
-                onSelectSession={handleSessionSelect}
+                onSelectSession={handleSessionSelectById}
                 selectedSessionId={selectedSession?.id}
               />
             )}

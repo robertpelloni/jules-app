@@ -1,4 +1,4 @@
-import { ProviderInterface } from '../types';
+import { ProviderInterface, Message } from '../types';
 import { openaiProvider } from './openai';
 import { anthropicProvider } from './anthropic';
 import { geminiProvider } from './gemini';
@@ -24,7 +24,7 @@ export async function generateText({
   provider: string;
   apiKey: string;
   model: string;
-  messages: { role: string; content: string }[];
+  messages: Message[];
 }): Promise<string> {
   const aiProvider = getProvider(provider);
   if (!aiProvider) {

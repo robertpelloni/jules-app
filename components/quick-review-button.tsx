@@ -41,11 +41,11 @@ Structure your review into 3 sections:
 
 For each section, list specific findings and recommendations.`;
 
-      await client.createSession(
+      await client.createSession({
         sourceId,
         prompt,
-        '[Deep Analysis] Auto Code Review'
-      );
+        title: '[Deep Analysis] Auto Code Review'
+      });
 
       // 4. Notify parent to refresh
       onSessionCreated?.();

@@ -1,31 +1,30 @@
-# Project Roadmap
+# Roadmap
 
-## Phase 1: Foundation (Completed)
-- [x] Initial Next.js Setup
-- [x] Jules API Integration (`lib/jules/client.ts`)
-- [x] Basic Session Chat Interface
-- [x] Real-time Activity Feed
+## 🚀 Active Development
+-   [x] **Core UI/UX:** Session Board, Activity Feed, Artifact Browser.
+-   [x] **Session Keeper:** Auto-pilot, "Nudge" system, server-side persistence.
+-   [x] **Multi-Agent Debate:** Basic implementation with mock/API supervisor.
+-   [x] **Submodules:**
+    -   [x] `jules-agent-sdk-python`
+    -   [x] `bobcoin` (Blockchain Core)
 
-## Phase 2: Enhanced Interactions (Completed)
-- [x] Code Diff Viewer
-- [x] Terminal Output Rendering
-- [x] Session Keeper (Auto-Pilot)
-- [x] Session Kanban Board
-- [x] System Status Dashboard
+## 📅 Short Term (v0.8.0)
+-   **Bobcoin Integration:**
+    -   Implement "Wallet" view in Dashboard.
+    -   Connect `bobcoin` node status to System Internals.
+-   **Advanced Orchestration:**
+    -   Real implementations for `runCodeReview` using LLMs.
+    -   Fully functional multi-agent debate loop with real providers.
 
-## Phase 3: Advanced Features (Completed)
-- [x] **Multi-Agent Debate:** Orchestrate debates between Supervisor and Worker agents.
-- [x] **Deep Code Analysis:** Parallel code audits (Security, Performance, Maintainability).
-- [x] **Artifact Management:** Artifact Browser with list and preview.
-- [x] **Session Templates:** Save and reuse session configurations.
+## 🔮 Long Term (Vision)
+-   **Ecosystem:**
+    -   Arcade/Exercise Game Economy powered by Bobcoin.
+    -   Decentralized file storage nodes (Torrent/Tor integration).
+    -   Dating App economy (Proof of Interaction).
+-   **Jules Autonomous:**
+    -   Self-hosting capability.
+    -   Full repository management (auto-PR, auto-merge).
 
-## Phase 4: Production Readiness (In Progress)
-- [ ] **Secure Authentication:** Replace client-side API Key storage with HTTP-only cookies and Middleware.
-- [ ] **Docker Optimization:** Multi-stage builds and smaller images.
-- [ ] **CI/CD Pipeline:** Automated testing and build checks.
-- [ ] **E2E Testing:** Comprehensive Playwright suite.
-
-## Phase 5: Future
-- [ ] **User Accounts:** OAuth integration (Google/GitHub).
-- [ ] **Persistent Database:** Move from in-memory/localStorage to Postgres/SQLite.
-- [ ] **Plugin System:** Allow custom tools for the agent.
+## 🛠️ Infrastructure
+-   **CI/CD:** Automated testing pipeline for all submodules.
+-   **Security:** Audit of Bobcoin privacy features (Monero/Solana logic).

@@ -1,6 +1,7 @@
 import { CompletionParams, CompletionResult, ProviderInterface } from '../types';
 
 export const anthropicProvider: ProviderInterface = {
+  id: 'anthropic',
   async complete(params: CompletionParams): Promise<CompletionResult> {
     const { messages, apiKey, model = 'claude-3-5-sonnet-20240620', systemPrompt } = params;
 
@@ -8,7 +9,7 @@ export const anthropicProvider: ProviderInterface = {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': apiKey,
+          'x-api-key': apiKey || '',
           'anthropic-version': '2023-06-01'
         },
         body: JSON.stringify({
@@ -18,7 +19,7 @@ export const anthropicProvider: ProviderInterface = {
             role: m.role === 'user' ? 'user' : 'assistant',
             content: m.content
           })),
-          max_tokens: 300,
+          max_tokens: 1000,
         }),
       });
 
@@ -31,7 +32,7 @@ export const anthropicProvider: ProviderInterface = {
       return { content: data.content[0]?.text || '' };
   },
 
-  async listModels(apiKey: string): Promise<string[]> {
+  async listModels(apiKey?: string): Promise<string[]> {
       return [
          'claude-3-5-sonnet-20240620',
          'claude-3-opus-20240229',

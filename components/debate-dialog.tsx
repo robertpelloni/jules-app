@@ -21,13 +21,34 @@ interface DebateDialogProps {
   sessionId: string;
   trigger?: React.ReactNode;
   onDebateStart?: () => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  initialTopic?: string;
+  initialContext?: string;
 }
 
-export function DebateDialog({ sessionId, trigger, onDebateStart }: DebateDialogProps) {
+export function DebateDialog({
+  sessionId,
+  trigger,
+  onDebateStart,
+  open: controlledOpen,
+  onOpenChange: setControlledOpen,
+  initialTopic,
+  initialContext
+}: DebateDialogProps) {
   const { client } = useJules();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = setControlledOpen || setInternalOpen;
+
   const [loading, setLoading] = useState(false);
-  const [topic, setTopic] = useState('');
+  const [topic, setTopic] = useState(initialTopic || '');
+
+  // Sync initial topic
+  if (initialTopic && topic !== initialTopic && !loading) {
+     setTopic(initialTopic);
+  }
 
   const handleStartDebate = async () => {
     if (!client) return;

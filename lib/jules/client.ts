@@ -33,7 +33,7 @@ export class JulesClient {
     }
 
     const text = await response.text();
-    return text ? JSON.parse(text) : null;
+    return text ? JSON.parse(text) : {} as T;
   }
 
   // Session Management
@@ -45,10 +45,10 @@ export class JulesClient {
     return this.fetch<Session>(`/sessions/${sessionId}`);
   }
 
-  async createSession(sourceId: string, prompt: string, title?: string, branch?: string): Promise<Session> {
+  async createSession(params: { sourceId?: string; prompt?: string; title?: string; branch?: string; description?: string; status?: string }): Promise<Session> {
     return this.fetch<Session>('/sessions', {
       method: 'POST',
-      body: JSON.stringify({ sourceId, prompt, title, branch }),
+      body: JSON.stringify(params),
     });
   }
 

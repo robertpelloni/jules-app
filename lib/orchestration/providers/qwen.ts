@@ -3,6 +3,7 @@ import { CompletionParams, CompletionResult, ProviderInterface } from '../types'
 const QWEN_ENDPOINT = 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation';
 
 export const qwenProvider: ProviderInterface = {
+  id: 'qwen',
   async complete(params: CompletionParams): Promise<CompletionResult> {
     const { messages, apiKey, model = 'qwen-turbo', systemPrompt } = params;
 
@@ -25,7 +26,7 @@ export const qwenProvider: ProviderInterface = {
                 messages: qwenMessages
             },
             parameters: {
-                max_tokens: 300,
+                max_tokens: 1000,
                 result_format: 'message'
             }
         })
@@ -44,7 +45,7 @@ export const qwenProvider: ProviderInterface = {
       return { content: data.output.choices?.[0]?.message?.content || '' };
   },
 
-  async listModels(apiKey: string): Promise<string[]> {
+  async listModels(apiKey?: string): Promise<string[]> {
       return [
         'qwen-turbo',
         'qwen-plus',

@@ -1,6 +1,7 @@
 import { CompletionParams, CompletionResult, ProviderInterface } from '../types';
 
 export const geminiProvider: ProviderInterface = {
+  id: 'gemini',
   async complete(params: CompletionParams): Promise<CompletionResult> {
     const { messages, apiKey, model = 'gemini-1.5-flash', systemPrompt } = params;
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
@@ -16,7 +17,7 @@ export const geminiProvider: ProviderInterface = {
             role: m.role === 'user' ? 'user' : 'model',
             parts: [{ text: m.content }]
           })),
-          generationConfig: { maxOutputTokens: 300 }
+          generationConfig: { maxOutputTokens: 1000 }
         }),
       });
 
@@ -29,7 +30,7 @@ export const geminiProvider: ProviderInterface = {
       return { content: data.candidates?.[0]?.content?.parts?.[0]?.text || '' };
   },
 
-  async listModels(apiKey: string): Promise<string[]> {
+  async listModels(apiKey?: string): Promise<string[]> {
       return ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-1.0-pro'];
   }
 };

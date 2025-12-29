@@ -29,16 +29,20 @@ export interface CompletionResult {
   };
 }
 
-export interface LLMProvider {
+export interface CompletionParams {
+  messages: Message[];
+  model: string;
+  apiKey?: string;
+  systemPrompt?: string;
+}
+
+export interface ProviderInterface {
   id: string;
-  complete(params: {
-    messages: Message[];
-    model: string;
-    apiKey?: string;
-    systemPrompt?: string;
-  }): Promise<CompletionResult>;
+  complete(params: CompletionParams): Promise<CompletionResult>;
   listModels(apiKey?: string): Promise<string[]>;
 }
+
+export interface LLMProvider extends ProviderInterface {}
 
 export interface DebateTurn {
   participantId: string;

@@ -9,8 +9,14 @@ import { Activity } from '@/types/jules';
 export function SessionKeeperManager() {
   const { client } = useJules();
   const router = useRouter();
-  const { config, addLog, setStatusSummary, incrementStat } = useSessionKeeperStore();
+  const { config, addLog, setStatusSummary, incrementStat, loadConfig, loadLogs } = useSessionKeeperStore();
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Load configuration and logs on mount
+  useEffect(() => {
+    loadConfig();
+    loadLogs();
+  }, [loadConfig, loadLogs]);
 
   useEffect(() => {
     if (!config.isEnabled || !client) {
@@ -36,8 +42,7 @@ export function SessionKeeperManager() {
           let activities: Activity[] = [];
           try {
              // Fetch 1 activity
-             const result = await client.listActivitiesPaged(session.id, 1);
-             activities = result.activities;
+             activities = await client.listActivities(session.id, 1);
           } catch (e) {
              console.error(`Failed to list activities for ${session.id}`, e);
              continue;

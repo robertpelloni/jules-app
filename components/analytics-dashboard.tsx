@@ -18,7 +18,13 @@ import { Loader2, RefreshCw, BarChart3, Clock, CheckCircle2, Zap, Users } from '
 
 export function AnalyticsDashboard() {
   const { client } = useJules();
-  const { stats: keeperStats } = useSessionKeeperStore();
+  const { stats: keeperStats, loadConfig } = useSessionKeeperStore();
+
+  // Ensure we load config/stats for correct values
+  useEffect(() => {
+    loadConfig();
+  }, [loadConfig]);
+
   const [sessions, setSessions] = useState<Session[]>([]);
   const [sources, setSources] = useState<Source[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
