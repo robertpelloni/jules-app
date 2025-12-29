@@ -102,15 +102,27 @@ export function AppLayout({ initialView }: AppLayoutProps) {
     const sessionId = searchParams.get('sessionId');
     if (sessionId && client) {
       if (selectedSession?.id !== sessionId) {
+        // Prevent infinite loop if we are already in the process of selecting this session
+        // or if the session ID is invalid
         client.getSession(sessionId)
           .then(session => {
-            setSelectedSession(session);
-            setView('sessions');
+            if (session.id === sessionId) {
+                // Only update if the fetched session matches the URL (handle race conditions)
+                // and if it's different from current
+                setSelectedSession(prev => prev?.id === session.id ? prev : session);
+                setView('sessions');
+            }
           })
           .catch(err => {
             console.error('Failed to load session from URL', err);
+            // Optionally clear the invalid session ID from URL to prevent loop
           });
       }
+    } else if (!sessionId && selectedSession) {
+        // If URL has no sessionId but we have a selected session, we might want to clear it
+        // Or do nothing if we want to persist state despite URL.
+        // For now, let's respect the URL as the source of truth for "no session selected" ONLY if needed
+        // But clicking "Sessions" in header might clear URL.
     }
   }, [searchParams, client, selectedSession?.id]);
 
@@ -144,9 +156,16 @@ export function AppLayout({ initialView }: AppLayoutProps) {
   }, [resize, stopResizing]);
 
   const handleSessionSelect = (session: Session) => {
+    // Optimistic update to prevent the useEffect loop
+    if (selectedSession?.id === session.id) return;
+    
     setSelectedSession(session);
     setView('sessions');
     setMobileMenuOpen(false);
+    
+    // Update URL without triggering a full page navigation if possible, 
+    // but Next.js router.push will trigger the searchParams effect.
+    // The key is ensuring the effect condition `selectedSession?.id !== sessionId` handles it.
     const newParams = new URLSearchParams(searchParams.toString());
     newParams.set('sessionId', session.id);
     router.push(`/?${newParams.toString()}`);

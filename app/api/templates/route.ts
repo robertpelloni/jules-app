@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { SessionTemplate } from '@prisma/client';
+import type { SessionTemplate } from '@prisma/client';
 
 export async function GET() {
   try {
