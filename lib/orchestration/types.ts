@@ -20,6 +20,15 @@ export interface DebateConfig {
   participants: Participant[];
 }
 
+export interface CompletionParams {
+  messages: Message[];
+  model: string;
+  apiKey?: string;
+  systemPrompt?: string;
+  temperature?: number;
+  maxTokens?: number;
+}
+
 export interface CompletionResult {
   content: string;
   usage?: {
@@ -27,6 +36,11 @@ export interface CompletionResult {
     completion_tokens: number;
     total_tokens: number;
   };
+}
+
+export interface ProviderInterface {
+  complete(params: CompletionParams): Promise<CompletionResult>;
+  listModels(apiKey?: string): Promise<string[]>;
 }
 
 export interface LLMProvider {

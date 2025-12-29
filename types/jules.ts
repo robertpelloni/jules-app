@@ -29,6 +29,7 @@ export interface Session {
   branch?: string;
   summary?: string;
   outputs?: SessionOutput[];
+  metadata?: Record<string, unknown>; // Added metadata
 }
 
 export interface Artifact {

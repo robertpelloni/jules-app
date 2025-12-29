@@ -351,14 +351,21 @@ export class JulesClient {
     return this.transformSession(response);
   }
 
-  async createSession(data: CreateSessionRequest): Promise<Session> {
-    let prompt = data.prompt;
+  async createSession(sourceId: string, prompt: string, title: string = 'Untitled Session'): Promise<Session> {
+    const data: CreateSessionRequest = {
+      sourceId,
+      prompt,
+      title
+    };
+    
+    // ... logic for createSession ...
+    let finalPrompt = data.prompt;
     if (data.autoCreatePr) {
-      prompt += '\n\nIMPORTANT: Automatically create a pull request when code changes are ready.';
+      finalPrompt += '\n\nIMPORTANT: Automatically create a pull request when code changes are ready.';
     }
 
     const requestBody = {
-      prompt: prompt,
+      prompt: finalPrompt,
       sourceContext: {
         source: data.sourceId,
         githubRepoContext: {

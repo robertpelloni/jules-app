@@ -5,7 +5,7 @@ import { TemplatesPage } from "@/components/templates-page";
 import { KanbanBoard } from "@/components/kanban-board";
 import { ActivityFeed } from "@/components/activity-feed";
 import { CodeDiffSidebar } from "@/components/code-diff-sidebar";
-import { Session, Activity, SessionTemplate } from "@/types/jules";
+import { Session, Activity, SessionTemplate, Artifact } from "@/types/jules";
 
 interface MainContentProps {
   view: 'sessions' | 'analytics' | 'templates' | 'kanban';
@@ -23,6 +23,8 @@ interface MainContentProps {
   isResizing: boolean;
   onStartResizing: () => void;
   onOpenNewSession: () => void;
+  onReviewArtifact: (artifact: Artifact) => void;
+  onStartDebate: (topic?: string, context?: string) => void;
 }
 
 export function MainContent({
@@ -41,6 +43,8 @@ export function MainContent({
   isResizing,
   onStartResizing,
   onOpenNewSession,
+  onReviewArtifact,
+  onStartDebate,
 }: MainContentProps) {
   return (
     <div className="flex h-full w-full flex-row min-w-0">
@@ -59,6 +63,8 @@ export function MainContent({
             showCodeDiffs={showCodeDiffs}
             onToggleCodeDiffs={onToggleCodeDiffs}
             onActivitiesChange={onActivitiesChange}
+            onReviewArtifact={onReviewArtifact}
+            onStartDebate={onStartDebate}
           />
         ) : (
           <div className="flex h-full items-center justify-center p-8">

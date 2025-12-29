@@ -1,14 +1,8 @@
 "use client";
 
-<<<<<<< HEAD
 import { useState, useEffect } from "react";
 import { SessionTemplate } from "@/types/jules";
-import { saveTemplate } from "@/lib/templates";
-=======
-import { useState, useEffect } from 'react';
-import { SessionTemplate } from '@/types/jules';
-import { useJules } from '@/lib/jules/provider';
->>>>>>> origin/jules-session-keeper-integration-11072096883725838253
+import { useJules } from "@/lib/jules/provider";
 import {
   Dialog,
   DialogContent,
@@ -32,7 +26,6 @@ interface TemplateFormDialogProps {
   initialValues?: Partial<SessionTemplate>;
 }
 
-<<<<<<< HEAD
 export function TemplateFormDialog({
   open,
   onOpenChange,
@@ -40,6 +33,7 @@ export function TemplateFormDialog({
   onSave,
   initialValues,
 }: TemplateFormDialogProps) {
+  const { client } = useJules();
   const [tagInput, setTagInput] = useState("");
   const [formData, setFormData] = useState({
     name: "",
@@ -47,22 +41,11 @@ export function TemplateFormDialog({
     prompt: "",
     title: "",
     tags: [] as string[],
-=======
-export function TemplateFormDialog({ open, onOpenChange, template, onSave, initialValues }: TemplateFormDialogProps) {
-  const { client } = useJules();
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    prompt: '',
-    title: '',
-    tags: ''
->>>>>>> origin/jules-session-keeper-integration-11072096883725838253
   });
 
   // Reset form when dialog opens or template changes
   useEffect(() => {
     if (open) {
-<<<<<<< HEAD
       // Use a timeout to push this to the next tick, avoiding synchronous state updates during render phase
       // if this effect was triggered by a parent render
       const timer = setTimeout(() => {
@@ -119,61 +102,25 @@ export function TemplateFormDialog({ open, onOpenChange, template, onSave, initi
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-=======
-      if (template) {
-        setFormData({
-          name: template.name,
-          description: template.description,
-          prompt: template.prompt,
-          title: template.title || '',
-          tags: template.tags ? template.tags.join(', ') : ''
-        });
-      } else if (initialValues) {
-        setFormData({
-          name: initialValues.name || '',
-          description: initialValues.description || '',
-          prompt: initialValues.prompt || '',
-          title: initialValues.title || '',
-          tags: initialValues.tags?.join(', ') || ''
-        });
-      } else {
-        setFormData({ name: '', description: '', prompt: '', title: '', tags: '' });
-      }
-    }
-  }, [open, template, initialValues]);
-
   const handleSubmit = async (e: React.FormEvent) => {
->>>>>>> origin/jules-session-keeper-integration-11072096883725838253
     e.preventDefault();
     if (!client) return;
 
     try {
-<<<<<<< HEAD
-      // If it's a prebuilt template, we don't pass the ID, forcing a new creation (clone)
-      saveTemplate({
-        id: isPrebuilt ? undefined : template?.id,
-=======
-      const parsedTags = formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag !== '');
       const data = {
->>>>>>> origin/jules-session-keeper-integration-11072096883725838253
         name: formData.name,
         description: formData.description,
         prompt: formData.prompt,
         title: formData.title,
-<<<<<<< HEAD
         tags: formData.tags,
-      });
-=======
-        tags: parsedTags,
       };
 
-      if (template?.id) {
-          await client.updateTemplate(template.id, data);
+      if (template?.id && !isPrebuilt) {
+        await client.updateTemplate(template.id, data);
       } else {
-          await client.createTemplate(data);
+        await client.createTemplate(data);
       }
->>>>>>> origin/jules-session-keeper-integration-11072096883725838253
+
       onSave();
       onOpenChange(false);
       toast.success(
@@ -261,7 +208,6 @@ export function TemplateFormDialog({ open, onOpenChange, template, onSave, initi
           </div>
 
           <div className="space-y-1.5">
-<<<<<<< HEAD
             <Label htmlFor="tags" className="text-xs font-semibold">
               Tags
             </Label>
@@ -292,16 +238,6 @@ export function TemplateFormDialog({ open, onOpenChange, template, onSave, initi
                 className="flex-1 bg-transparent border-none outline-none text-xs min-w-[120px] h-5"
               />
             </div>
-=======
-            <Label htmlFor="tags" className="text-xs font-semibold">Tags (comma-separated, optional)</Label>
-            <Input
-              id="tags"
-              value={formData.tags}
-              onChange={(e) => setFormData(prev => ({ ...prev, tags: e.target.value }))}
-              placeholder="e.g., frontend, refactor, react"
-              className="h-9 text-xs bg-zinc-900 border-zinc-700"
-            />
->>>>>>> origin/jules-session-keeper-integration-11072096883725838253
           </div>
 
           <div className="space-y-1.5">

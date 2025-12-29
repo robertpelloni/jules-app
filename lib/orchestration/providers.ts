@@ -63,3 +63,26 @@ const providers: Record<string, LLMProvider> = {
 export function getProvider(name: string): LLMProvider | undefined {
     return providers[name];
 }
+
+export async function generateText(params: {
+    messages: Message[];
+    model?: string;
+    apiKey?: string;
+    provider?: string;
+    systemPrompt?: string;
+}): Promise<string> {
+    const providerName = params.provider || 'openai';
+    const provider = getProvider(providerName);
+    if (!provider) {
+        throw new Error(`Provider ${providerName} not found`);
+    }
+
+    const result = await provider.complete({
+        messages: params.messages,
+        model: params.model || 'gpt-4o',
+        apiKey: params.apiKey,
+        systemPrompt: params.systemPrompt
+    });
+
+    return result.content;
+}

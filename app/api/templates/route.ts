@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { SessionTemplate } from '@prisma/client';
 
 export async function GET() {
   try {
@@ -7,7 +8,7 @@ export async function GET() {
       orderBy: { updatedAt: 'desc' }
     });
 
-    const formatted = templates.map(t => ({
+    const formatted = templates.map((t: SessionTemplate) => ({
         ...t,
         tags: t.tags ? t.tags.split(',') : [],
         createdAt: t.createdAt.toISOString(),

@@ -24,7 +24,7 @@ export async function generateText({
   provider: string;
   apiKey: string;
   model: string;
-  messages: { role: string; content: string }[];
+  messages: { role: 'user' | 'assistant' | 'system'; content: string; name?: string }[];
 }): Promise<string> {
   const aiProvider = getProvider(provider);
   if (!aiProvider) {

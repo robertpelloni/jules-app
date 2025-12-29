@@ -6,7 +6,6 @@ import { useJules } from "@/lib/jules/provider";
 import type { Session, Activity, SessionTemplate, Artifact } from "@/types/jules";
 import { TerminalPanel } from "./terminal-panel";
 import { useTerminalAvailable } from "@/hooks/use-terminal-available";
-import { ApiKeySetupForm } from "./api-key-setup";
 import {
   Dialog,
   DialogContent,
@@ -36,7 +35,7 @@ export function AppLayout({ initialView }: AppLayoutProps) {
   const router = useRouter();
   const { isAvailable: terminalAvailable } = useTerminalAvailable();
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
-  const [view, setView] = useState<'sessions' | 'analytics' | 'templates' | 'kanban' | 'board' | 'artifacts'>('sessions');
+  const [view, setView] = useState<'sessions' | 'analytics' | 'templates' | 'kanban'>('sessions');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -202,7 +201,7 @@ export function AppLayout({ initialView }: AppLayoutProps) {
               Enter your Jules API key to start a session.
             </DialogDescription>
           </DialogHeader>
-          <ApiKeySetupForm onSuccess={handleApiKeySuccess} />
+          <div className="py-4 text-center text-muted-foreground">Please configure API key in settings.</div>
         </DialogContent>
       </Dialog>
       

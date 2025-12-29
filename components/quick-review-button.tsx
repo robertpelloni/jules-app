@@ -46,7 +46,7 @@ For each section, list specific findings and recommendations.`;
       await client.createSession(
         sourceId,
         prompt,
-        "[Deep Analysis] Auto Code Review"
+        // "[Deep Analysis] Auto Code Review" - Title support removed or handled differently
       );
 
       // 4. Notify parent to refresh

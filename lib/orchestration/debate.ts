@@ -81,3 +81,18 @@ export async function runDebate({ history, participants, rounds = 1, topic }: {
         history: currentHistory
     };
 }
+
+export async function runConference({ history, participants }: {
+    history: Message[];
+    participants: Participant[];
+}): Promise<DebateResult> {
+    // A conference is essentially a single-round debate/discussion
+    // where each participant weighs in on the current state.
+    // We can reuse the debate logic with rounds=1.
+    return runDebate({
+        history,
+        participants,
+        rounds: 1,
+        topic: "Team Conference"
+    });
+}

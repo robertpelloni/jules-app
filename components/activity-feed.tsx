@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import useSWR from 'swr'; // Keeping for potential future use, though origin uses manual polling
 import { useJules } from '@/lib/jules/provider';
-import type { Activity, Session } from '@/types/jules';
+import type { Activity, Session, Artifact } from '@/types/jules';
 import { exportSessionToJSON, exportSessionToMarkdown } from '@/lib/export';
 import { useNotifications } from '@/hooks/use-notifications';
 import { Card, CardContent } from '@/components/ui/card';
@@ -46,9 +46,10 @@ interface ActivityFeedProps {
   onActivitiesChange: (activities: Activity[]) => void;
   onStartDebate?: () => void;
   onSaveTemplate?: () => void;
+  onReviewArtifact?: (artifact: Artifact) => void;
 }
 
-export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDiffs, onActivitiesChange, onStartDebate, onSaveTemplate }: ActivityFeedProps) {
+export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDiffs, onActivitiesChange, onStartDebate, onSaveTemplate, onReviewArtifact }: ActivityFeedProps) {
   const { client } = useJules();
   const [sending, setSending] = useState(false);
   const [approvingPlan, setApprovingPlan] = useState(false);
