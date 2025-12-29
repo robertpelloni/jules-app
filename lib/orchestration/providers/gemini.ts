@@ -17,7 +17,7 @@ export const geminiProvider: ProviderInterface = {
             role: m.role === 'user' ? 'user' : 'model',
             parts: [{ text: m.content }]
           })),
-          generationConfig: { maxOutputTokens: 1000 }
+          generationConfig: { maxOutputTokens: 300 }
         }),
       });
 
@@ -30,7 +30,7 @@ export const geminiProvider: ProviderInterface = {
       return { content: data.candidates?.[0]?.content?.parts?.[0]?.text || '' };
   },
 
-  async listModels(apiKey?: string): Promise<string[]> {
+  async listModels(apiKey: string): Promise<string[]> {
       return ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-1.0-pro'];
   }
 };

@@ -70,6 +70,7 @@ describe('Jules API Proxy', () => {
       expect(data).toEqual({ error: 'Proxy error', message: 'Network error' });
     });
 
+<<<<<<< HEAD
     it('should handle and log complex activity data without crashing', async () => {
       // Mock data that triggers the detailed logging logic in route.ts
       const mockComplexData = {
@@ -124,6 +125,8 @@ describe('Jules API Proxy', () => {
         expect.anything()
       );
     });
+=======
+>>>>>>> origin/fix-remove-debug-logs-16472708773165476071
   });
 
   describe('POST', () => {

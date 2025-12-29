@@ -31,6 +31,3 @@
 [submodule "submodules/jules-agent-sdk-python"]
 	path = submodules/jules-agent-sdk-python
 	url = https://github.com/AsyncFuncAI/jules-agent-sdk-python
-[submodule "submodules/bobcoin"]
-	path = submodules/bobcoin
-	url = https://github.com/robertpelloni/bobcoin

@@ -128,7 +128,6 @@ export default function SystemInternalsPage() {
                             <div className="font-bold text-white flex items-center gap-2"><Folder className="h-3 w-3 text-yellow-500"/> submodules/</div>
                             <ul className="pl-4 pt-1 space-y-1 text-zinc-400">
                                 <li>jules-agent-sdk-python/ <span className="text-zinc-600">- Python Reference SDK</span></li>
-                                <li>bobcoin/ <span className="text-zinc-600">- Blockchain Core (Solana/Monero Hybrid)</span></li>
                             </ul>
                         </li>
                     </ul>

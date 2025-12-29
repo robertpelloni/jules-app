@@ -7,11 +7,12 @@
 -   [x] **Submodules:**
     -   [x] `jules-agent-sdk-python`
     -   [x] `bobcoin` (Blockchain Core)
+-   [x] **Wallet UI:** Initial Skeleton and Mock implementation.
 
-## 📅 Short Term (v0.8.0)
+## 📅 Short Term (v0.8.x)
 -   **Bobcoin Integration:**
-    -   Implement "Wallet" view in Dashboard.
-    -   Connect `bobcoin` node status to System Internals.
+    -   Connect Wallet UI to real Bobcoin node API.
+    -   Implement "Send" transaction logic.
 -   **Advanced Orchestration:**
     -   Real implementations for `runCodeReview` using LLMs.
     -   Fully functional multi-agent debate loop with real providers.

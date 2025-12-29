@@ -1,5 +1,7 @@
-See `INSTRUCTIONS.md` for the primary directives.
+# copilot-instructions Instructions
 
-**Copilot-Specific Context:**
-- Suggest completions that align with the `lib/jules` SDK patterns.
-- Be aware of the `submodules/` structure when suggesting file paths.
+**Primary Reference:** Please refer to `docs/LLM_INSTRUCTIONS.md` for universal guidelines, coding standards, and workflow protocols.
+
+## Model-Specific Notes
+*   Follow the Git Workflow described in the universal instructions.
+*   Prioritize "developer-first" UX in all implementations.

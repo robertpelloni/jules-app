@@ -1,5 +1,7 @@
-See `INSTRUCTIONS.md` for the primary directives.
+# CLAUDE Instructions
 
-**Claude-Specific Context:**
-- Focus on architectural integrity and deep code analysis.
-- When working on Bobcoin, ensure privacy algorithms (Monero-style) are correctly implemented in Rust/C++ (if applicable).
+**Primary Reference:** Please refer to `docs/LLM_INSTRUCTIONS.md` for universal guidelines, coding standards, and workflow protocols.
+
+## Model-Specific Notes
+*   Follow the Git Workflow described in the universal instructions.
+*   Prioritize "developer-first" UX in all implementations.

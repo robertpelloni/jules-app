@@ -26,7 +26,7 @@ export const qwenProvider: ProviderInterface = {
                 messages: qwenMessages
             },
             parameters: {
-                max_tokens: 1000,
+                max_tokens: 300,
                 result_format: 'message'
             }
         })
@@ -45,7 +45,7 @@ export const qwenProvider: ProviderInterface = {
       return { content: data.output.choices?.[0]?.message?.content || '' };
   },
 
-  async listModels(apiKey?: string): Promise<string[]> {
+  async listModels(apiKey: string): Promise<string[]> {
       return [
         'qwen-turbo',
         'qwen-plus',
