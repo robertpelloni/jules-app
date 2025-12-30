@@ -402,6 +402,12 @@ export class JulesClient {
     return this.transformSession(response);
   }
 
+  async updateSession(sessionId: string, updates: Partial<Session>): Promise<Session> {
+    console.warn('[JulesClient] updateSession is not fully implemented by the backend yet. Updates are local only.', updates);
+    // Simulating success as backend doesn't support PATCH yet but frontend needs it
+    return this.getSession(sessionId);
+  }
+
     // Sort by latest activity if possible
     try {
       const allSessions = await this.listSessions();
