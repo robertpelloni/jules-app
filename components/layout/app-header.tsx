@@ -282,6 +282,7 @@ export function AppHeader({
             initialValues={newSessionInitialValues}
             trigger={
               <Button
+                data-testid="new-session-btn"
                 className="w-full sm:w-auto h-8 text-[10px] font-mono uppercase tracking-widest bg-purple-600 hover:bg-purple-500 text-white border-0"
                 onClick={onOpenNewSession}
               >
@@ -302,9 +303,10 @@ export function AppHeader({
             trigger={null}
           />
 
-          <DropdownMenu>
+            <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
+                data-testid="settings-dropdown-trigger"
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 hover:bg-white/5 text-white/60"
