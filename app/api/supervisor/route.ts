@@ -90,7 +90,8 @@ export async function POST(req: Request) {
                 codeContext,
                 provider: provider || 'openai',
                 model: model || 'gpt-4o',
-                apiKey
+                apiKey,
+                reviewType: body.reviewType // Pass the review type (simple | comprehensive)
             });
             return NextResponse.json({ content: result });
         } catch (e) {
