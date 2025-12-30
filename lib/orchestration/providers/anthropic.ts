@@ -1,6 +1,7 @@
 import { CompletionParams, CompletionResult, ProviderInterface } from '../types';
 
 export const anthropicProvider: ProviderInterface = {
+  id: 'anthropic',
   async complete(params: CompletionParams): Promise<CompletionResult> {
     const { messages, apiKey, model, systemPrompt } = params;
     const modelToUse = model || 'claude-3-5-sonnet-20240620';
@@ -9,7 +10,11 @@ export const anthropicProvider: ProviderInterface = {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+<<<<<<< HEAD
           'x-api-key': apiKey || '',
+=======
+          'x-api-key': apiKey as string,
+>>>>>>> origin/jules-session-keeper-integration-11072096883725838253
           'anthropic-version': '2023-06-01'
         },
         body: JSON.stringify({

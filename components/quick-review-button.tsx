@@ -43,11 +43,16 @@ Structure your review into 3 sections:
 
 For each section, list specific findings and recommendations.`;
 
-      await client.createSession(
+      await client.createSession({
         sourceId,
         prompt,
+<<<<<<< HEAD
         // "[Deep Analysis] Auto Code Review" - Title support removed or handled differently
       );
+=======
+        title: '[Deep Analysis] Auto Code Review'
+      });
+>>>>>>> origin/jules-session-keeper-integration-11072096883725838253
 
       // 4. Notify parent to refresh
       onSessionCreated?.();

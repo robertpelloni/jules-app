@@ -65,3 +65,4 @@ node_modules/
 /playwright/.auth/
 
 /lib/generated/prisma
+dev.db

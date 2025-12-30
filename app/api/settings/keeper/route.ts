@@ -1,0 +1,68 @@
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { SessionKeeperConfig } from '@/types/jules';
+
+const DEFAULT_SETTINGS: SessionKeeperConfig = {
+  isEnabled: false,
+  autoSwitch: false,
+  checkIntervalSeconds: 60,
+  inactivityThresholdMinutes: 10,
+  activeWorkThresholdMinutes: 5,
+  messages: [],
+  customMessages: {},
+  smartPilotEnabled: false,
+  supervisorProvider: 'openai',
+  supervisorApiKey: '',
+  supervisorModel: 'gpt-4o',
+  contextMessageCount: 10,
+};
+
+export async function GET() {
+  try {
+    const settings = await prisma.keeperSettings.findUnique({
+      where: { id: 'default' }
+    });
+
+    if (!settings) {
+      return NextResponse.json(DEFAULT_SETTINGS);
+    }
+
+    return NextResponse.json({
+      ...settings,
+      messages: JSON.parse(settings.messages),
+      customMessages: JSON.parse(settings.customMessages),
+    });
+  } catch (error) {
+    return NextResponse.json(DEFAULT_SETTINGS); // Fallback
+  }
+}
+
+export async function POST(req: Request) {
+  try {
+    const body = await req.json();
+    const { messages, customMessages, ...rest } = body;
+
+    const settings = await prisma.keeperSettings.upsert({
+      where: { id: 'default' },
+      update: {
+        ...rest,
+        messages: JSON.stringify(messages || []),
+        customMessages: JSON.stringify(customMessages || {}),
+      },
+      create: {
+        ...rest,
+        id: 'default',
+        messages: JSON.stringify(messages || []),
+        customMessages: JSON.stringify(customMessages || {}),
+      }
+    });
+
+    return NextResponse.json({
+      ...settings,
+      messages: JSON.parse(settings.messages),
+      customMessages: JSON.parse(settings.customMessages),
+    });
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to save settings' }, { status: 500 });
+  }
+}

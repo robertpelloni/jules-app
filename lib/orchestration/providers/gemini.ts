@@ -6,6 +6,7 @@ interface GeminiModel {
 }
 
 export const geminiProvider: ProviderInterface = {
+  id: 'gemini',
   async complete(params: CompletionParams): Promise<CompletionResult> {
     const { messages, apiKey, model, systemPrompt } = params;
     let modelToUse = model || 'gemini-1.5-flash';

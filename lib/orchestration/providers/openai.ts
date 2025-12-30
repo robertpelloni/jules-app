@@ -1,6 +1,7 @@
 import { CompletionParams, CompletionResult, ProviderInterface } from '../types';
 
 export const openaiProvider: ProviderInterface = {
+  id: 'openai',
   async complete(params: CompletionParams): Promise<CompletionResult> {
     const { messages, apiKey, model, systemPrompt } = params;
     const modelToUse = model || 'gpt-4o';

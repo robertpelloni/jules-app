@@ -8,7 +8,11 @@ export async function GET() {
       orderBy: { updatedAt: 'desc' }
     });
 
+<<<<<<< HEAD
     const formatted = templates.map((t: SessionTemplate) => ({
+=======
+    const formatted = templates.map((t: any) => ({
+>>>>>>> origin/jules-session-keeper-integration-11072096883725838253
         ...t,
         tags: t.tags ? t.tags.split(',') : [],
         createdAt: t.createdAt.toISOString(),

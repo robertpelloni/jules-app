@@ -21,7 +21,22 @@ import { Loader2, RefreshCw, BarChart3, Clock, CheckCircle2, Zap, MessageSquare,
 
 export function AnalyticsDashboard() {
   const { client } = useJules();
+<<<<<<< HEAD
   const { stats: keeperStats } = useSessionKeeperStore();
+=======
+  const { stats: keeperStats, loadConfig } = useSessionKeeperStore();
+
+  // Ensure we load config/stats for correct values
+  useEffect(() => {
+    loadConfig();
+  }, [loadConfig]);
+
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [sources, setSources] = useState<Source[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+>>>>>>> origin/jules-session-keeper-integration-11072096883725838253
   const [dateRange, setDateRange] = useState('30');
 
   const fetcher = useCallback(async () => {

@@ -1,4 +1,4 @@
-import { generateText } from './providers';
+import { generateText } from './providers/index';
 
 export async function decideNextAction(
   provider: string,

@@ -278,6 +278,7 @@ export class JulesClient {
       });
     }
 
+<<<<<<< HEAD
     // Sort by latest activity if possible
     try {
       const allSessions = await this.listSessions();
@@ -314,6 +315,10 @@ export class JulesClient {
     }
 
     return sources;
+=======
+    const text = await response.text();
+    return text ? JSON.parse(text) : {} as T;
+>>>>>>> origin/jules-session-keeper-integration-11072096883725838253
   }
 
   // Session Management
@@ -342,6 +347,7 @@ export class JulesClient {
     return stateMap[state] || 'active';
   }
 
+<<<<<<< HEAD
   private transformSession(session: ApiSession): Session {
       const outputs: SessionOutput[] = (session.outputs || []).map(o => ({
           pullRequest: o.pullRequest,
@@ -397,6 +403,12 @@ export class JulesClient {
     const response = await this.request<ApiSession>("/sessions", {
       method: "POST",
       body: JSON.stringify(requestBody),
+=======
+  async createSession(params: { sourceId?: string; prompt?: string; title?: string; branch?: string; description?: string; status?: string }): Promise<Session> {
+    return this.fetch<Session>('/sessions', {
+      method: 'POST',
+      body: JSON.stringify(params),
+>>>>>>> origin/jules-session-keeper-integration-11072096883725838253
     });
     
     return this.transformSession(response);

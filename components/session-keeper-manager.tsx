@@ -19,6 +19,7 @@ interface SupervisorState {
 export function SessionKeeperManager() {
   const { client, apiKey } = useJules();
   const router = useRouter();
+<<<<<<< HEAD
   
   // Use granular selectors to prevent re-renders when other parts of the store (like statusSummary) change
   const config = useSessionKeeperStore(state => state.config);
@@ -28,9 +29,18 @@ export function SessionKeeperManager() {
   const updateSessionState = useSessionKeeperStore(state => state.updateSessionState);
   const incrementStat = useSessionKeeperStore(state => state.incrementStat);
 
+=======
+  const { config, addLog, setStatusSummary, incrementStat, loadConfig, loadLogs } = useSessionKeeperStore();
+>>>>>>> origin/jules-session-keeper-integration-11072096883725838253
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const processingRef = useRef(false);
   const hasSwitchedRef = useRef(false);
+
+  // Load configuration and logs on mount
+  useEffect(() => {
+    loadConfig();
+    loadLogs();
+  }, [loadConfig, loadLogs]);
 
   useEffect(() => {
     if (intervalRef.current) {
@@ -63,10 +73,23 @@ export function SessionKeeperManager() {
           nextCheckIn: Date.now() + (config.checkIntervalSeconds * 1000)
         });
 
+<<<<<<< HEAD
         // Load Supervisor State
         const savedState = localStorage.getItem('jules_supervisor_state');
         const supervisorState: SupervisorState = savedState ? JSON.parse(savedState) : {};
         let stateChanged = false;
+=======
+        for (const session of sessions) {
+          // Optimization: Fetch ONLY the latest activity to check timestamp
+          let activities: Activity[] = [];
+          try {
+             // Fetch 1 activity
+             activities = await client.listActivities(session.id, 1);
+          } catch (e) {
+             console.error(`Failed to list activities for ${session.id}`, e);
+             continue;
+          }
+>>>>>>> origin/jules-session-keeper-integration-11072096883725838253
 
         const generateMessage = async (session: Session) => {
             let messageToSend = '';
