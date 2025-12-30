@@ -112,6 +112,12 @@ export async function POST(req: Request) {
       const lastMessage = messages[messages.length - 1];
       const userContent = lastMessage.role === 'user' ? lastMessage.content : null;
 
+      // Ensure we always have an assistant ID
+      if (!assistantId) {
+         // If missing assistantId, we try to create one or error out depending on logic.
+         // For now, let's allow "creation on fly" if not provided, but ideally it should be passed.
+      }
+
       if (!userContent && !threadId) {
          return NextResponse.json({ content: '' });
       }
@@ -128,7 +134,7 @@ export async function POST(req: Request) {
           },
           body: JSON.stringify({
             name: "Jules Supervisor",
-            instructions: "You are a project supervisor. Your goal is to keep the AI agent 'Jules' on track. Identify if the agent is stuck, off-track, or needs guidance. Provide a concise, direct instruction or feedback to the agent. Do not be conversational. Be directive but polite. Focus on the next task.",
+            instructions: "You are a project supervisor. Your goal is to keep the AI agent 'Jules' on track. Identify if the agent is stuck, off-track, or needs guidance. If a session is stalled, failed, or completed but needs more work, provide a concise, direct instruction to reactivate it. Do not be conversational. Be directive but polite. Focus on the next task.",
             model: model || "gpt-4o",
           })
         });
@@ -243,7 +249,7 @@ export async function POST(req: Request) {
                 messages,
                 apiKey,
                 model,
-                systemPrompt: 'You are a project supervisor. Your goal is to keep the AI agent "Jules" on track. Read the conversation history. Identify if the agent is stuck, off-track, or needs guidance. Provide a concise, direct instruction or feedback to the agent. Do not be conversational. Be directive but polite. Focus on the next task.'
+                systemPrompt: 'You are a project supervisor. Your goal is to keep the AI agent "Jules" on track. Read the conversation history. Identify if the agent is stuck, off-track, or needs guidance. If a session is stalled, failed, or completed but needs more work, provide a concise, direct instruction to reactivate it. Do not be conversational. Be directive but polite. Focus on the next task.'
             });
             return NextResponse.json({ content: result.content });
         } catch (e) {

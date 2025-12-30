@@ -85,6 +85,10 @@ export function BroadcastDialog({ sessions }: BroadcastDialogProps) {
     for (let i = 0; i < targetSessions.length; i++) {
       const session = targetSessions[i];
       try {
+        // If the session is failed or completed, sending a message should reactivate it.
+        // The backend logic for createActivity usually handles status updates (e.g. setting to 'active' on user input).
+        // Here we just ensure we attempt to send to all, implying reactivation intent.
+        
         await client.createActivity({
           sessionId: session.id,
           content: message,
