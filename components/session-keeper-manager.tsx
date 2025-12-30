@@ -76,17 +76,6 @@ export function SessionKeeperManager() {
         const supervisorState: SupervisorState = savedState ? JSON.parse(savedState) : {};
         let stateChanged = false;
 
-        for (const session of sessions) {
-          // Optimization: Fetch ONLY the latest activity to check timestamp
-          let activities: Activity[] = [];
-          try {
-             // Fetch 1 activity
-             activities = await client.listActivities(session.id, 1);
-          } catch (e) {
-             console.error(`Failed to list activities for ${session.id}`, e);
-             continue;
-          }
-
         const generateMessage = async (session: Session) => {
             let messageToSend = '';
 

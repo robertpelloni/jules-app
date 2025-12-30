@@ -237,7 +237,7 @@ export function AppLayout({ initialView }: AppLayoutProps) {
       
       <AppHeader
         view={view}
-        setView={setView}
+        setView={setView as any}
         mobileMenuOpen={mobileMenuOpen}
         setMobileMenuOpen={setMobileMenuOpen}
         refreshKey={refreshKey}
@@ -249,7 +249,7 @@ export function AppLayout({ initialView }: AppLayoutProps) {
         isNewSessionOpen={isNewSessionOpen}
         setIsNewSessionOpen={setIsNewSessionOpen}
         newSessionInitialValues={newSessionInitialValues}
-        onSessionCreated={handleSessionCreated}
+        onSessionCreated={(id) => handleSessionCreated(id || '')}
         onOpenNewSession={handleOpenNewSession}
         isSettingsOpen={isSettingsOpen}
         setIsSettingsOpen={setIsSettingsOpen}

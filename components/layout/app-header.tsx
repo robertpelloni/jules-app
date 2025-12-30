@@ -45,7 +45,7 @@ interface AppHeaderProps {
   setMobileMenuOpen: (open: boolean) => void;
   refreshKey: number;
   selectedSession: Session | null;
-  onSelectSession: (session: Session) => void;
+  onSelectSession: (session: Session | string) => void;
   terminalAvailable: boolean;
   terminalOpen: boolean;
   onToggleTerminal: () => void;
@@ -57,7 +57,7 @@ interface AppHeaderProps {
     prompt?: string;
     startingBranch?: string;
   };
-  onSessionCreated: () => void;
+  onSessionCreated: (sessionId?: string) => void;
   onOpenNewSession: () => void;
   isSettingsOpen: boolean;
   setIsSettingsOpen: (open: boolean) => void;
@@ -265,21 +265,12 @@ export function AppHeader({
             </Button>
           )}
 
-          <NewSessionDialog
-            onSessionCreated={onSessionCreated}
-            open={isNewSessionOpen}
-            onOpenChange={setIsNewSessionOpen}
-            initialValues={newSessionInitialValues}
-            trigger={
-              <Button
-                className="w-full sm:w-auto h-8 text-[10px] font-mono uppercase tracking-widest bg-purple-600 hover:bg-purple-500 text-white border-0"
-                onClick={onOpenNewSession}
-              >
-                <Plus className="h-3.5 w-3.5 mr-1.5" />
-                New Session
-              </Button>
-            }
-          />
+              <SessionList
+                key={refreshKey}
+                onSelectSession={onSelectSession}
+                selectedSessionId={selectedSession?.id}
+                className="h-[calc(100vh-60px)]"
+              />
 
           <BroadcastDialog sessions={[]} />
 
