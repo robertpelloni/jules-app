@@ -26,6 +26,8 @@ import {
   Activity as ActivityIcon,
   FolderTree,
   Search,
+  LayoutGrid,
+  Files
 } from "lucide-react";
 import { SessionList } from "@/components/session-list";
 import { NewSessionDialog } from "@/components/new-session-dialog";
@@ -37,7 +39,7 @@ import { useRouter } from "next/navigation";
 
 interface AppHeaderProps {
   view: 'sessions' | 'analytics' | 'templates' | 'kanban' | 'board' | 'artifacts';
-  setView: (view: 'sessions' | 'analytics' | 'templates' | 'kanban') => void;
+  setView: (view: 'sessions' | 'analytics' | 'templates' | 'kanban' | 'board' | 'artifacts') => void;
   mobileMenuOpen: boolean;
 
   setMobileMenuOpen: (open: boolean) => void;
@@ -160,6 +162,35 @@ export function AppHeader({
             <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
             <span className="text-[10px] font-mono uppercase tracking-wider">
               Sessions
+            </span>
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            className={`h-8 px-3 hover:bg-white/5 ${
+              view === "board" ? "text-white" : "text-white/60"
+            }`}
+            onClick={() => setView("board")}
+          >
+            <LayoutGrid className="h-3.5 w-3.5 mr-1.5" />
+            <span className="text-[10px] font-mono uppercase tracking-wider">
+              Board
+            </span>
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            className={`h-8 px-3 hover:bg-white/5 ${
+              view === "artifacts" ? "text-white" : "text-white/60"
+            }`}
+            onClick={() => setView("artifacts")}
+            title="Browse Artifacts"
+          >
+            <Files className="h-3.5 w-3.5 mr-1.5" />
+            <span className="text-[10px] font-mono uppercase tracking-wider">
+              Files
             </span>
           </Button>
 

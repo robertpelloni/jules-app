@@ -54,20 +54,17 @@ interface SessionKeeperState {
   statusSummary: StatusSummary;
   sessionStates: Record<string, SessionState>;
   stats: SessionKeeperStats;
-<<<<<<< HEAD
-  setConfig: (config: SessionKeeperConfig) => void;
-  addLog: (message: string, type: Log['type']) => void;
-  addDebate: (debate: DebateResult) => void;
-=======
   isLoading: boolean;
 
   // Actions
   loadConfig: () => Promise<void>;
+  setConfig: (config: SessionKeeperConfig) => void; // Added back for compatibility
   saveConfig: (config: SessionKeeperConfig) => Promise<void>;
 
   loadLogs: () => Promise<void>;
   addLog: (message: string, type: Log['type'], details?: any) => Promise<void>;
->>>>>>> origin/jules-session-keeper-integration-11072096883725838253
+  addDebate: (debate: DebateResult) => void;
+  
   clearLogs: () => void;
 
   setStatusSummary: (summary: Partial<StatusSummary>) => void;
@@ -123,6 +120,8 @@ export const useSessionKeeperStore = create<SessionKeeperState>()(
           set({ isLoading: false });
         }
       },
+
+      setConfig: (config) => set({ config }), // Added back for compatibility
 
       saveConfig: async (config) => {
         set({ config, isLoading: true });

@@ -278,7 +278,6 @@ export class JulesClient {
       });
     }
 
-<<<<<<< HEAD
     // Sort by latest activity if possible
     try {
       const allSessions = await this.listSessions();
@@ -315,10 +314,130 @@ export class JulesClient {
     }
 
     return sources;
-=======
-    const text = await response.text();
-    return text ? JSON.parse(text) : {} as T;
->>>>>>> origin/jules-session-keeper-integration-11072096883725838253
+  }
+
+  // Session Management
+  async listSessions(): Promise<Session[]> {
+    try {
+        const response = await this.request<{ sessions: ApiSession[] }>('/sessions');
+        return (response.sessions || []).map(s => this.transformSession(s));
+    } catch (err) {
+        console.error("Failed to list sessions", err);
+        return [];
+    }
+  }
+
+  private mapState(state: string): Session['status'] {
+    const stateMap: Record<string, Session['status']> = {
+      'COMPLETED': 'completed',
+      'ACTIVE': 'active',
+      'PLANNING': 'active',
+      'QUEUED': 'active',
+      'IN_PROGRESS': 'active',
+      'AWAITING_USER_FEEDBACK': 'active',
+      'AWAITING_PLAN_APPROVAL': 'awaiting_approval',
+      'FAILED': 'failed',
+      'PAUSED': 'paused'
+    };
+    return stateMap[state] || 'active';
+  }
+
+  private transformSession(session: ApiSession): Session {
+      const outputs: SessionOutput[] = (session.outputs || []).map(o => ({
+          pullRequest: o.pullRequest,
+          ...o
+      }));
+
+      return {
+        id: session.id,
+        sourceId: session.sourceContext?.source?.replace('sources/github/', '') || '',
+        title: session.title || '',
+        status: this.mapState(session.state || ''),
+        rawState: session.state,
+        createdAt: session.createTime,
+        updatedAt: session.updateTime,
+        lastActivityAt: session.lastActivityAt,
+        branch: session.sourceContext?.githubRepoContext?.startingBranch || 'main',
+        outputs: outputs.length > 0 ? outputs : undefined
+      };
+  }
+
+  async getSession(id: string): Promise<Session> {
+    const response = await this.request<ApiSession>(`/sessions/${id}`);
+    return this.transformSession(response);
+  }
+
+  async createSession(sourceId: string, prompt: string, title: string = 'Untitled Session'): Promise<Session> {
+    const data: CreateSessionRequest = {
+      sourceId,
+      prompt,
+      title
+    };
+    
+    // ... logic for createSession ...
+    let finalPrompt = data.prompt;
+    if (data.autoCreatePr) {
+      finalPrompt += '\n\nIMPORTANT: Automatically create a pull request when code changes are ready.';
+    }
+
+    const requestBody = {
+      prompt: finalPrompt,
+      sourceContext: {
+        source: data.sourceId,
+        githubRepoContext: {
+          startingBranch: data.startingBranch || 'main' // Default to main branch
+        }
+      },
+      title: data.title || 'Untitled Session',
+      requirePlanApproval: true // Enable plan approval as per requirements
+    };
+
+
+
+    const response = await this.request<ApiSession>("/sessions", {
+      method: "POST",
+      body: JSON.stringify(requestBody),
+    });
+    
+    return this.transformSession(response);
+  }
+
+    // Sort by latest activity if possible
+    try {
+      const allSessions = await this.listSessions();
+      const latestActivityMap = new Map<string, string>();
+      for (const session of allSessions) {
+        const sourceId = `sources/github/${session.sourceId}`;
+        const activityTime =
+          session.lastActivityAt || session.updatedAt || session.createdAt;
+
+        if (
+          !latestActivityMap.has(sourceId) ||
+          (activityTime && activityTime > latestActivityMap.get(sourceId)!)
+        ) {
+          latestActivityMap.set(sourceId, activityTime);
+        }
+      }
+      sources.sort((a, b) => {
+        const aTime = latestActivityMap.get(a.id) || "";
+        const bTime = latestActivityMap.get(b.id) || "";
+
+        // Sources with activity come before those without
+        if (aTime && !bTime) return -1;
+        if (!aTime && bTime) return 1;
+        return bTime.localeCompare(aTime);
+      });
+
+
+    } catch (error) {
+      console.error(
+        "[Jules Client] Failed to sort sources by activity:",
+        error,
+      );
+      // Continue with unsorted sources if session fetch fails
+    }
+
+    return sources;
   }
 
   // Session Management

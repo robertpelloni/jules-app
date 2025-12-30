@@ -24,12 +24,8 @@ export function SessionBoard() {
   useEffect(() => {
     if (!client) return;
     async function fetchSessions() {
-<<<<<<< HEAD
       if (!client) return;
       const fetchedSessions = await client.listSessions();
-=======
-      const fetchedSessions = await client!.listSessions();
->>>>>>> origin/jules-session-keeper-integration-11072096883725838253
       const newColumns: Columns = {
         active: [],
         paused: [],
@@ -105,14 +101,9 @@ export function SessionBoard() {
         const newStatus = overContainer as 'active' | 'paused' | 'completed';
         draggedSession.status = newStatus;
         if (client) {
-<<<<<<< HEAD
           client.updateSession(draggedSession.id, { status: newStatus });
         }
 
-=======
-             client.updateSession(draggedSession.id, { status: newStatus });
-        }
->>>>>>> origin/jules-session-keeper-integration-11072096883725838253
         setColumns(newColumns);
       }
     }

@@ -1,13 +1,8 @@
-<<<<<<< HEAD
-
-=======
->>>>>>> origin/jules-session-keeper-integration-11072096883725838253
 'use client';
 
 import { useState } from 'react';
 import { useJules } from '@/lib/jules/provider';
 import { Button } from '@/components/ui/button';
-<<<<<<< HEAD
 import {
   Dialog,
   DialogContent,
@@ -15,14 +10,12 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter
 } from '@/components/ui/dialog';
-=======
->>>>>>> origin/jules-session-keeper-integration-11072096883725838253
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
-<<<<<<< HEAD
     Select,
     SelectContent,
     SelectItem,
@@ -31,12 +24,13 @@ import {
 } from "@/components/ui/select"
 import { Loader2, Plus } from 'lucide-react';
 import useSWR from 'swr';
+import { toast } from 'sonner';
 
 interface NewSessionDialogProps {
     trigger?: React.ReactNode;
     open?: boolean;
     onOpenChange?: (open: boolean) => void;
-    onSessionCreated?: () => void;
+    onSessionCreated?: (sessionId: string) => void;
     initialValues?: {
         sourceId?: string;
         title?: string;
@@ -65,18 +59,27 @@ export function NewSessionDialog({ trigger, open: controlledOpen, onOpenChange: 
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!client || !sourceId) return;
+        if (!client) return;
 
         try {
             setLoading(true);
-            await client.createSession(sourceId, prompt, title);
+            
+            // If sourceId is empty, default to 'global' or the first available source
+            // This handles cases where user just wants to start a quick task
+            const effectiveSourceId = sourceId || (sources && sources.length > 0 ? sources[0].id : 'global');
+
+            const session = await client.createSession(effectiveSourceId, prompt, title);
             setOpen?.(false);
-            onSessionCreated?.();
+            onSessionCreated?.(session.id);
+            toast.success('Session created successfully');
+            
             // Reset form
             setTitle('');
             setPrompt('');
+            setSourceId('');
         } catch (err) {
             console.error('Failed to create session:', err);
+            toast.error('Failed to create session');
         } finally {
             setLoading(false);
         }
@@ -104,9 +107,10 @@ export function NewSessionDialog({ trigger, open: controlledOpen, onOpenChange: 
                         <Label htmlFor="source">Repository</Label>
                         <Select value={sourceId} onValueChange={setSourceId} disabled={sourcesLoading}>
                             <SelectTrigger className="bg-zinc-900 border-zinc-800">
-                                <SelectValue placeholder="Select a repository" />
+                                <SelectValue placeholder="Select a repository (Optional)" />
                             </SelectTrigger>
                             <SelectContent className="bg-zinc-900 border-zinc-800">
+                                <SelectItem value="global">Global (No specific repo)</SelectItem>
                                 {sources?.map(source => (
                                     <SelectItem key={source.id} value={source.id}>{source.name || source.id}</SelectItem>
                                 ))}
@@ -133,124 +137,17 @@ export function NewSessionDialog({ trigger, open: controlledOpen, onOpenChange: 
                             className="min-h-[100px] bg-zinc-900 border-zinc-800"
                         />
                     </div>
-                    <div className="flex justify-end pt-4">
-                        <Button type="submit" disabled={loading || !sourceId} className="bg-purple-600 hover:bg-purple-500">
+                    <DialogFooter>
+                        <Button type="button" variant="ghost" onClick={() => setOpen?.(false)}>
+                            Cancel
+                        </Button>
+                        <Button type="submit" disabled={loading} className="bg-purple-600 hover:bg-purple-500">
                             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             {loading ? 'Creating...' : 'Create Session'}
                         </Button>
-                    </div>
+                    </DialogFooter>
                 </form>
             </DialogContent>
         </Dialog>
     );
-=======
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { Plus, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
-
-export function NewSessionDialog({
-  onSessionCreated,
-  trigger,
-  initialValues
-}: {
-  onSessionCreated?: (sessionId: string) => void;
-  trigger?: React.ReactNode;
-  initialValues?: any;
-}) {
-  const { client } = useJules();
-  const [open, setOpen] = useState(false);
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title) return;
-
-    setIsSubmitting(true);
-    try {
-      const session = await client!.createSession({
-        title,
-        description,
-        status: 'active',
-        prompt: description || title,
-        sourceId: 'global' // simplified default
-      });
-
-      toast.success('Session created successfully');
-      setOpen(false);
-      setTitle('');
-      setDescription('');
-
-      if (onSessionCreated) {
-        onSessionCreated(session.id);
-      }
-    } catch (error) {
-      toast.error('Failed to create session');
-      console.error(error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger || (
-          <Button size="sm" className="gap-2">
-            <Plus className="h-4 w-4" />
-            New Session
-          </Button>
-        )}
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] bg-zinc-950 text-white border-white/10">
-        <DialogHeader>
-          <DialogTitle>Create New Session</DialogTitle>
-          <DialogDescription className="text-zinc-400">
-            Start a new task or conversation with Jules.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="title">Title</Label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g., Refactor Authentication"
-              className="bg-black/50 border-white/10"
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="description">Description (Optional)</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe the goal of this session..."
-              className="bg-black/50 border-white/10 min-h-[100px]"
-            />
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Create Session
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
->>>>>>> origin/jules-session-keeper-integration-11072096883725838253
 }
