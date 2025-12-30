@@ -1,50 +1,38 @@
-# Handoff Documentation
+# Session Handoff Documentation
 
 **Date:** Oct 24, 2024
-**Version:** v0.7.0
+**Version:** v0.8.1
+**Author:** Jules (AI Agent)
 
-## Overview
-This session focused on hardening the "Session Keeper" (Auto-Pilot) feature by moving its configuration and audit logs from browser `localStorage` to a server-side SQLite database managed by Prisma. We also integrated the `jules-agent-sdk-python` as a reference submodule and added system internal monitoring.
+## 🌟 Session Achievements
 
-## Key Changes
+### 1. Vision & Documentation
+-   **Vision:** Defined the "Bobcoin Ecosystem" in `INSTRUCTIONS.md` (Proof of Workout, Privacy, Arcade/Dating/Storage Nodes).
+-   **Instructions:** Centralized all agent directives. `AGENTS.md`, `CLAUDE.md`, etc., now point to the single source of truth.
 
-### 1. Persistence Layer (Prisma + SQLite)
-- **Schema:** Added `KeeperSettings` (singleton config) and `KeeperLog` (audit trail) models to `prisma/schema.prisma`.
-- **API:** Created REST endpoints at `/api/settings/keeper` and `/api/logs/keeper`.
-- **Store:** Updated `useSessionKeeperStore` to fetch/save data via these APIs.
+### 2. Infrastructure & Stability
+-   **Dashboard:** Enhanced `/system/internals` to show build numbers (git commit count) for submodules.
+-   **Build Fixed:** Resolved complex TypeScript errors in `app-layout.tsx` (event handling) and `templates/route.ts` (implicit any).
+-   **Prisma:** Stabilized database layer by pinning Prisma to v5.19.1.
 
-### 2. Session Keeper (Auto-Pilot)
-- **Logic:** The keeper now runs continuously on the client side (via `SessionKeeperManager`), but syncs its state and logs to the backend.
-- **Features:**
-    - Auto-approves plans.
-    - Sends "nudges" (encouragement) if inactive.
-    - Supports "Multi-Agent Debate" (mocked via `/api/supervisor` for now).
-    - Supports "Smart Supervisor" (AI-driven guidance).
+### 3. Bobcoin Integration
+-   **Submodule:** `bobcoin` is initialized at `submodules/bobcoin`.
+-   **Wallet UI:** Mock wallet available at `/wallet`.
 
-### 3. Submodule Integration
-- **Reference:** Added `https://github.com/AsyncFuncAI/jules-agent-sdk-python` to `submodules/`.
-- **Purpose:** To serve as a reference for feature parity in the JS/TS SDK.
-- **Dashboard:** Created `/system/internals` to view submodule status (commit hash, date).
+## 🛠️ Technical Debt & Known Issues
+-   **Database:** `dev.db` is present in the environment for continuity but should be `.gitignore`d in production.
+-   **Submodule Sync:** Ensure `git submodule update --remote` is run regularly.
 
-### 4. UI/UX
-- **Dashboard:** Updated `AnalyticsDashboard` to show Keeper stats.
-- **Settings:** Updated `SessionKeeperSettings` to load/save from the server.
-- **Components:** Added `Accordion` and `Sonner` (Toaster) UI components.
+## 🚀 Next Steps (for Next Agent)
+1.  **Bobcoin Connectivity:**
+    -   Implement the actual RPC client in `lib/bobcoin`.
+    -   Connect `/wallet` to the local Bobcoin node.
+2.  **Mining Simulation:**
+    -   Create a "Mining" tab in the wallet that simulates "Proof of Workout" (e.g., typing speed or mouse movement as a proxy for physical activity in this dev environment).
+3.  **Authentication:**
+    -   The current auth is basic. Integrate it with the Bobcoin wallet (Sign-in with Ethereum/Solana style, but for Bobcoin).
 
-## Project Structure
-- `app/api/settings/keeper`: API for keeper configuration.
-- `app/api/logs/keeper`: API for keeper logs.
-- `app/system/internals`: New dashboard for system architecture.
-- `lib/stores/session-keeper.ts`: Client-side store with server sync.
-- `submodules/`: Contains external references.
-
-## Known Issues / Todos
-- **Debate Logic:** The "Council Debate" feature currently mocks the AI interaction in some paths or relies on `api/supervisor`. This needs to be robustly connected to real LLM providers.
-- **SDK Parity:** We need to do a full audit of the Python SDK vs JS SDK to ensure all methods are available.
-- **Production Build:** Ensure `next build` passes with the new submodules and components.
-
-## How to Resume
-1. Run `npm install` and `npx prisma generate`.
-2. Ensure `npm run dev` works.
-3. Check `/system/internals` to verify submodule status.
-4. Continue implementing features from the Python SDK into `lib/jules/`.
+## 📂 Key File Locations
+-   **Vision:** `INSTRUCTIONS.md`
+-   **Dashboard:** `app/system/internals/page.tsx`
+-   **Wallet:** `app/wallet/page.tsx`

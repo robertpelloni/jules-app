@@ -7,7 +7,7 @@ export async function GET() {
       orderBy: { updatedAt: 'desc' }
     });
 
-    const formatted = templates.map(t => ({
+    const formatted = templates.map((t: any) => ({
         ...t,
         tags: t.tags ? t.tags.split(',') : [],
         createdAt: t.createdAt.toISOString(),

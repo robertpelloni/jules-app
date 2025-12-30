@@ -27,28 +27,11 @@ interface DebateDialogProps {
   initialContext?: string;
 }
 
-export function DebateDialog({
-  sessionId,
-  trigger,
-  onDebateStart,
-  open: controlledOpen,
-  onOpenChange: setControlledOpen,
-  initialTopic,
-  initialContext
-}: DebateDialogProps) {
+export function DebateDialog({ sessionId, trigger, onDebateStart }: DebateDialogProps) {
   const { client } = useJules();
-  const [internalOpen, setInternalOpen] = useState(false);
-
-  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
-  const setOpen = setControlledOpen || setInternalOpen;
-
+  const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [topic, setTopic] = useState(initialTopic || '');
-
-  // Sync initial topic
-  if (initialTopic && topic !== initialTopic && !loading) {
-     setTopic(initialTopic);
-  }
+  const [topic, setTopic] = useState('');
 
   const handleStartDebate = async () => {
     if (!client) return;

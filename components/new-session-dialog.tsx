@@ -21,21 +21,14 @@ import { toast } from 'sonner';
 export function NewSessionDialog({
   onSessionCreated,
   trigger,
-  initialValues,
-  open: controlledOpen,
-  onOpenChange: setControlledOpen
+  initialValues
 }: {
   onSessionCreated?: (sessionId: string) => void;
   trigger?: React.ReactNode;
   initialValues?: any;
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
 }) {
   const { client } = useJules();
-  const [internalOpen, setInternalOpen] = useState(false);
-
-  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
-  const setOpen = setControlledOpen || setInternalOpen;
+  const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);

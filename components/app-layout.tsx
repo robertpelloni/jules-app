@@ -276,8 +276,6 @@ export function AppLayout() {
             
             <NewSessionDialog 
               onSessionCreated={handleSessionCreated} 
-              open={isNewSessionOpen}
-              onOpenChange={setIsNewSessionOpen}
               initialValues={newSessionInitialValues}
               trigger={
                 <Button 
@@ -346,7 +344,7 @@ export function AppLayout() {
             {!sidebarCollapsed && (
               <SessionList
                 key={refreshKey}
-                onSelectSession={handleSessionSelectById}
+                onSelectSession={(sessionId) => handleSessionSelectById(sessionId)}
                 selectedSessionId={selectedSession?.id}
               />
             )}
