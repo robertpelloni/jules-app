@@ -155,11 +155,17 @@ export function AppLayout({ initialView }: AppLayoutProps) {
     };
   }, [resize, stopResizing]);
 
-  const handleSessionSelect = (session: Session) => {
+  const handleSessionSelect = (session: Session | string) => {
+    const sessionId = typeof session === 'string' ? session : session.id;
+    const sessionObj = typeof session === 'string' ? null : session;
+
     // Optimistic update to prevent the useEffect loop
-    if (selectedSession?.id === session.id) return;
+    if (selectedSession?.id === sessionId) return;
     
-    setSelectedSession(session);
+    if (sessionObj) {
+        setSelectedSession(sessionObj);
+    }
+    
     setView('sessions');
     setMobileMenuOpen(false);
     
@@ -167,7 +173,7 @@ export function AppLayout({ initialView }: AppLayoutProps) {
     // but Next.js router.push will trigger the searchParams effect.
     // The key is ensuring the effect condition `selectedSession?.id !== sessionId` handles it.
     const newParams = new URLSearchParams(searchParams.toString());
-    newParams.set('sessionId', session.id);
+    newParams.set('sessionId', sessionId);
     router.push(`/?${newParams.toString()}`);
   };
 

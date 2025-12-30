@@ -7,7 +7,7 @@ interface AppSidebarProps {
   collapsed: boolean;
   onToggleCollapse: () => void;
   refreshKey: number;
-  onSelectSession: (session: Session) => void;
+  onSelectSession: (session: Session | string) => void;
   selectedSessionId?: string;
 }
 
