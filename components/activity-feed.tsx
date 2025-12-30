@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
-import useSWR from 'swr';
+import useSWR from 'swr'; // Keeping for potential future use, though origin uses manual polling
 import { useJules } from '@/lib/jules/provider';
-import type { Activity, Session } from '@/types/jules';
+import type { Activity, Session, Artifact } from '@/types/jules';
 import { exportSessionToJSON, exportSessionToMarkdown } from '@/lib/export';
 import { useNotifications } from '@/hooks/use-notifications';
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,12 +12,21 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow, isValid, parseISO } from 'date-fns';
-import { Send, Archive, ArchiveRestore, Code, Terminal, ChevronDown, ChevronRight, Play, GitBranch, GitPullRequest, MoreVertical, Book, ArrowUp, ArrowDown, Download, Copy, Check, Loader2, Bell } from 'lucide-react';
+import { Send, Archive, ArchiveRestore, Code, Terminal, ChevronDown, ChevronRight, Play, GitBranch, GitPullRequest, MoreVertical, Book, ArrowUp, ArrowDown, Download, Copy, Check, Loader2, Bell, Users, LayoutTemplate } from 'lucide-react';
 import { archiveSession, unarchiveSession, isSessionArchived } from '@/lib/archive';
-import { ActivityItem } from './activity-item';
-import { ActivityGroup } from './activity-group';
 import { ActivityInput } from './activity-input';
 import { SessionHealthBadge } from './session-health-badge';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { BashOutput } from '@/components/ui/bash-output';
+import { NewSessionDialog } from './new-session-dialog';
+import { DebateDialog } from './debate-dialog';
+import { DebateViewer } from './debate-viewer';
+import { PlanContent } from './plan-content'; // Assuming this exists or is needed based on origin usage logic, wait, origin uses PlanContent in formatContent? No, I need to check if PlanContent is imported in origin.
+// Looking at origin diff in previous turn, I don't see PlanContent imported. 
+// However, in the formatContent function in origin (lines 115-136 in the read output), it uses <PlanContent /> at line 133.
+// So I need to import it.
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,9 +44,12 @@ interface ActivityFeedProps {
   showCodeDiffs: boolean;
   onToggleCodeDiffs: (show: boolean) => void;
   onActivitiesChange: (activities: Activity[]) => void;
+  onStartDebate?: () => void;
+  onSaveTemplate?: () => void;
+  onReviewArtifact?: (artifact: Artifact) => void;
 }
 
-export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDiffs, onActivitiesChange }: ActivityFeedProps) {
+export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDiffs, onActivitiesChange, onStartDebate, onSaveTemplate, onReviewArtifact }: ActivityFeedProps) {
   const { client } = useJules();
   const [sending, setSending] = useState(false);
   const [approvingPlan, setApprovingPlan] = useState(false);
@@ -49,6 +61,11 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
   const prevIdsRef = useRef<Set<string>>(new Set());
   const [localError, setLocalError] = useState<string | null>(null);
   const { sendNotification, permission, requestPermission } = useNotifications();
+  // We need loading state from origin
+  const [loading, setLoading] = useState(true);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  // We need error state from origin
+  const [error, setError] = useState<string | null>(null);
 
   // Check archive status on session change
   useEffect(() => {
@@ -67,86 +84,110 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
     }
   };
 
-  const fetcher = useCallback(async () => {
-    if (!client) return [];
-    
-    // Fetch activities
-    const fetchedActivities = await client.listActivities(session.id);
-    
-    // Ensure we have the prompt. If not in session prop, try to fetch session details
-    let prompt = session.prompt;
-    if (!prompt) {
-      try {
-        const sessionDetails = await client.getSession(session.id);
-        prompt = sessionDetails.prompt;
-      } catch (e) {
-        console.warn('Failed to fetch session details for prompt', e);
-      }
+  const formatContent = (content: string, metadata?: Record<string, unknown>) => {
+    if (content === '[userMessaged]' || content === '[agentMessaged]') {
+        const realContent = metadata?.original_content || metadata?.message || metadata?.text;
+        if (realContent && typeof realContent === 'string') {
+             return formatContent(realContent, undefined);
+        }
+        if (content === '[userMessaged]') return <span className="text-white/50 italic">Message sent</span>;
+        if (content === '[agentMessaged]') return <span className="text-white/50 italic">Agent working...</span>;
     }
 
-    // Prepend initial prompt if missing
-    if (prompt) {
-       const hasPrompt = fetchedActivities.some(a => a.id === 'initial-prompt' || a.content === prompt);
-       if (!hasPrompt) {
-          fetchedActivities.unshift({
-            id: 'initial-prompt',
-            sessionId: session.id,
-            type: 'message',
-            role: 'user',
-            content: prompt,
-            createdAt: session.createdAt
-          });
-       }
+    if (content.startsWith('{') || content.startsWith('[')) {
+        try {
+          const parsed = JSON.parse(content);
+          if (typeof parsed === 'object' && parsed !== null) {
+             if (Array.isArray(parsed) && parsed.length === 0) return null;
+             if (!Array.isArray(parsed) && Object.keys(parsed).length === 0) return null;
+          }
+          if (Array.isArray(parsed) || (parsed.steps && Array.isArray(parsed.steps))) {
+             // Assuming PlanContent component is available, if not we fall back to pre
+             // For now, I will use PlanContent if I can find it, otherwise JSON stringify
+             return <PlanContent content={parsed} />;
+          }
+          return <pre className="text-[11px] overflow-x-auto font-mono bg-muted/50 p-2 rounded">{JSON.stringify(parsed, null, 2)}</pre>;
+        } catch { }
     }
-    
-    return fetchedActivities;
-  }, [client, session.id, session.prompt, session.createdAt]);
 
-  const { data: activities = [], error: swrError, mutate, isLoading } = useSWR(
-    client ? ['activities', session.id] : null,
-    fetcher,
-    {
-      refreshInterval: (session.status === 'active' && !isArchived) ? 3000 : 0,
-      revalidateOnFocus: true,
-      dedupingInterval: 1000,
-      onSuccess: (data) => {
-        setLocalError(null);
-      },
-      onError: (err) => {
-        console.error('Failed to load activities:', err);
-      }
+    return (
+        <div className="prose prose-sm dark:prose-invert max-w-none break-words prose-p:text-xs prose-p:leading-relaxed prose-p:break-words prose-headings:text-xs prose-headings:font-semibold prose-headings:mb-1 prose-headings:mt-2 prose-ul:text-xs prose-ol:text-xs prose-li:text-xs prose-li:my-0.5 prose-code:text-[11px] prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:break-all prose-pre:text-[11px] prose-pre:bg-muted prose-pre:p-2 prose-pre:overflow-x-auto prose-blockquote:text-xs prose-blockquote:border-l-primary prose-strong:font-semibold">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+        </div>
+    );
+  };
+
+  const loadActivities = useCallback(async (isInitialLoad = true) => {
+    if (!client) {
+      setLoading(false);
+      return;
     }
-  );
 
-  const error = localError || (swrError ? (swrError instanceof Error ? swrError.message : 'Failed to load activities') : null);
+    try {
+      if (isInitialLoad) setLoading(true);
+      setError(null);
 
-  // Animation logic for new items
-  useEffect(() => {
-    if (activities.length === 0) return;
+      const sessionDetails = await client.getSession(session.id);
+      const data = await client.listActivities(session.id);
 
-    const currentIds = new Set(activities.map(a => a.id));
-    
-    // Only animate if we have previous items (not initial load)
-    if (prevIdsRef.current.size > 0) {
-      const newItems = activities.filter(a => !prevIdsRef.current.has(a.id));
-      if (newItems.length > 0) {
-         setNewActivityIds(new Set(newItems.map(a => a.id)));
-         setTimeout(() => setNewActivityIds(new Set()), 500);
-
-         // Notify on new agent messages if hidden
-         const newAgentMessage = newItems.find(a => a.role === 'agent' && (a.type === 'message' || a.type === 'plan' || a.type === 'error'));
-         if (newAgentMessage && document.hidden && permission === 'granted') {
-            const title = newAgentMessage.type === 'error' ? 'Jules Error' : 'Jules Update';
-            sendNotification(title, {
-                body: newAgentMessage.content.substring(0, 100) + (newAgentMessage.content.length > 100 ? '...' : ''),
-                tag: session.id
+      if (sessionDetails.prompt) {
+         const hasPrompt = data.some(a => a.content === sessionDetails.prompt);
+         if (!hasPrompt) {
+            data.unshift({
+              id: 'initial-prompt',
+              sessionId: session.id,
+              type: 'message',
+              role: 'user',
+              content: sessionDetails.prompt,
+              createdAt: session.createdAt
             });
          }
       }
+
+      setActivities(prevActivities => {
+        if (prevActivities.length === 0 || isInitialLoad) return data;
+        const prevIds = new Set(prevActivities.map(a => a.id));
+        const newActivities = data.filter(newAct => !prevIds.has(newAct.id));
+        if (newActivities.length > 0) {
+          setNewActivityIds(new Set(newActivities.map(a => a.id)));
+          setTimeout(() => setNewActivityIds(new Set()), 500);
+          
+          // Notification Logic from HEAD
+          const newAgentMessage = newActivities.find(a => a.role === 'agent' && (a.type === 'message' || a.type === 'plan' || a.type === 'error'));
+          if (newAgentMessage && document.hidden && permission === 'granted') {
+             const title = newAgentMessage.type === 'error' ? 'Jules Error' : 'Jules Update';
+             sendNotification(title, {
+                 body: newAgentMessage.content.substring(0, 100) + (newAgentMessage.content.length > 100 ? '...' : ''),
+                 tag: session.id
+             });
+          }
+
+          return [...prevActivities, ...newActivities];
+        }
+        return prevActivities;
+      });
+    } catch (err) {
+      console.error('Failed to load activities:', err);
+      if (err instanceof Error && err.message.includes('Resource not found')) {
+        setActivities([]);
+        setError(null);
+      } else {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load activities';
+        setError(errorMessage);
+        if (isInitialLoad) setActivities([]);
+      }
+    } finally {
+      if (isInitialLoad) setLoading(false);
     }
-    
-    prevIdsRef.current = currentIds;
-  }, [activities, permission, sendNotification, session.id]);
+  }, [client, session.id, session.createdAt, permission, sendNotification]);
+
+  useEffect(() => {
+    loadActivities(true);
+    if (session.status === 'active' && !isArchived) {
+      const interval = setInterval(() => loadActivities(false), 5000);
+      return () => clearInterval(interval);
+    }
+  }, [session.id, session.status, isArchived, loadActivities]);
 
   useEffect(() => {
     onActivitiesChange(activities);
@@ -159,7 +200,7 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
       setLocalError(null);
       await client.approvePlan(session.id);
       // Optimistic update or just trigger revalidation
-      setTimeout(() => mutate(), 1000);
+      setTimeout(() => loadActivities(false), 1000);
     } catch (err) {
       console.error('Failed to approve plan:', err);
       setLocalError(err instanceof Error ? err.message : 'Failed to approve plan');
@@ -179,18 +220,38 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
       });
       
       // Optimistically update the list
-      await mutate(async (currentData) => {
-        return [...(currentData || []), userMessage];
-      }, { revalidate: false });
+      setActivities(prev => [...prev, userMessage]);
 
       // Poll for agent's response after a short delay
-      setTimeout(() => mutate(), 2000);
+      setTimeout(() => loadActivities(false), 2000);
     } catch (err) {
       console.error("Failed to send message:", err);
       const errorMessage = err instanceof Error ? err.message : "Failed to send message";
       setLocalError(errorMessage);
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleQuickReview = async () => {
+    if (!client || sending) return;
+    // Implementation from origin
+    try {
+        setSending(true);
+        setError(null);
+        const userMessage = await client.createActivity({
+            sessionId: session.id,
+            content: 'Please perform a comprehensive code review of the repository. Look for bugs, security issues, and opportunities for refactoring. Provide a detailed summary of your findings.',
+        });
+        setActivities(prev => [...prev, userMessage]);
+        setTimeout(async () => {
+            try { await loadActivities(false); } catch (err) { console.error(err); }
+        }, 2000);
+    } catch (err) {
+        console.error('Failed to send command:', err);
+        setError(err instanceof Error ? err.message : 'Failed to send command');
+    } finally {
+        setSending(false);
     }
   };
 
@@ -203,7 +264,7 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
   const handleUnarchive = () => {
     unarchiveSession(session.id);
     setIsArchived(false);
-    onArchive?.(); // Reuse callback to notify list refresh
+    onArchive?.();
   };
 
   const toggleCodeDiffsSidebar = () => {
@@ -237,7 +298,8 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
 
   const finalDiff = activities.filter(activity => activity.diff).slice(-1);
   const hasDiffs = finalDiff.length > 0;
-  
+  const outputBranch = session.branch || 'main';
+
   const toggleBashOutput = (activityId: string) => {
     setExpandedBashOutputs(prev => {
       const next = new Set(prev);
@@ -247,17 +309,31 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
     });
   };
 
-  // Filter activities
+  const getActivityIcon = (activity: Activity) => {
+    if (activity.role === 'user') {
+      return <AvatarFallback className="bg-purple-500 text-white text-[9px] font-bold uppercase tracking-wider">U</AvatarFallback>;
+    }
+    return <AvatarFallback className="bg-white text-black text-[9px] font-bold uppercase tracking-wider">J</AvatarFallback>;
+  };
+
+  const getActivityTypeColor = (type: Activity['type']) => {
+    switch (type) {
+      case 'message': return 'bg-blue-500';
+      case 'plan': return 'bg-purple-500';
+      case 'progress': return 'bg-yellow-500';
+      case 'result': return 'bg-green-500';
+      case 'error': return 'bg-red-500';
+      case 'debate': return 'bg-pink-500';
+      default: return 'bg-gray-500';
+    }
+  };
+
   const filteredActivities = useMemo(() => activities.filter((activity) => {
     if (activity.bashOutput || activity.diff || activity.media) return true;
     const content = activity.content?.trim();
     if (!content) return false;
-
-    // Aggressive filter for empty JSON/Arrays (including whitespace)
     const cleanContent = content.replace(/\s/g, '');
     if (cleanContent === '{}' || cleanContent === '[]') return false;
-
-    // Filter empty parsed JSON objects
     if (content.startsWith('{') || content.startsWith('[')) {
       try {
         const parsed = JSON.parse(content);
@@ -265,11 +341,8 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
           if (Array.isArray(parsed) && parsed.length === 0) return false;
           if (!Array.isArray(parsed) && Object.keys(parsed).length === 0) return false;
         }
-      } catch {
-        // Not valid JSON, process as text
-      }
+      } catch { }
     }
-
     return true;
   }), [activities]);
 
@@ -284,9 +357,9 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
   };
 
   const statusInfo = getStatusInfo();
-  const pullRequest = session.outputs?.find(o => o.pullRequest)?.pullRequest;
+  const pullRequest = session.metadata?.pull_request as { url: string, number: number } | undefined;
 
-  if (isLoading && activities.length === 0) {
+  if (loading && activities.length === 0) {
     return (
       <div className="flex items-center justify-center h-full bg-black">
         <p className="text-[10px] font-mono text-white/40 uppercase tracking-widest">
@@ -309,12 +382,7 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
               </div>
               <SessionHealthBadge session={session} />
               {pullRequest && (
-                <a
-                  href={pullRequest.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 px-2 py-0.5 text-[9px] font-mono font-bold uppercase tracking-wider bg-green-500/10 text-green-400 hover:text-green-300 hover:underline border border-green-500/20 rounded"
-                >
+                <a href={pullRequest.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-2 py-0.5 text-[9px] font-mono font-bold uppercase tracking-wider bg-green-500/10 text-green-400 hover:text-green-300 hover:underline border border-green-500/20 rounded">
                   <GitPullRequest className="h-3 w-3" />
                   <span>PR Created</span>
                 </a>
@@ -369,12 +437,33 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
                   Copy Full JSON
                 </DropdownMenuItem>
                 <DropdownMenuSeparator className="bg-white/10" />
+                
                 {permission === 'default' && (
                     <DropdownMenuItem onClick={requestPermission} className="text-xs cursor-pointer">
                         <Bell className="mr-2 h-3.5 w-3.5" />
                         Enable Notifications
                     </DropdownMenuItem>
                 )}
+
+                {session.status === 'active' && (
+                  <>
+                    <DropdownMenuItem onClick={handleQuickReview} disabled={sending} className="focus:bg-white/10 focus:text-white text-xs cursor-pointer">
+                      <Play className="mr-2 h-3.5 w-3.5" />
+                      <span>Start Code Review</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={(e) => { e.preventDefault(); onStartDebate?.(); }} className="focus:bg-white/10 focus:text-white text-xs cursor-pointer">
+                      <Users className="mr-2 h-3.5 w-3.5" />
+                      <span>Start Debate</span>
+                    </DropdownMenuItem>
+                    {onSaveTemplate && (
+                      <DropdownMenuItem onSelect={(e) => { e.preventDefault(); onSaveTemplate(); }} className="focus:bg-white/10 focus:text-white text-xs cursor-pointer text-purple-400 focus:text-purple-400">
+                        <LayoutTemplate className="mr-2 h-3.5 w-3.5" />
+                        <span>Save as Template</span>
+                      </DropdownMenuItem>
+                    )}
+                  </>
+                )}
+
                 {isArchived ? (
                   <DropdownMenuItem onClick={handleUnarchive} className="text-xs cursor-pointer text-purple-400 focus:text-purple-400">
                     <ArchiveRestore className="mr-2 h-3.5 w-3.5" />
@@ -385,6 +474,23 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
                     <Archive className="mr-2 h-3.5 w-3.5" />
                     Archive Session
                   </DropdownMenuItem>
+                )}
+                {session.status === 'completed' && hasDiffs && (
+                  <NewSessionDialog
+                    onSessionCreated={() => {}}
+                    trigger={
+                      <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="focus:bg-white/10 focus:text-white text-xs cursor-pointer">
+                        <GitPullRequest className="mr-2 h-3.5 w-3.5" />
+                        <span>Review & Create PR</span>
+                      </DropdownMenuItem>
+                    }
+                    initialValues={{
+                      sourceId: session.sourceId ? `sources/github/${session.sourceId}` : undefined,
+                      title: outputBranch ? `Review: ${outputBranch}` : 'PR Review',
+                      prompt: 'Review the changes in this branch. Verify they meet the requirements, check for bugs, and draft a Pull Request description.',
+                      startingBranch: outputBranch || undefined
+                    }}
+                  />
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
@@ -408,7 +514,7 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
         <div className="border-b border-white/[0.08] bg-red-950/20 px-4 py-3">
           <div className="flex items-center justify-between gap-2">
             <p className="text-[11px] font-mono text-red-400 uppercase tracking-wide">{error}</p>
-            <Button variant="outline" size="sm" onClick={() => mutate()} className="h-7 text-[10px] border-white/10 hover:bg-white/5 text-white/80">Retry</Button>
+            <Button variant="outline" size="sm" onClick={() => loadActivities(false)} className="h-7 text-[10px] border-white/10 hover:bg-white/5 text-white/80">Retry</Button>
           </div>
         </div>
       )}
@@ -416,10 +522,15 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
       <div className="flex-1 overflow-hidden relative group">
         <ScrollArea className="h-full" ref={scrollAreaRef} id="activity-feed-scroll-area">
           <div className="p-3 space-y-2.5">
-            {filteredActivities.length === 0 && !isLoading && !error && (
+            {filteredActivities.length === 0 && !loading && !error && (
               <div className="flex items-center justify-center min-h-[200px]">
                 <div className="text-center space-y-2">
                   <p className="text-[10px] font-mono text-white/40 uppercase tracking-widest">No activities yet</p>
+                  {session.status !== 'completed' && session.status !== 'failed' && (
+                    <p className="text-[9px] font-mono text-white/30 uppercase tracking-wide">
+                      Session may be queued or in progress
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -446,27 +557,110 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
 
               return grouped.map((item, groupIndex) => {
                 if (Array.isArray(item)) {
-                  return <ActivityGroup key={`group-${groupIndex}`} activities={item} />;
+                  const firstActivity = item[0];
+                  const validItems = item.filter(a => formatContent(a.content, a.metadata) !== null);
+                  if (validItems.length === 0) return null;
+
+                  return (
+                    <div key={`group-${groupIndex}`} className="flex gap-2.5">
+                      <Avatar className="h-6 w-6 shrink-0 mt-0.5 bg-zinc-900 border border-white/10">{getActivityIcon(firstActivity)}</Avatar>
+                      <Card className="flex-1 border-white/[0.08] bg-zinc-950/50">
+                        <CardContent className="p-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge variant="outline" className="text-[9px] h-4 px-1.5 font-mono uppercase tracking-wider bg-yellow-500/90 border-transparent text-black font-bold">progress</Badge>
+                            <span className="text-[9px] font-mono text-white/40 tracking-wide">{validItems.length} updates</span>
+                          </div>
+                          <div className="space-y-2">
+                            {validItems.map((activity, idx) => (
+                              <div key={activity.id} className={idx > 0 ? 'pt-2 border-t border-white/[0.08]' : ''}>
+                                <div className="text-[11px] leading-relaxed text-white/90 break-words">{formatContent(activity.content, activity.metadata)}</div>
+                                {activity.bashOutput && (
+                                  <div className="mt-2 pt-2 border-t border-white/[0.05]">
+                                    <button
+                                      onClick={() => toggleBashOutput(activity.id)}
+                                      className="flex items-center gap-2 text-[9px] font-mono uppercase tracking-wider text-green-400 hover:text-green-300 transition-colors mb-2"
+                                    >
+                                      {expandedBashOutputs.has(activity.id) ? (
+                                        <ChevronDown className="h-3 w-3" />
+                                      ) : (
+                                        <ChevronRight className="h-3 w-3" />
+                                      )}
+                                      <Terminal className="h-3 w-3" />
+                                      <span>Command Output</span>
+                                    </button>
+                                    {expandedBashOutputs.has(activity.id) && (
+                                      <BashOutput output={activity.bashOutput} />
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  );
+                }
+
+                if (item.type === 'debate' && item.metadata?.debate) {
+                    return (
+                        <div key={item.id} className={`flex gap-2.5 ${newActivityIds.has(item.id) ? 'animate-in fade-in slide-in-from-bottom-2 duration-500' : ''}`}>
+                            <Avatar className="h-6 w-6 shrink-0 mt-0.5 bg-zinc-900 border border-white/10">{getActivityIcon(item)}</Avatar>
+                            <div className="flex-1">
+                                <DebateViewer result={item.metadata.debate as any} />
+                            </div>
+                        </div>
+                    );
                 }
 
                 const activity = item;
+                const contentNode = formatContent(activity.content, activity.metadata);
+                if (contentNode === null && !activity.media) return null;
+                const showApprove = !isArchived && activity.type === 'plan' && session.status === 'awaiting_approval';
+
                 return (
-                  <ActivityItem
-                    key={activity.id}
-                    activity={activity}
-                    session={session}
-                    isArchived={isArchived}
-                    isNew={newActivityIds.has(activity.id)}
-                    onApprovePlan={handleApprovePlan}
-                    isApprovingPlan={approvingPlan}
-                  />
+                  <div key={activity.id} className={`flex gap-2.5 ${activity.role === 'user' ? 'flex-row-reverse' : ''} ${newActivityIds.has(activity.id) ? 'animate-in fade-in slide-in-from-bottom-2 duration-500' : ''}`}>
+                    <Avatar className="h-6 w-6 shrink-0 mt-0.5 bg-zinc-900 border border-white/10">{getActivityIcon(activity)}</Avatar>
+                    <Card className={`flex-1 border-white/[0.08] ${activity.role === 'user' ? 'bg-purple-950/20 border-purple-500/20' : 'bg-zinc-950/50'}`}>
+                      <CardContent className="p-3 group/card relative">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Badge variant="outline" className={`text-[9px] h-4 px-1.5 font-mono uppercase tracking-wider ${getActivityTypeColor(activity.type)} border-transparent text-black font-bold`}>{activity.type}</Badge>
+                          <span className="text-[9px] font-mono text-white/40 tracking-wide">{formatDate(activity.createdAt)}</span>
+                          <Button variant="ghost" size="icon" className="h-4 w-4 ml-auto opacity-0 group-hover/card:opacity-100 transition-opacity" onClick={() => handleCopy(activity.content, activity.id)}>
+                            {copiedId === activity.id ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3 text-white/40" />}
+                          </Button>
+                        </div>
+                        {activity.media && activity.media.data && (
+                           <div className="mb-2 rounded overflow-hidden border border-white/10">
+                              <img src={`data:${activity.media.mimeType};base64,${activity.media.data}`} alt="Generated Artifact" className="max-w-full h-auto block" />
+                           </div>
+                        )}
+                        <div className="text-[11px] leading-relaxed text-white/90 break-words">{contentNode}</div>
+                        {activity.bashOutput && (
+                          <div className="mt-3 pt-3 border-t border-white/[0.08]">
+                            <button onClick={() => toggleBashOutput(activity.id)} className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-wider text-green-400 hover:text-green-300 transition-colors mb-2">
+                              {expandedBashOutputs.has(activity.id) ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                              <Terminal className="h-3.5 w-3.5" />
+                              <span>Command Output</span>
+                            </button>
+                            {expandedBashOutputs.has(activity.id) && <BashOutput output={activity.bashOutput} />}
+                          </div>
+                        )}
+                        {showApprove && (
+                          <div className="mt-3 pt-3 border-t border-white/[0.08]">
+                            <Button onClick={handleApprovePlan} disabled={approvingPlan} size="sm" className="h-7 px-3 text-[9px] font-mono uppercase tracking-widest bg-purple-600 hover:bg-purple-500 text-white border-0">
+                              {approvingPlan ? 'Approving...' : 'Approve Plan'}
+                            </Button>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
                 );
               });
             })()}
           </div>
         </ScrollArea>
-
-        {/* Floating Jump Buttons */}
         <div className="absolute right-4 bottom-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
           <Button variant="secondary" size="icon" className="h-8 w-8 rounded-full shadow-lg bg-zinc-900 border border-white/10 hover:bg-zinc-800" onClick={scrollToTop} title="Jump to Top">
             <ArrowUp className="h-4 w-4" />

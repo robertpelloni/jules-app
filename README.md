@@ -13,11 +13,14 @@
 
 - 🔄 **Real-Time Updates** - Live activity feed with auto-polling
 - 🤖 **Auto-Pilot (Session Keeper)** - Keep sessions active automatically with smart nudges and plan approvals.
-- ⚖️ **Council Debate Mode** - Multi-agent debate system to guide the primary agent.
+- ⚖️ **Council Debate Mode** - Multi-agent debate system (Architect vs Security) to guide the primary agent.
+- 🛡️ **Deep Code Analysis** - Parallel code audits for Security, Performance, and Maintainability.
 - 📊 **Code Diff Viewer** - Visualize git patches and changes instantly
+- 📁 **Artifact Browser** - Browse and review generated files (diffs, logs, media) with one click.
+- 📋 **Kanban Board** - Visual session management (Active, Paused, Completed).
 - 💻 **Integrated Terminal** - Full web-based terminal with local machine access
 - 📈 **Analytics Dashboard** - Track session metrics and trends
-- 🔍 **Smart Search** - Find sessions by repository or title
+- ⚙️ **System Dashboard** - View submodules, build versions, and project structure.
 - 📱 **Mobile-First** - Fully responsive design
 - 🔒 **Secure** - Container isolation and API keys stored locally
 

@@ -299,13 +299,12 @@ export function SessionKeeperManager() {
                if (summaryResponse.ok) {
                    const { content: summary } = await summaryResponse.json();
                    
-                   // 3. Create New Session
-                   const newSession = await client.createSession({
-                       sourceId: session.sourceId,
-                       prompt: session.prompt || "Continuing previous session",
-                       title: `${session.title || "Untitled"} (Part 2)`,
-                       startingBranch: session.branch,
-                   });
+                  // 3. Create New Session
+                  const newSession = await client.createSession(
+                      session.sourceId,
+                      session.prompt || "Continuing previous session",
+                      `${session.title || "Untitled"} (Part 2)`
+                  );
 
                    // 4. Inject Handoff Log
                    await client.createActivity({

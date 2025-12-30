@@ -3,10 +3,9 @@
 import { useState, useCallback, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useJules } from "@/lib/jules/provider";
-import type { Session, Activity, SessionTemplate } from "@/types/jules";
+import type { Session, Activity, SessionTemplate, Artifact } from "@/types/jules";
 import { TerminalPanel } from "./terminal-panel";
 import { useTerminalAvailable } from "@/hooks/use-terminal-available";
-import { ApiKeySetupForm } from "./api-key-setup";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +17,7 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/componen
 import { SessionKeeperManager } from "./session-keeper-manager";
 import { SessionKeeper } from "./SessionKeeper";
 import { useSessionKeeperStore } from "@/lib/stores/session-keeper";
+import { DebateDialog } from './debate-dialog';
 
 import { AppHeader } from "./layout/app-header";
 import { AppSidebar } from "./layout/app-sidebar";
@@ -52,7 +52,6 @@ export function AppLayout({ initialView }: AppLayoutProps) {
     return false;
   });
 
-  // State for New Session Dialog (Controlled)
   const [isNewSessionOpen, setIsNewSessionOpen] = useState(false);
   const [newSessionInitialValues, setNewSessionInitialValues] = useState<{
     sourceId?: string;
@@ -81,22 +80,49 @@ export function AppLayout({ initialView }: AppLayoutProps) {
     setIsApiKeyDialogOpen(false);
   };
 
+  // Debate Dialog State
+  const [debateOpen, setDebateOpen] = useState(false);
+  const [debateTopic, setDebateTopic] = useState('');
+  const [debateContext, setDebateContext] = useState('');
+
+  const handleStartDebate = (topic?: string, context?: string) => {
+      setDebateTopic(topic || '');
+      setDebateContext(context || '');
+      setDebateOpen(true);
+  };
+
+  const handleReviewArtifact = (artifact: Artifact) => {
+      const content = artifact.changeSet?.gitPatch?.unidiffPatch || artifact.changeSet?.unidiffPatch || '';
+      handleStartDebate(`Code Review: ${artifact.name || 'Artifact'}`, content);
+      setView('sessions');
+  };
+
   // Sync session selection with URL query param
   useEffect(() => {
     const sessionId = searchParams.get('sessionId');
     if (sessionId && client) {
       if (selectedSession?.id !== sessionId) {
-        // Load session details
+        // Prevent infinite loop if we are already in the process of selecting this session
+        // or if the session ID is invalid
         client.getSession(sessionId)
           .then(session => {
-            setSelectedSession(session);
-            setView('sessions');
+            if (session.id === sessionId) {
+                // Only update if the fetched session matches the URL (handle race conditions)
+                // and if it's different from current
+                setSelectedSession(prev => prev?.id === session.id ? prev : session);
+                setView('sessions');
+            }
           })
           .catch(err => {
             console.error('Failed to load session from URL', err);
-            // Optionally clear param if invalid
+            // Optionally clear the invalid session ID from URL to prevent loop
           });
       }
+    } else if (!sessionId && selectedSession) {
+        // If URL has no sessionId but we have a selected session, we might want to clear it
+        // Or do nothing if we want to persist state despite URL.
+        // For now, let's respect the URL as the source of truth for "no session selected" ONLY if needed
+        // But clicking "Sessions" in header might clear URL.
     }
   }, [searchParams, client, selectedSession?.id]);
 
@@ -130,10 +156,16 @@ export function AppLayout({ initialView }: AppLayoutProps) {
   }, [resize, stopResizing]);
 
   const handleSessionSelect = (session: Session) => {
+    // Optimistic update to prevent the useEffect loop
+    if (selectedSession?.id === session.id) return;
+    
     setSelectedSession(session);
     setView('sessions');
     setMobileMenuOpen(false);
-    // Update URL without refreshing
+    
+    // Update URL without triggering a full page navigation if possible, 
+    // but Next.js router.push will trigger the searchParams effect.
+    // The key is ensuring the effect condition `selectedSession?.id !== sessionId` handles it.
     const newParams = new URLSearchParams(searchParams.toString());
     newParams.set('sessionId', session.id);
     router.push(`/?${newParams.toString()}`);
@@ -145,7 +177,6 @@ export function AppLayout({ initialView }: AppLayoutProps) {
   };
 
   const handleSessionArchived = () => {
-    // Refresh the session list to update the archived/active status
     setRefreshKey((prev) => prev + 1);
   };
 
@@ -189,7 +220,7 @@ export function AppLayout({ initialView }: AppLayoutProps) {
               Enter your Jules API key to start a session.
             </DialogDescription>
           </DialogHeader>
-          <ApiKeySetupForm onSuccess={handleApiKeySuccess} />
+          <div className="py-4 text-center text-muted-foreground">Please configure API key in settings.</div>
         </DialogContent>
       </Dialog>
       
@@ -218,7 +249,6 @@ export function AppLayout({ initialView }: AppLayoutProps) {
         onLogout={handleLogout}
       />
 
-      {/* Main Content Area */}
       <div className="flex flex-1 overflow-hidden min-h-0">
         <AppSidebar
           collapsed={sidebarCollapsed}
@@ -253,6 +283,8 @@ export function AppLayout({ initialView }: AppLayoutProps) {
               isResizing={isResizing}
               onStartResizing={startResizing}
               onOpenNewSession={handleOpenNewSession}
+              onReviewArtifact={handleReviewArtifact}
+              onStartDebate={handleStartDebate}
             />
           </ResizablePanel>
 
@@ -272,13 +304,23 @@ export function AppLayout({ initialView }: AppLayoutProps) {
         </ResizablePanelGroup>
       </div>
 
-      {/* Terminal Panel */}
       {terminalAvailable && (
         <TerminalPanel
           sessionId={selectedSession?.id || 'global'}
           repositoryPath=""
           isOpen={terminalOpen}
           onToggle={handleToggleTerminal}
+        />
+      )}
+
+      {selectedSession && (
+        <DebateDialog
+          sessionId={selectedSession.id}
+          open={debateOpen}
+          onOpenChange={setDebateOpen}
+          initialTopic={debateTopic}
+          initialContext={debateContext}
+          onDebateStart={() => setRefreshKey(prev => prev + 1)}
         />
       )}
     </div>

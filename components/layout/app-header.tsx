@@ -36,9 +36,10 @@ import { Session } from "@/types/jules";
 import { useRouter } from "next/navigation";
 
 interface AppHeaderProps {
-  view: 'sessions' | 'analytics' | 'templates' | 'kanban';
+  view: 'sessions' | 'analytics' | 'templates' | 'kanban' | 'board' | 'artifacts';
   setView: (view: 'sessions' | 'analytics' | 'templates' | 'kanban') => void;
   mobileMenuOpen: boolean;
+
   setMobileMenuOpen: (open: boolean) => void;
   refreshKey: number;
   selectedSession: Session | null;

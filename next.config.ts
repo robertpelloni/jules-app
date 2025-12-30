@@ -6,6 +6,7 @@ const version = fs.readFileSync(path.join(process.cwd(), 'VERSION.md'), 'utf8').
 
 const nextConfig: NextConfig = {
   /* config options here */
+  output: 'standalone',
   env: {
     NEXT_PUBLIC_APP_VERSION: version,
   },
@@ -16,6 +17,12 @@ const nextConfig: NextConfig = {
     // Reduce workers to avoid spawn UNKNOWN errors in constrained environments
     cpus: 4,
   },
+  typescript: {
+    // !! WARN !!
+    // Dangerously allow production builds to successfully complete even if
+    // your project has type errors.
+    // ignoreBuildErrors: true,
+  }
 };
 
 export default nextConfig;

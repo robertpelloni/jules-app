@@ -29,12 +29,32 @@ export interface Session {
   branch?: string;
   summary?: string;
   outputs?: SessionOutput[];
+  metadata?: Record<string, unknown>; // Added metadata
+}
+
+export interface Artifact {
+  id?: string;
+  name?: string; // Resource name
+  createTime?: string;
+  changeSet?: {
+    gitPatch?: {
+      unidiffPatch?: string;
+    };
+    unidiffPatch?: string;
+    [key: string]: unknown;
+  };
+  bashOutput?: {
+    output?: string;
+    [key: string]: unknown;
+  };
+  media?: { data: string; mimeType: string };
+  [key: string]: unknown;
 }
 
 export interface Activity {
   id: string;
   sessionId: string;
-  type: 'message' | 'plan' | 'progress' | 'result' | 'error';
+  type: 'message' | 'plan' | 'progress' | 'result' | 'error' | 'debate';
   role: 'user' | 'agent';
   content: string;
   diff?: string; // Unified diff patch from artifacts

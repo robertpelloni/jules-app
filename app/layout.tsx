@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { JulesProvider } from "@/lib/jules/provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -16,17 +17,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Jules Task Manager",
-  description: "A mobile-friendly task manager for Jules AI agent sessions",
+  title: "Jules",
+  description: "Your autonomous software engineering agent",
 };
 
 export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "white" },
-    { media: "(prefers-color-scheme: dark)", color: "black" },
-  ],
+  themeColor: "#000000",
 };
 
 export default function RootLayout({
@@ -37,15 +33,19 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
         <ThemeProvider
           attribute="class"
           forcedTheme="dark"
           disableTransitionOnChange
         >
-          <JulesProvider>{children}</JulesProvider>
-          <Toaster position="bottom-right" theme="dark" />
+          <JulesProvider>
+            <TooltipProvider>
+              {children}
+              <Toaster position="bottom-right" theme="dark" className="font-mono text-xs uppercase" />
+            </TooltipProvider>
+          </JulesProvider>
         </ThemeProvider>
       </body>
     </html>

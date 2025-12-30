@@ -1,0 +1,20 @@
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model SessionTemplate {
+  id          String   @id @default(uuid())
+  name        String
+  description String
+  prompt      String
+  title       String?
+  isFavorite  Boolean  @default(false)
+  tags        String   // Stored as CSV string
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

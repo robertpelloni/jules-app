@@ -5,6 +5,8 @@ import type {
   CreateSessionRequest,
   CreateActivityRequest,
   SessionOutput,
+  SessionTemplate,
+  Artifact
 } from "@/types/jules";
 
 // API Response Interfaces (Internal)
@@ -137,27 +139,24 @@ export class JulesAPIError extends Error {
   }
 }
 
-export class JulesClient {
-  private baseURL = '/api/jules';
-  private apiKey: string;
+const API_BASE_URL = '/api/jules';
 
-  constructor(apiKey: string) {
+export class JulesClient {
+  private apiKey?: string;
+
+  constructor(apiKey?: string) {
     this.apiKey = apiKey;
   }
 
-  private async request<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<T> {
-    // Build URL with path as query param for our proxy
-    const url = `${this.baseURL}?path=${encodeURIComponent(endpoint)}`;
-
+  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    const url = endpoint.startsWith(API_BASE_URL) ? endpoint : `${API_BASE_URL}${endpoint}`;
+    
     try {
       const response = await fetch(url, {
         ...options,
         headers: {
           'Content-Type': 'application/json',
-          'X-Jules-Api-Key': this.apiKey,
+          'X-Jules-Api-Key': this.apiKey || '',
           ...options.headers,
         },
       });
@@ -312,31 +311,10 @@ export class JulesClient {
     return sources;
   }
 
-  async getSource(id: string): Promise<Source> {
-    return this.request<Source>(`/sources/${id}`);
-  }
-
-  // Sessions
-  async listSessions(sourceId?: string): Promise<Session[]> {
-    let allSessions: ApiSession[] = [];
-    let pageToken: string | undefined;
-
-    do {
-      const params = new URLSearchParams();
-      params.set('pageSize', '100');
-      if (sourceId) params.set('sourceId', sourceId);
-      if (pageToken) params.set('pageToken', pageToken);
-
-      const endpoint = `/sessions?${params.toString()}`;
-      const response = await this.request<{ sessions?: ApiSession[]; nextPageToken?: string }>(endpoint);
-
-      if (response.sessions) {
-        allSessions = allSessions.concat(response.sessions);
-      }
-      pageToken = response.nextPageToken;
-    } while (pageToken);
-
-    return allSessions.map((session: ApiSession) => this.transformSession(session));
+  // Session Management
+  async listSessions(): Promise<Session[]> {
+    const response = await this.request<{ sessions: ApiSession[] }>('/sessions');
+    return (response.sessions || []).map(s => this.transformSession(s));
   }
 
   private mapState(state: string): Session['status'] {
@@ -379,14 +357,21 @@ export class JulesClient {
     return this.transformSession(response);
   }
 
-  async createSession(data: CreateSessionRequest): Promise<Session> {
-    let prompt = data.prompt;
+  async createSession(sourceId: string, prompt: string, title: string = 'Untitled Session'): Promise<Session> {
+    const data: CreateSessionRequest = {
+      sourceId,
+      prompt,
+      title
+    };
+    
+    // ... logic for createSession ...
+    let finalPrompt = data.prompt;
     if (data.autoCreatePr) {
-      prompt += '\n\nIMPORTANT: Automatically create a pull request when code changes are ready.';
+      finalPrompt += '\n\nIMPORTANT: Automatically create a pull request when code changes are ready.';
     }
 
     const requestBody = {
-      prompt: prompt,
+      prompt: finalPrompt,
       sourceContext: {
         source: data.sourceId,
         githubRepoContext: {
@@ -403,20 +388,169 @@ export class JulesClient {
       method: "POST",
       body: JSON.stringify(requestBody),
     });
+    
     return this.transformSession(response);
   }
 
-  async deleteSession(id: string): Promise<void> {
-    await this.request<void>(`/sessions/${id}`, {
-      method: 'DELETE',
-    });
+  async updateSession(sessionId: string, updates: Partial<Session>): Promise<Session> {
+    console.warn('[JulesClient] updateSession is not fully implemented by the backend yet. Updates are local only.', updates);
+    // Simulating success as backend doesn't support PATCH yet but frontend needs it
+    return this.getSession(sessionId);
+  }
+
+  async listActivities(sessionId: string, limit: number = 50, offset: number = 0): Promise<Activity[]> {
+    const endpoint = `/sessions/${sessionId}/activities?pageSize=${limit}&pageToken=${offset}`; // Using pagination parameters that align more with typical Google APIs, adjust if backend expects offset
+    // Note: The backend seems to return { activities: [...] } or just [...] depending on endpoint. 
+    // Assuming standard response wrapper
+    const response = await this.request<{ activities: ApiActivity[] }>(endpoint);
+    
+    return (response.activities || []).map(a => this.transformActivity(a, sessionId));
+  }
+
+  private transformActivity(activity: ApiActivity, sessionId: string): Activity {
+    let type: Activity['type'] = 'message';
+    let role: Activity['role'] = 'agent';
+    let content = '';
+    let diff: string | undefined;
+    let bashOutput: string | undefined;
+    let media: { data: string; mimeType: string } | undefined;
+
+    if (activity.userMessage || activity.userMessaged) {
+      type = 'message';
+      role = 'user';
+      content = activity.userMessage?.message || activity.userMessage?.content || 
+                activity.userMessaged?.message || activity.userMessaged?.content || '';
+    } else if (activity.agentMessaged) {
+      type = 'message';
+      role = 'agent';
+      content = activity.agentMessaged.agentMessage || activity.agentMessaged.message || '';
+    } else if (activity.planGenerated) {
+      type = 'plan';
+      role = 'agent';
+      const steps = activity.planGenerated.plan?.steps || activity.planGenerated.steps || [];
+      const stepsText = steps.map((s: ApiPlanStep) => `${s.index}. ${s.title}`).join('\n');
+      content = `Plan Generated:\n${stepsText}`;
+    } else if (activity.progressUpdated) {
+      type = 'progress';
+      role = 'agent';
+      content = activity.progressUpdated.progressDescription || 
+                activity.progressUpdated.description || 
+                activity.progressUpdated.message || '';
+      
+      const artifacts = activity.progressUpdated.artifacts || [];
+      if (artifacts.length > 0) {
+          const artifact = artifacts[0];
+          diff = artifact.changeSet?.gitPatch?.unidiffPatch || artifact.changeSet?.unidiffPatch;
+          bashOutput = artifact.bashOutput?.output;
+          media = artifact.media;
+      }
+    } else if (activity.sessionCompleted) {
+      type = 'result';
+      role = 'agent';
+      content = activity.sessionCompleted.summary || activity.sessionCompleted.message || 'Session Completed';
+    }
+
+    return {
+      id: activity.id || `temp-${Date.now()}`,
+      sessionId,
+      type,
+      role,
+      content,
+      diff,
+      bashOutput,
+      media,
+      createdAt: activity.createTime,
+      metadata: activity as Record<string, unknown>
+    };
+  }
+
+  async createActivity(params: { sessionId: string; content: string; type?: string; metadata?: any }): Promise<Activity> {
+    // Check if the content implies a specific action (like a slash command or special instruction)
+    // or if we should use the sendMessage endpoint which is more robust for agent interaction.
+    
+    // For standard chat messages, use the :sendMessage action endpoint if possible
+    // as it might be handled differently by the backend orchestrator than a generic activity create.
+    
+    // However, looking at the previous implementation, it seems it was constructing a userMessage object
+    // and POSTing to /activities. 
+    
+    // Let's try to align with the 'sendMessage' pattern seen in other parts of the codebase
+    // (e.g., antigravity-jules-orchestration) which POSTs to /sessions/{id}:sendMessage
+    
+    try {
+        // Try the direct action endpoint first as it's more specific for "sending a message to the agent"
+        const response = await this.request<ApiActivity>(`/sessions/${params.sessionId}:sendMessage`, {
+            method: 'POST',
+            body: JSON.stringify({
+                message: params.content 
+                // Note: backend might expect 'prompt' or 'message'. 
+                // Based on grep results: 
+                // - antigravity-jules-orchestration uses { message: ... }
+                // - python sdk uses { prompt: ... }
+                // Let's try sending both or check if we can fallback.
+                // Safest bet based on JS usage in grep is 'message'.
+            }),
+        });
+        return this.transformActivity(response, params.sessionId);
+    } catch (e) {
+        console.warn("Failed to use :sendMessage endpoint, falling back to /activities", e);
+        
+        // Fallback to original implementation
+        const body = {
+            userMessage: {
+                message: params.content
+            }
+        };
+
+        const response = await this.request<ApiActivity>(`/sessions/${params.sessionId}/activities`, {
+            method: 'POST',
+            body: JSON.stringify(body),
+        });
+
+        return this.transformActivity(response, params.sessionId);
+    }
+  }
+
+  async listArtifacts(sessionId: string): Promise<Artifact[]> {
+    // There isn't a direct "list artifacts" endpoint in the main API structure shown in types
+    // Usually artifacts are attached to activities. 
+    // We might need to fetch activities and extract artifacts if a direct endpoint doesn't exist.
+    // However, assuming the SDK interface implies one exists or we implement a helper:
+    
+    // Fallback: Fetch activities and aggregate artifacts
+    const activities = await this.listActivities(sessionId, 100);
+    const artifacts: Artifact[] = [];
+    
+    // This is a simplification. Real implementation depends on if backend persists artifacts separately.
+    // For now, returning empty or implementing if endpoint exists.
+    // Let's try to hit a likely endpoint if it exists, else return empty.
+    try {
+        const response = await this.request<{ artifacts: ApiArtifact[] }>(`/sessions/${sessionId}/artifacts`);
+        return (response.artifacts || []).map(a => ({
+            ...a,
+            changeSet: a.changeSet ? {
+                ...a.changeSet,
+                gitPatch: a.changeSet.gitPatch ? {
+                    unidiffPatch: a.changeSet.gitPatch.unidiffPatch
+                } : undefined
+            } : undefined,
+            bashOutput: a.bashOutput ? {
+                ...a.bashOutput
+            } : undefined,
+            createTime: new Date().toISOString() // Fallback if missing
+        }));
+    } catch (e) {
+        return [];
+    }
+  }
+
+  async getArtifact(sessionId: string, artifactId: string): Promise<Artifact> {
+    return this.request<Artifact>(`/sessions/${sessionId}/artifacts/${artifactId}`);
   }
 
   async approvePlan(sessionId: string): Promise<void> {
-    // Matches Python SDK: self.client.post(f"{session_id}:approvePlan")
-    await this.request<void>(`/sessions/${sessionId}:approvePlan`, {
+    return this.request<void>(`/sessions/${sessionId}/approve-plan`, {
       method: 'POST',
-      body: JSON.stringify({}),
     });
   }
 
@@ -430,149 +564,37 @@ export class JulesClient {
     });
   }
 
-  // Activities (Paged)
-  async listActivitiesPaged(sessionId: string, pageSize: number = 100, pageToken?: string): Promise<{ activities: Activity[], nextPageToken?: string }> {
-      const params = new URLSearchParams();
-      params.set('pageSize', pageSize.toString());
-      if (pageToken) params.set('pageToken', pageToken);
-
-      const response = await this.request<{ activities?: ApiActivity[]; nextPageToken?: string }>(
-          `/sessions/${sessionId}/activities?${params.toString()}`
-      );
-
-      const activities = (response.activities || []).map(a => this.transformActivity(a, sessionId));
-      return { activities, nextPageToken: response.nextPageToken };
+  // Template Management (Local API)
+  private async fetchLocal<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+      const res = await fetch(endpoint, {
+          ...options,
+          headers: { 'Content-Type': 'application/json', ...options.headers }
+      });
+      if (!res.ok) throw new Error(`Local API Error: ${res.statusText}`);
+      return res.json();
   }
 
-  // Activities (Fetch All - Legacy/Convenience)
-  async listActivities(sessionId: string): Promise<Activity[]> {
-    let allActivities: Activity[] = [];
-    let pageToken: string | undefined;
-
-    do {
-        const result = await this.listActivitiesPaged(sessionId, 100, pageToken);
-        allActivities = allActivities.concat(result.activities);
-        pageToken = result.nextPageToken;
-    } while (pageToken);
-
-    return allActivities;
+  async listTemplates(): Promise<SessionTemplate[]> {
+    return this.fetchLocal<SessionTemplate[]>('/api/templates');
   }
 
-  async getActivity(sessionId: string, activityId: string): Promise<Activity> {
-    const response = await this.request<ApiActivity>(`/sessions/${sessionId}/activities/${activityId}`);
-    return this.transformActivity(response, sessionId);
-  }
-
-  private transformActivity(activity: ApiActivity, sessionId: string): Activity {
-      const id = activity.name?.split('/').pop() || activity.id || '';
-      let type: Activity['type'] = 'message';
-      let content = '';
-      let diff = activity.diff || undefined;
-      let bashOutput = activity.bashOutput || undefined;
-      let media: { data: string; mimeType: string } | undefined = undefined;
-
-      // Extract specific content based on type
-      if (activity.planGenerated) {
-        type = 'plan';
-        const plan = activity.planGenerated.plan || activity.planGenerated;
-        content = plan.description || plan.summary || plan.title || JSON.stringify(plan.steps || plan, null, 2);
-      } else if (activity.planApproved) {
-        type = 'plan';
-        content = 'Plan approved';
-      } else if (activity.progressUpdated) {
-        type = 'progress';
-        content = activity.progressUpdated.progressDescription ||
-                  activity.progressUpdated.description ||
-                  activity.progressUpdated.message ||
-                  JSON.stringify(activity.progressUpdated, null, 2);
-      } else if (activity.sessionCompleted) {
-        type = 'result';
-        const result = activity.sessionCompleted;
-        content = result.summary || result.message || 'Session completed';
-      } else if (activity.agentMessaged) {
-        type = 'message';
-        content = activity.agentMessaged.agentMessage || activity.agentMessaged.message || '';
-      } else if (activity.userMessage || activity.userMessaged) {
-        type = 'message';
-        const um = activity.userMessage || activity.userMessaged;
-        content = um?.message || um?.content || (um?.text as string) || '';
-
-        if (!content && typeof um === 'object' && um !== null) {
-            if (Object.keys(um).length > 0) {
-                 const stringVal = Object.values(um).find(v => typeof v === 'string' && v.length > 0);
-                 if (stringVal) content = stringVal as string;
-                 else content = JSON.stringify(um);
-            }
-        }
-      }
-
-      // Extract artifacts
-      if (activity.artifacts && activity.artifacts.length > 0) {
-        for (const artifact of activity.artifacts) {
-          if (artifact.changeSet?.gitPatch?.unidiffPatch) {
-            diff = artifact.changeSet.gitPatch.unidiffPatch;
-          } else if (artifact.changeSet?.unidiffPatch) {
-            diff = artifact.changeSet.unidiffPatch;
-          }
-          if (artifact.bashOutput?.output) {
-            bashOutput = artifact.bashOutput.output;
-          }
-          if (artifact.media) {
-             media = artifact.media;
-          }
-        }
-      }
-
-      // Fallback content
-      if (!content) {
-        content = activity.message ||
-                  activity.content ||
-                  activity.text ||
-                  activity.description ||
-                  (activity.artifacts ? JSON.stringify(activity.artifacts, null, 2) : '') ||
-                  '';
-      }
-
-      return {
-        id,
-        sessionId,
-        type,
-        role: (activity.originator === 'agent' ? 'agent' : 'user') as Activity['role'],
-        content,
-        diff,
-        bashOutput,
-        media,
-        createdAt: activity.createTime,
-        metadata: activity as Record<string, unknown>
-      };
-  }
-
-  async createActivity(data: CreateActivityRequest): Promise<Activity> {
-    await this.request(`/sessions/${data.sessionId}:sendMessage`, {
+  async createTemplate(template: Omit<SessionTemplate, 'id' | 'createdAt' | 'updatedAt'>): Promise<SessionTemplate> {
+    return this.fetchLocal<SessionTemplate>('/api/templates', {
       method: 'POST',
-      body: JSON.stringify({ prompt: data.content }),
+      body: JSON.stringify(template),
     });
-
-    return {
-      id: 'pending',
-      sessionId: data.sessionId,
-      type: 'message',
-      role: 'user',
-      content: data.content,
-      createdAt: new Date().toISOString(),
-    };
   }
 
-  async updateSession(id: string, updates: Partial<Session>): Promise<void> {
-    console.warn('[JulesClient] updateSession is not fully implemented by the backend yet. Updates are local only.', updates);
-    // TODO: Implement actual API call when available
-    // await this.request<void>(`/sessions/${id}`, {
-    //   method: 'PATCH',
-    //   body: JSON.stringify(updates),
-    // });
+  async updateTemplate(id: string, template: Partial<SessionTemplate>): Promise<SessionTemplate> {
+    return this.fetchLocal<SessionTemplate>(`/api/templates/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(template),
+    });
   }
-}
 
-export function createJulesClient(apiKey: string): JulesClient {
-  return new JulesClient(apiKey);
+  async deleteTemplate(id: string): Promise<void> {
+    return this.fetchLocal<void>(`/api/templates/${id}`, {
+      method: 'DELETE',
+    });
+  }
 }

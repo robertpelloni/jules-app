@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { SessionTemplate } from "@/types/jules";
-import { saveTemplate } from "@/lib/templates";
+import { useJules } from "@/lib/jules/provider";
 import {
   Dialog,
   DialogContent,
@@ -33,6 +33,7 @@ export function TemplateFormDialog({
   onSave,
   initialValues,
 }: TemplateFormDialogProps) {
+  const { client } = useJules();
   const [tagInput, setTagInput] = useState("");
   const [formData, setFormData] = useState({
     name: "",
@@ -101,18 +102,25 @@ export function TemplateFormDialog({
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!client) return;
+
     try {
-      // If it's a prebuilt template, we don't pass the ID, forcing a new creation (clone)
-      saveTemplate({
-        id: isPrebuilt ? undefined : template?.id,
+      const data = {
         name: formData.name,
         description: formData.description,
         prompt: formData.prompt,
         title: formData.title,
         tags: formData.tags,
-      });
+      };
+
+      if (template?.id && !isPrebuilt) {
+        await client.updateTemplate(template.id, data);
+      } else {
+        await client.createTemplate(data);
+      }
+
       onSave();
       onOpenChange(false);
       toast.success(
@@ -126,7 +134,7 @@ export function TemplateFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] border-purple-500/20 shadow-[0_0_15px_rgba(168,85,247,0.15)]">
+      <DialogContent className="sm:max-w-[600px] border-purple-500/20 shadow-[0_0_15px_rgba(168,85,247,0.15)] bg-zinc-950 text-white">
         <DialogHeader>
           <DialogTitle>
             {template
@@ -160,7 +168,7 @@ export function TemplateFormDialog({
                 setFormData((prev) => ({ ...prev, name: e.target.value }))
               }
               placeholder="e.g., React Component Refactor"
-              className="h-9 text-xs"
+              className="h-9 text-xs bg-zinc-900 border-zinc-700"
               required
             />
           </div>
@@ -179,7 +187,7 @@ export function TemplateFormDialog({
                 }))
               }
               placeholder="Brief description of what this template does"
-              className="h-9 text-xs"
+              className="h-9 text-xs bg-zinc-900 border-zinc-700"
               required
             />
           </div>
@@ -195,7 +203,7 @@ export function TemplateFormDialog({
                 setFormData((prev) => ({ ...prev, title: e.target.value }))
               }
               placeholder="e.g., Refactor Component"
-              className="h-9 text-xs"
+              className="h-9 text-xs bg-zinc-900 border-zinc-700"
             />
           </div>
 
@@ -243,7 +251,7 @@ export function TemplateFormDialog({
                 setFormData((prev) => ({ ...prev, prompt: e.target.value }))
               }
               placeholder="Enter the detailed instructions for Jules..."
-              className="min-h-[100px] h-[200px] max-h-[300px] overflow-y-auto text-xs font-mono"
+              className="min-h-[100px] h-[200px] max-h-[300px] overflow-y-auto text-xs font-mono bg-zinc-900 border-zinc-700"
               required
             />
           </div>
