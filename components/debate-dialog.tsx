@@ -93,7 +93,7 @@ export function DebateDialog({
                 role: 'Solution Architect',
                 provider: 'openai',
                 model: 'gpt-4o',
-                apiKey: 'sk-placeholder',
+                apiKey: process.env.NEXT_PUBLIC_OPENAI_KEY || 'env',
                 systemPrompt: `Analyze the current codebase and proposed changes. Propose a robust architectural solution. Focus on scalability and maintainability.`
             },
             {
@@ -102,7 +102,7 @@ export function DebateDialog({
                 role: 'Security Reviewer',
                 provider: 'openai',
                 model: 'gpt-4o',
-                apiKey: 'sk-placeholder',
+                apiKey: process.env.NEXT_PUBLIC_OPENAI_KEY || 'env',
                 systemPrompt: `Critique the proposed solution from a security perspective. Identify potential vulnerabilities and suggest mitigations.`
             }
           ]

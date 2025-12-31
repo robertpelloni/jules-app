@@ -87,30 +87,42 @@ export async function runDebate({ history, participants, rounds = 1, topic }: {
     // --- Consensus / Summary Phase ---
     let summary = `Debate completed (${rounds} round${rounds > 1 ? 's' : ''}).`;
     
-    if (primaryParticipant) {
-        try {
-            const moderatorPrompt = `You are the Moderator and Judge of this technical debate.
-            ${topic ? `Topic: ${topic}` : ''}
-            
-            Review the debate history above.
-            1. Summarize the key arguments from each participant.
-            2. Identify areas of consensus and disagreement.
-            3. Provide a final conclusion or recommendation based on the strongest arguments.
-            
-            Format: Markdown.`;
+    // Use the primary participant for summary, but check if we have a valid provider first.
+    // If not, try to find ANY valid provider from the participants list.
+    const summaryParticipant = participants.find(p => getProvider(p.provider)) || primaryParticipant;
 
-            // We pass the full history including the new debate turns
-            const synthesis = await generateText({
-                provider: primaryParticipant.provider,
-                apiKey: primaryParticipant.apiKey || '', // Should handle undefined gracefully in provider
-                model: primaryParticipant.model,
-                messages: [
-                    ...currentHistory,
-                    { role: 'system', content: moderatorPrompt }
-                ]
-            });
-            
-            summary = synthesis;
+    if (summaryParticipant) {
+        try {
+            const provider = getProvider(summaryParticipant.provider);
+            if (!provider) {
+                // Should be caught by the find above, but double check
+                console.warn("No valid provider found for summary generation");
+            } else {
+                const moderatorPrompt = `You are the Moderator and Judge of this technical debate.
+                ${topic ? `Topic: ${topic}` : ''}
+                
+                Review the debate history above.
+                1. Summarize the key arguments from each participant.
+                2. Identify areas of consensus and disagreement.
+                3. Provide a final conclusion or recommendation based on the strongest arguments.
+                
+                Format: Markdown.`;
+
+                // We pass the full history including the new debate turns
+                const synthesis = await provider.complete({
+                    messages: [
+                        ...currentHistory,
+                        { role: 'system', content: moderatorPrompt } // Some providers might prefer system role in messages
+                        // OR we can append to the last message if 'system' role isn't supported in history array mix
+                    ],
+                    model: summaryParticipant.model,
+                    apiKey: summaryParticipant.apiKey,
+                    // valid system prompt if the provider supports separate system arg
+                    systemPrompt: moderatorPrompt 
+                });
+                
+                summary = synthesis.content;
+            }
 
         } catch (e) {
             console.error("Failed to generate debate summary:", e);
