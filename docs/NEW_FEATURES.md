@@ -1,5 +1,26 @@
 # New Features Documentation
 
+## Comprehensive Code Review System (v0.8.0)
+
+A robust, multi-persona code review system has been implemented to provide structured, actionable feedback on codebases.
+
+### Features
+1.  **Multi-Persona Analysis**: The code is analyzed in parallel by three specialized AI agents:
+    *   **Security Expert**: Focuses on vulnerabilities and injection risks.
+    *   **Performance Engineer**: Identifies inefficiencies and scaling bottlenecks.
+    *   **Clean Code Advocate**: Reviews maintainability, naming, and patterns.
+2.  **Structured Scorecard**: The individual reviews are synthesized by a "Lead Architect" agent into a structured JSON format containing:
+    *   **Overall Score (0-100)**
+    *   **Executive Summary**
+    *   **Categorized Issues** (High/Medium/Low severity).
+3.  **Visual UI**: A new `ReviewScorecard` component renders the results directly in the activity feed, featuring progress bars, severity badges, and actionable suggestions.
+4.  **Local Context Injection**: The review system gathers actual file content from the local repository to ensure the analysis is grounded in reality.
+
+### Architecture
+*   **Backend**: `lib/orchestration/review.ts` orchestrates the parallel LLM calls and final synthesis.
+*   **API**: `/api/review` endpoint handles the request, ensuring secure execution server-side.
+*   **Frontend**: `components/activity-feed.tsx` detects `ReviewResult` payloads and renders the scorecard.
+
 ## Multi-Agent Debate with Context Injection
 
 The Multi-Agent Debate feature now supports **Local Context Injection**.

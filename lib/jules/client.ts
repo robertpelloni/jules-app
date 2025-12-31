@@ -506,7 +506,7 @@ export class JulesClient {
     };
   }
 
-  async createActivity(params: { sessionId: string; content: string; type?: string; metadata?: any }): Promise<Activity> {
+  async createActivity(params: { sessionId: string; content: string; type?: string; metadata?: any; role?: 'user' | 'agent' }): Promise<Activity> {
     // Check if the content implies a specific action (like a slash command or special instruction)
     // or if we should use the sendMessage endpoint which is more robust for agent interaction.
     
@@ -520,22 +520,54 @@ export class JulesClient {
     // (e.g., antigravity-jules-orchestration) which POSTs to /sessions/{id}:sendMessage
     
     try {
-        // Try the direct action endpoint first as it's more specific for "sending a message to the agent"
-        const response = await this.request<ApiActivity>(`/sessions/${params.sessionId}:sendMessage`, {
-            method: 'POST',
-            body: JSON.stringify({
-                message: params.content 
-                // Note: backend might expect 'prompt' or 'message'. 
-                // Based on grep results: 
-                // - antigravity-jules-orchestration uses { message: ... }
-                // - python sdk uses { prompt: ... }
-                // Let's try sending both or check if we can fallback.
-                // Safest bet based on JS usage in grep is 'message'.
-            }),
-        });
-        return this.transformActivity(response, params.sessionId);
+        if (params.type === 'message' || !params.type) {
+            // Try the direct action endpoint first as it's more specific for "sending a message to the agent"
+            const response = await this.request<ApiActivity>(`/sessions/${params.sessionId}:sendMessage`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    message: params.content 
+                    // Note: backend might expect 'prompt' or 'message'. 
+                    // Based on grep results: 
+                    // - antigravity-jules-orchestration uses { message: ... }
+                    // - python sdk uses { prompt: ... }
+                    // Let's try sending both or check if we can fallback.
+                    // Safest bet based on JS usage in grep is 'message'.
+                }),
+            });
+            return this.transformActivity(response, params.sessionId);
+        } else {
+             // For other types like 'result' or explicit role setting, we use the manual creation if supported
+             // OR we mock the return object if the backend doesn't support creating arbitrary activities directly.
+             // Currently the backend seems to allow creating activities via POST /activities, but let's verify.
+             
+             // Fallback to original implementation which allows more flexibility
+            const body: any = {
+                content: params.content
+            };
+            
+            if (params.role === 'user') {
+                body.userMessage = { message: params.content };
+            } else if (params.role === 'agent') {
+                 // The backend structure for agent messages:
+                 if (params.type === 'result') {
+                     body.sessionCompleted = { message: params.content }; // closest mapping
+                 } else {
+                     body.agentMessaged = { message: params.content };
+                 }
+            } else {
+                 body.userMessage = { message: params.content };
+            }
+
+            const response = await this.request<ApiActivity>(`/sessions/${params.sessionId}/activities`, {
+                method: 'POST',
+                body: JSON.stringify(body),
+            });
+    
+            return this.transformActivity(response, params.sessionId);
+        }
+
     } catch (e) {
-        console.warn("Failed to use :sendMessage endpoint, falling back to /activities", e);
+        console.warn("Failed to create activity via standard methods, attempting fallback", e);
         
         // Fallback to original implementation
         const body = {

@@ -20,6 +20,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { BashOutput } from '@/components/ui/bash-output';
 import { NewSessionDialog } from './new-session-dialog';
+import { ReviewScorecard } from './review/review-scorecard';
 import { DebateDialog } from './debate-dialog';
 import { DebateViewer } from './debate-viewer';
 import { PlanContent } from './plan-content';
@@ -97,6 +98,12 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
              if (Array.isArray(parsed) && parsed.length === 0) return null;
              if (!Array.isArray(parsed) && Object.keys(parsed).length === 0) return null;
           }
+
+          // Check for ReviewResult structure (score + issues + summary)
+          if (!Array.isArray(parsed) && 'score' in parsed && 'issues' in parsed && 'summary' in parsed) {
+             return <ReviewScorecard result={parsed} />;
+          }
+
           if (Array.isArray(parsed) || (parsed.steps && Array.isArray(parsed.steps))) {
              // Assuming PlanContent component is available, if not we fall back to pre
              // For now, I will use PlanContent if I can find it, otherwise JSON stringify
@@ -235,53 +242,60 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
         setSending(true);
         setError(null);
 
-        // Gather local context to make the review specific
-        let contextStr = "";
-        try {
-            if (typeof client.gatherRepositoryContext === 'function') {
-                contextStr = await client.gatherRepositoryContext('.');
-            }
-        } catch (e) {
-            console.warn("Could not gather local context for in-session review:", e);
-        }
-
-        const prompt = `Please perform a comprehensive code review of the repository.
-${contextStr}
-
-Analyze the code for:
-1. Correctness and logic bugs
-2. Security vulnerabilities
-3. Performance issues
-4. Code style and maintainability
-
-IMPORTANT: Provide the output in the following JSON format so I can visualize it:
-{
-    "summary": "Brief overall summary...",
-    "score": 85,
-    "issues": [
-        {
-            "severity": "high" | "medium" | "low",
-            "category": "Security" | "Performance" | "Style" | "Logic",
-            "description": "...",
-            "suggestion": "...",
-            "file": "filename.ts",
-            "line": 10
-        }
-    ]
-}`;
-
+        // 1. Add an optimistic "I'm starting the review..." message from the user
+        const userPrompt = "Start a comprehensive code review.";
         const userMessage = await client.createActivity({
             sessionId: session.id,
-            content: prompt,
+            content: userPrompt,
+            role: 'user',
+            type: 'message'
         });
-        
         setActivities(prev => [...prev, userMessage]);
-        setTimeout(async () => {
-            try { await loadActivities(false); } catch (err) { console.error(err); }
-        }, 2000);
+
+        // 2. Gather local context to make the review specific
+        let codeContext = "";
+        try {
+             if (typeof client.gatherRepositoryContext === 'function') {
+                 codeContext = await client.gatherRepositoryContext('.');
+             }
+        } catch (e) {
+             console.warn("Could not gather local context for in-session review:", e);
+             codeContext = "Could not access local files. Please review based on available knowledge.";
+        }
+
+        // 3. Call the specialized API endpoint
+        const response = await fetch('/api/review', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                codeContext,
+                provider: 'openai', 
+                model: 'gpt-4o',
+                apiKey: process.env.NEXT_PUBLIC_OPENAI_KEY || '', // Fallback to env var if available
+                outputFormat: 'json',
+                reviewType: 'comprehensive'
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Review failed: ${response.statusText}`);
+        }
+
+        const reviewResult = await response.json();
+
+        // 4. Create the 'result' activity with the JSON payload
+        const agentActivity = await client.createActivity({
+            sessionId: session.id,
+            content: JSON.stringify(reviewResult, null, 2),
+            role: 'agent',
+            type: 'result'
+        });
+
+        setActivities(prev => [...prev, agentActivity]);
+
     } catch (err) {
-        console.error('Failed to send command:', err);
-        setError(err instanceof Error ? err.message : 'Failed to send command');
+        console.error('Failed to run review:', err);
+        setError(err instanceof Error ? err.message : 'Failed to run review');
     } finally {
         setSending(false);
     }

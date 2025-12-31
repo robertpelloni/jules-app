@@ -77,7 +77,8 @@ export interface CreateSessionRequest {
 export interface CreateActivityRequest {
   sessionId: string;
   content: string;
-  type?: 'message';
+  type?: 'message' | 'result';
+  role?: 'user' | 'agent';
 }
 
 export interface SessionTemplate {
