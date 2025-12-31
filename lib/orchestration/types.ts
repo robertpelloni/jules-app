@@ -27,6 +27,7 @@ export interface CompletionParams {
   systemPrompt?: string;
   temperature?: number;
   maxTokens?: number;
+  jsonMode?: boolean; // Added for structured output support
 }
 
 export interface CompletionResult {
