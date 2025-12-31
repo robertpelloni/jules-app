@@ -72,14 +72,15 @@ test.describe('Agent Orchestration', () => {
     await newSessionBtn.click();
     
     // Expect the creation dialog
-    const dialogHeader = page.getByRole('heading', { name: 'New Coding Session' });
+    // The dialog title is "Create New Session", not "New Coding Session"
+    const dialogHeader = page.getByRole('heading', { name: 'Create New Session' });
     await expect(dialogHeader).toBeVisible();
     
     // Fill out the form
-    await page.getByPlaceholder('What should I build?').fill('Create a simple hello world script');
+    await page.getByPlaceholder('Describe what you want the agent to do...').fill('Create a simple hello world script');
     
-    // Click Start Session
-    const startBtn = page.getByRole('button', { name: 'Start Session' });
+    // Click Start Session (or Create Session based on the button text)
+    const startBtn = page.getByRole('button', { name: 'Create Session' });
     await startBtn.click();
 
     // The dialog should close
@@ -100,7 +101,8 @@ test.describe('Agent Orchestration', () => {
     await settingsItem.click();
 
     // Expect Settings Dialog to be visible
-    // We check for the "Session Keeper" tab content or the dialog title
-    await expect(page.getByText('Session Keeper')).toBeVisible({ timeout: 10000 });
+    // We check for the "Integrations" tab content since that is the default tab
+    // Or we can check for "GitHub Integration" text which appears in the default tab
+    await expect(page.getByText('GitHub Integration')).toBeVisible({ timeout: 10000 });
   });
 });

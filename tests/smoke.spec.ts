@@ -11,6 +11,6 @@ test('shows api key dialog on first load', async ({ page }) => {
   await page.goto('/');
 
   // Expect the API Key dialog to be visible
-  await expect(page.getByRole('heading', { name: 'API Key Required' })).toBeVisible();
-  await expect(page.getByText('Enter your Jules API key to start a session.')).toBeVisible();
+  await expect(page.getByText('Jules UI')).toBeVisible();
+  await expect(page.getByText('Enter your Jules API key to access the workspace.')).toBeVisible();
 });

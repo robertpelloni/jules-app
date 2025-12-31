@@ -6,13 +6,12 @@ RUN apt-get update -y && apt-get install -y openssl
 WORKDIR /app
 
 # Copy package files
-COPY package.json ./
+COPY package.json package-lock.json ./
 # Copy prisma schema
 COPY prisma ./prisma/
 
-# Use npm install instead of ci to ensure platform-specific binaries (like tailwind oxide) are downloaded correctly
-# We skip copying package-lock.json to force a fresh resolution on Linux, ensuring correct native binaries
-RUN npm install
+# Use npm ci for reproducible builds now that lockfile is fixed
+RUN npm ci
 
 # Development image
 FROM base AS dev
