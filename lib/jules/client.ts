@@ -626,7 +626,7 @@ export class JulesClient {
   }
 
   async approvePlan(sessionId: string): Promise<void> {
-    return this.request<void>(`/sessions/${sessionId}/approve-plan`, {
+    return this.request<void>(`/sessions/${sessionId}:approvePlan`, {
       method: 'POST',
     });
   }
