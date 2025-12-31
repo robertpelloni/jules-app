@@ -318,13 +318,8 @@ export class JulesClient {
 
   // Session Management
   async listSessions(): Promise<Session[]> {
-    try {
-        const response = await this.request<{ sessions: ApiSession[] }>('/sessions');
-        return (response.sessions || []).map(s => this.transformSession(s));
-    } catch (err) {
-        console.error("Failed to list sessions", err);
-        return [];
-    }
+    const response = await this.request<{ sessions: ApiSession[] }>('/sessions');
+    return (response.sessions || []).map(s => this.transformSession(s));
   }
 
   private mapState(state: string): Session['status'] {
@@ -403,9 +398,46 @@ export class JulesClient {
   }
 
   async updateSession(sessionId: string, updates: Partial<Session>): Promise<Session> {
-    console.warn('[JulesClient] updateSession is not fully implemented by the backend yet. Updates are local only.', updates);
-    // Simulating success as backend doesn't support PATCH yet but frontend needs it
-    return this.getSession(sessionId);
+    const body: Record<string, any> = {};
+    const updateMaskParts: string[] = [];
+
+    // Map frontend 'status' to backend 'state'
+    if (updates.status) {
+      const stateMap: Record<string, string> = {
+        'active': 'ACTIVE',
+        'paused': 'PAUSED',
+        'completed': 'COMPLETED',
+        'failed': 'FAILED',
+        'awaiting_approval': 'AWAITING_PLAN_APPROVAL'
+      };
+      
+      if (stateMap[updates.status]) {
+        body.state = stateMap[updates.status];
+        updateMaskParts.push('state');
+      }
+    }
+
+    if (updates.title) {
+      body.title = updates.title;
+      updateMaskParts.push('title');
+    }
+
+    if (Object.keys(body).length === 0) {
+      return this.getSession(sessionId);
+    }
+
+    const updateMask = updateMaskParts.join(',');
+
+    try {
+      const response = await this.request<ApiSession>(`/sessions/${sessionId}?updateMask=${updateMask}`, {
+        method: 'PATCH',
+        body: JSON.stringify(body),
+      });
+      return this.transformSession(response);
+    } catch (error) {
+      console.error('[JulesClient] Failed to update session:', error);
+      throw error;
+    }
   }
 
   async listActivities(sessionId: string, limit: number = 50, offset: number = 0): Promise<Activity[]> {

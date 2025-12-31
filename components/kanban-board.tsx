@@ -133,7 +133,21 @@ export function KanbanBoard({ onSelectSession }: KanbanBoardProps) {
     return counts;
   }, [kanbanData]);
 
-  const handleDataChange = (newData: SessionKanbanItem[]) => {
+  const handleDataChange = async (newData: SessionKanbanItem[]) => {
+    // Identify changes to persist
+    const changes: { id: string; newStatus: Session['status'] }[] = [];
+    
+    // Check for status changes before updating local state
+    newData.forEach(item => {
+      const currentSession = sessions.find(s => s.id === item.id);
+      if (currentSession && currentSession.status !== item.column) {
+        changes.push({ 
+          id: item.id, 
+          newStatus: item.column as Session['status'] 
+        });
+      }
+    });
+
     // Merge updated kanban items back into the full sessions list to preserve archived/filtered sessions
     setSessions(prevSessions => {
       const updatedSessions = [...prevSessions];
@@ -154,8 +168,20 @@ export function KanbanBoard({ onSelectSession }: KanbanBoardProps) {
       return updatedSessions;
     });
     
-    // TODO: Implement backend persistence (updateSession API) here.
-    // Status changes are currently local-only and will be lost on refresh.
+    // Persist changes to backend
+    if (client && changes.length > 0) {
+      // Process updates sequentially to avoid race conditions if any
+      for (const change of changes) {
+        try {
+          await client.updateSession(change.id, { status: change.newStatus });
+        } catch (err) {
+          console.error(`Failed to update session ${change.id} status to ${change.newStatus}:`, err);
+          // If we had a toast notification system, we would trigger an error toast here.
+          // For now, the UI remains optimistically updated. 
+          // A full refresh would revert the state if the backend failed.
+        }
+      }
+    }
   };
 
   const getStatusColor = (status: string) => {

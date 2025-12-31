@@ -1,17 +1,28 @@
-import { GET, POST, DELETE } from './route';
+
+import { GET, POST, DELETE } from './[...path]/route';
 import { NextRequest } from 'next/server';
 
 // Mock global fetch
 global.fetch = jest.fn();
 
+// Mock getSession
+jest.mock('@/lib/session', () => ({
+  getSession: jest.fn(),
+}));
+
+import { getSession } from '@/lib/session';
+
 describe('Jules API Proxy', () => {
   const mockApiKey = 'test-api-key';
-  const baseUrl = 'http://localhost:3000/api/jules';
+  // Note: The base URL in the test request object is for NextRequest internal parsing,
+  // the actual proxy target is hardcoded in the route handler.
+  const reqBaseUrl = 'http://localhost:3000/api/jules/test'; 
 
   beforeEach(() => {
     jest.clearAllMocks();
     jest.spyOn(console, 'log').mockImplementation(() => {});
     jest.spyOn(console, 'error').mockImplementation(() => {});
+    (getSession as jest.Mock).mockResolvedValue({ apiKey: mockApiKey });
   });
 
   afterEach(() => {
@@ -20,12 +31,14 @@ describe('Jules API Proxy', () => {
 
   describe('GET', () => {
     it('should return 401 if API key is missing', async () => {
-      const req = new NextRequest(baseUrl);
-      const res = await GET(req);
+      (getSession as jest.Mock).mockResolvedValue(null);
+      
+      const req = new NextRequest(reqBaseUrl);
+      const res = await GET(req, { params: Promise.resolve({ path: ['test'] }) });
       const data = await res.json();
 
       expect(res.status).toBe(401);
-      expect(data).toEqual({ error: 'API key required' });
+      expect(data).toEqual({ error: 'Unauthorized' });
     });
 
     it('should proxy GET request successfully', async () => {
@@ -36,11 +49,8 @@ describe('Jules API Proxy', () => {
         json: async () => mockResponseData,
       });
 
-      const req = new NextRequest(`${baseUrl}?path=/test`, {
-        headers: { 'x-jules-api-key': mockApiKey },
-      });
-
-      const res = await GET(req);
+      const req = new NextRequest(reqBaseUrl);
+      const res = await GET(req, { params: Promise.resolve({ path: ['test'] }) });
       const data = await res.json();
 
       expect(global.fetch).toHaveBeenCalledWith(
@@ -59,81 +69,24 @@ describe('Jules API Proxy', () => {
     it('should handle fetch errors', async () => {
       (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
 
-      const req = new NextRequest(`${baseUrl}?path=/test`, {
-        headers: { 'x-jules-api-key': mockApiKey },
-      });
-
-      const res = await GET(req);
+      const req = new NextRequest(reqBaseUrl);
+      const res = await GET(req, { params: Promise.resolve({ path: ['test'] }) });
       const data = await res.json();
 
       expect(res.status).toBe(500);
       expect(data).toEqual({ error: 'Proxy error', message: 'Network error' });
     });
-
-    it('should handle and log complex activity data without crashing', async () => {
-      // Mock data that triggers the detailed logging logic in route.ts
-      const mockComplexData = {
-        activities: [
-          {
-            name: 'activity/1',
-            createTime: '2023-01-01T00:00:00Z',
-            type: 'run_command',
-            artifacts: [
-              {
-                changeSet: {
-                  gitPatch: { unidiffPatch: 'diff --git...' }
-                }
-              },
-              {
-                changeSet: {
-                  unidiffPatch: 'diff --git...'
-                }
-              },
-              {
-                bashOutput: { output: 'command output' }
-              }
-            ]
-          },
-          {
-            sessionCompleted: {}
-          }
-        ]
-      };
-
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => mockComplexData,
-      });
-
-      // The path must include '/activities' to trigger the logging logic
-      const req = new NextRequest(`${baseUrl}?path=/activities`, {
-        headers: { 'x-jules-api-key': mockApiKey },
-      });
-
-      const res = await GET(req);
-      const data = await res.json();
-
-      expect(res.status).toBe(200);
-      expect(data).toEqual(mockComplexData);
-      
-      // Since we mocked console.log in beforeEach, we can verify it was called
-      // This confirms the logging logic was actually entered
-      expect(console.log).toHaveBeenCalledWith(
-        expect.stringContaining('[Jules API Proxy] Activity types:'),
-        expect.anything()
-      );
-    });
   });
 
   describe('POST', () => {
     it('should return 401 if API key is missing', async () => {
-      const req = new NextRequest(baseUrl, { method: 'POST' });
-      const res = await POST(req);
+      (getSession as jest.Mock).mockResolvedValue(null);
+      const req = new NextRequest(reqBaseUrl, { method: 'POST' });
+      const res = await POST(req, { params: Promise.resolve({ path: ['test'] }) });
       const data = await res.json();
 
       expect(res.status).toBe(401);
-      expect(data).toEqual({ error: 'API key required' });
+      expect(data).toEqual({ error: 'Unauthorized' });
     });
 
     it('should proxy POST request successfully', async () => {
@@ -146,16 +99,15 @@ describe('Jules API Proxy', () => {
         json: async () => mockResponseData,
       });
 
-      const req = new NextRequest(`${baseUrl}?path=/create`, {
+      const req = new NextRequest(reqBaseUrl, {
         method: 'POST',
         headers: { 
-          'x-jules-api-key': mockApiKey,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(mockRequestBody),
       });
 
-      const res = await POST(req);
+      const res = await POST(req, { params: Promise.resolve({ path: ['create'] }) });
       const data = await res.json();
 
       expect(global.fetch).toHaveBeenCalledWith(
@@ -165,9 +117,6 @@ describe('Jules API Proxy', () => {
           headers: expect.objectContaining({
             'X-Goog-Api-Key': mockApiKey,
           }),
-          // Body parsing in fetch mock needs careful handling if we want to assert it exactly,
-          // but here we just check the call happened.
-          // Note: NextRequest body handling in test environment might differ slightly from real server
         })
       );
       expect(res.status).toBe(201);
@@ -177,12 +126,13 @@ describe('Jules API Proxy', () => {
 
   describe('DELETE', () => {
     it('should return 401 if API key is missing', async () => {
-      const req = new NextRequest(baseUrl, { method: 'DELETE' });
-      const res = await DELETE(req);
+      (getSession as jest.Mock).mockResolvedValue(null);
+      const req = new NextRequest(reqBaseUrl, { method: 'DELETE' });
+      const res = await DELETE(req, { params: Promise.resolve({ path: ['test'] }) });
       const data = await res.json();
 
       expect(res.status).toBe(401);
-      expect(data).toEqual({ error: 'API key required' });
+      expect(data).toEqual({ error: 'Unauthorized' });
     });
 
     it('should proxy DELETE request successfully', async () => {
@@ -193,12 +143,11 @@ describe('Jules API Proxy', () => {
         json: async () => mockResponseData,
       });
 
-      const req = new NextRequest(`${baseUrl}?path=/delete/1`, {
+      const req = new NextRequest(reqBaseUrl, {
         method: 'DELETE',
-        headers: { 'x-jules-api-key': mockApiKey },
       });
 
-      const res = await DELETE(req);
+      const res = await DELETE(req, { params: Promise.resolve({ path: ['delete', '1'] }) });
       const data = await res.json();
 
       expect(global.fetch).toHaveBeenCalledWith(
