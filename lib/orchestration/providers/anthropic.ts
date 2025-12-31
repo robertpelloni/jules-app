@@ -20,7 +20,7 @@ export const anthropicProvider: ProviderInterface = {
             role: m.role === 'user' ? 'user' : 'assistant',
             content: m.content
           })),
-          max_tokens: 300,
+          max_tokens: params.maxTokens || 300,
         }),
       });
 

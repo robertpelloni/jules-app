@@ -35,7 +35,10 @@ export const geminiProvider: ProviderInterface = {
               role: m.role === 'user' ? 'user' : 'model',
               parts: [{ text: m.content }]
             })),
-            generationConfig: { maxOutputTokens: 300 }
+            generationConfig: { 
+                maxOutputTokens: params.maxTokens || 300,
+                responseMimeType: params.jsonMode ? "application/json" : undefined 
+            }
           }),
         });
 
