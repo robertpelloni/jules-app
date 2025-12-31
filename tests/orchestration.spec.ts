@@ -1,4 +1,16 @@
 import { test, expect } from '@playwright/test';
+import { SignJWT } from 'jose';
+
+const secretKey = 'default-secret-key-change-me';
+const key = new TextEncoder().encode(secretKey);
+
+async function createSessionToken() {
+    return await new SignJWT({ apiKey: 'test-key', expires: new Date(Date.now() + 1000 * 60 * 60) })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setIssuedAt()
+        .setExpirationTime('1h')
+        .sign(key);
+}
 
 test.describe('Agent Orchestration', () => {
   test.beforeEach(async ({ page }) => {
@@ -16,16 +28,14 @@ test.describe('Agent Orchestration', () => {
          }
     });
 
-    // Navigate to root
-    await page.goto('/');
-    
-    // Wait for the main layout to render instead of specifically header
-    // The AppLayout is wrapped in Suspense, so we wait for something stable
-    // Also, we bypass the middleware redirect by adding a dummy session cookie
+    // Generate a valid JWT token for the middleware
+    const token = await createSessionToken();
+
+    // Bypass the middleware redirect by adding a valid session cookie
     const context = page.context();
     await context.addCookies([{
         name: 'session',
-        value: 'dummy-session-token-for-testing',
+        value: token,
         domain: 'localhost',
         path: '/'
     }]);
