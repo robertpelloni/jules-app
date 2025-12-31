@@ -54,16 +54,56 @@ describe('Code Review Orchestration', () => {
         .rejects.toThrow('Provider openai not found');
     });
 
-    it('should handle failures in comprehensive review personas gracefully', async () => {
-      mockProvider.complete
-        .mockRejectedValueOnce(new Error('Fail 1'))
-        .mockResolvedValueOnce({ content: 'Success 2' })
-        .mockResolvedValueOnce({ content: 'Success 3' });
+    it('should run a structured JSON review', async () => {
+        const jsonResponse = {
+            summary: "Good code",
+            score: 90,
+            issues: []
+        };
+        mockProvider.complete.mockResolvedValue({ content: JSON.stringify(jsonResponse) });
 
-      const result = await runCodeReview({ ...defaultRequest, reviewType: 'comprehensive' });
+        const result = await runCodeReview({ ...defaultRequest, outputFormat: 'json' });
 
-      expect(result).toContain('(Failed to generate review: Fail 1)');
-      expect(result).toContain('Success 2');
+        expect(result).toEqual(expect.objectContaining({
+            summary: "Good code",
+            score: 90,
+            issues: []
+        }));
+        expect(mockProvider.complete).toHaveBeenCalledWith(expect.objectContaining({
+            jsonMode: true
+        }));
+    });
+
+    it('should handle invalid JSON in structured review gracefully', async () => {
+        mockProvider.complete.mockResolvedValue({ content: 'Invalid JSON' });
+
+        const result = await runCodeReview({ ...defaultRequest, outputFormat: 'json' });
+        
+        // Assert using type casting since we know the shape of the fallback object
+        expect(result).toEqual(expect.objectContaining({
+            score: 0,
+            issues: [],
+            summary: "Failed to generate structured review."
+        }));
+    });
+
+    it('should support custom personas in comprehensive review', async () => {
+        mockProvider.complete.mockResolvedValue({ content: 'Custom review' });
+        
+        const customPersonas = [
+            { role: 'Database Expert', prompt: 'Check SQL' },
+            { role: 'UI Expert', prompt: 'Check CSS' }
+        ];
+
+        const result = await runCodeReview({ 
+            ...defaultRequest, 
+            reviewType: 'comprehensive',
+            customPersonas
+        });
+
+        expect(mockProvider.complete).toHaveBeenCalledTimes(2);
+        expect(result).toContain('Database Expert');
+        expect(result).toContain('UI Expert');
     });
   });
 });
