@@ -522,34 +522,77 @@ export class JulesClient {
   }
 
   async listArtifacts(sessionId: string): Promise<Artifact[]> {
-    // There isn't a direct "list artifacts" endpoint in the main API structure shown in types
-    // Usually artifacts are attached to activities. 
-    // We might need to fetch activities and extract artifacts if a direct endpoint doesn't exist.
-    // However, assuming the SDK interface implies one exists or we implement a helper:
-    
-    // Fallback: Fetch activities and aggregate artifacts
-    const activities = await this.listActivities(sessionId, 100);
     const artifacts: Artifact[] = [];
-    
-    // This is a simplification. Real implementation depends on if backend persists artifacts separately.
-    // For now, returning empty or implementing if endpoint exists.
-    // Let's try to hit a likely endpoint if it exists, else return empty.
+    let pageToken: string | undefined;
+    const limit = 50;
+
+    // Helper to process ApiArtifact to Artifact
+    const processArtifact = (apiArtifact: ApiArtifact, activityId: string, timestamp: string): Artifact => {
+      return {
+        id: `art-${Math.random().toString(36).substr(2, 9)}`, // Generate ID if missing
+        sessionId,
+        activityId,
+        changeSet: apiArtifact.changeSet ? {
+            source: apiArtifact.changeSet.source,
+            unidiffPatch: apiArtifact.changeSet.unidiffPatch,
+            gitPatch: apiArtifact.changeSet.gitPatch ? {
+                unidiffPatch: apiArtifact.changeSet.gitPatch.unidiffPatch
+            } : undefined
+        } as any : undefined,
+        bashOutput: apiArtifact.bashOutput ? {
+            output: apiArtifact.bashOutput.output
+        } as any : undefined,
+        media: apiArtifact.media,
+        createTime: timestamp,
+        ...apiArtifact
+      };
+    };
+
     try {
-        const response = await this.request<{ artifacts: ApiArtifact[] }>(`/sessions/${sessionId}/artifacts`);
-        return (response.artifacts || []).map(a => ({
-            ...a,
-            changeSet: a.changeSet ? {
-                ...a.changeSet,
-                gitPatch: a.changeSet.gitPatch ? {
-                    unidiffPatch: a.changeSet.gitPatch.unidiffPatch
-                } : undefined
-            } : undefined,
-            bashOutput: a.bashOutput ? {
-                ...a.bashOutput
-            } : undefined,
-            createTime: new Date().toISOString() // Fallback if missing
-        }));
+        // Loop to fetch all activities
+        do {
+            const params = new URLSearchParams();
+            params.set("pageSize", limit.toString());
+            if (pageToken) params.set("pageToken", pageToken);
+
+            const response = await this.request<{ activities?: ApiActivity[], nextPageToken?: string }>(
+                `/sessions/${sessionId}/activities?${params.toString()}`
+            );
+
+            const activities = response.activities || [];
+
+            for (const activity of activities) {
+                const timestamp = activity.createTime;
+                const activityId = activity.id || 'unknown';
+
+                // 1. Check progressUpdated artifacts
+                if (activity.progressUpdated?.artifacts) {
+                    for (const a of activity.progressUpdated.artifacts) {
+                        artifacts.push(processArtifact(a, activityId, timestamp));
+                    }
+                }
+
+                // 2. Check sessionCompleted artifacts
+                if (activity.sessionCompleted?.artifacts) {
+                    for (const a of activity.sessionCompleted.artifacts) {
+                        artifacts.push(processArtifact(a, activityId, timestamp));
+                    }
+                }
+
+                // 3. Check top-level artifacts (if any)
+                if (activity.artifacts) {
+                    for (const a of activity.artifacts) {
+                        artifacts.push(processArtifact(a, activityId, timestamp));
+                    }
+                }
+            }
+            
+            pageToken = response.nextPageToken;
+        } while (pageToken);
+
+        return artifacts;
     } catch (e) {
+        console.error("Failed to list artifacts via activities:", e);
         return [];
     }
   }
