@@ -22,7 +22,7 @@
 
 ## Phase 3: Advanced Features (Completed)
 - [x] **Multi-Agent Debate:** Orchestrate debates between Supervisor and Worker agents.
-- [x] **Deep Code Analysis:** Parallel code audits (Security, Performance, Maintainability).
+- [x] **Deep Code Analysis:** Parallel code audits (Security, Performance, Maintainability) with Structured Scorecards.
 - [x] **Artifact Management:** Artifact Browser with list and preview.
 - [x] **Session Templates:** Save and reuse session configurations.
 - [x] **Council Debate Visualization**: Visualizing the multi-agent debate process in the UI.
@@ -41,8 +41,8 @@
 
 ## 📅 Short Term (v0.8.x)
 -   **Advanced Orchestration:**
-    -   Real implementations for `runCodeReview` using LLMs.
-    -   Fully functional multi-agent debate loop with real providers.
+    -   [x] Real implementations for `runCodeReview` using LLMs with structured output.
+    -   [ ] Fully functional multi-agent debate loop with real providers (Refining logic).
 
 ## 🔮 Long Term (Vision)
 -   **Jules Autonomous:**
