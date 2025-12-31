@@ -1,7 +1,11 @@
 
 import { LLMProvider, Message, CompletionResult } from './types';
 
-// Simple interface for review requests
+export interface ReviewPersona {
+    role: string;
+    prompt: string;
+}
+
 export interface ReviewRequest {
     codeContext: string;
     provider: string;
@@ -9,14 +13,36 @@ export interface ReviewRequest {
     apiKey: string;
     systemPrompt?: string;
     reviewType?: 'simple' | 'comprehensive';
+    customPersonas?: ReviewPersona[];
+    outputFormat?: 'markdown' | 'json';
 }
 
-export async function runCodeReview(request: ReviewRequest): Promise<string> {
+export interface ReviewIssue {
+    severity: 'high' | 'medium' | 'low';
+    category: string;
+    file?: string;
+    line?: number;
+    description: string;
+    suggestion: string;
+}
+
+export interface ReviewResult {
+    summary: string;
+    score: number; // 0-100
+    issues: ReviewIssue[];
+    rawOutput?: string;
+}
+
+export async function runCodeReview(request: ReviewRequest): Promise<string | ReviewResult> {
     const { getProvider } = await import('./providers');
     const provider = getProvider(request.provider);
     
     if (!provider) {
         throw new Error(`Provider ${request.provider} not found`);
+    }
+
+    if (request.outputFormat === 'json') {
+        return await runStructuredReview(request, provider);
     }
 
     if (request.reviewType === 'comprehensive') {
@@ -39,8 +65,60 @@ export async function runCodeReview(request: ReviewRequest): Promise<string> {
     return result.content;
 }
 
+async function runStructuredReview(request: ReviewRequest, provider: any): Promise<ReviewResult> {
+    const systemPrompt = `You are an expert code reviewer. Analyze the code and provide a structured JSON response.
+    
+    Response Format (JSON):
+    {
+        "summary": "Brief overall summary of the code quality and main issues",
+        "score": 85, // 0-100 integer
+        "issues": [
+            {
+                "severity": "high" | "medium" | "low",
+                "category": "Security" | "Performance" | "Style" | "Logic",
+                "description": "Description of the issue",
+                "suggestion": "How to fix it",
+                "line": 10 // Approximate line number if applicable
+            }
+        ]
+    }
+    
+    Focus on:
+    1. Correctness and logic bugs
+    2. Security vulnerabilities
+    3. Performance issues
+    4. Code style and maintainability
+    `;
+
+    try {
+        const result = await provider.complete({
+            messages: [{ role: 'user', content: request.codeContext }],
+            model: request.model,
+            apiKey: request.apiKey,
+            systemPrompt,
+            jsonMode: true
+        });
+
+        const parsed = JSON.parse(result.content);
+        return {
+            summary: parsed.summary || "No summary provided.",
+            score: typeof parsed.score === 'number' ? parsed.score : 0,
+            issues: Array.isArray(parsed.issues) ? parsed.issues : [],
+            rawOutput: result.content
+        };
+    } catch (error) {
+        console.error("Structured review failed:", error);
+        return {
+            summary: "Failed to generate structured review.",
+            score: 0,
+            issues: [],
+            rawOutput: error instanceof Error ? error.message : "Unknown error"
+        };
+    }
+}
+
 async function runComprehensiveReview(request: ReviewRequest, provider: any): Promise<string> {
-    const personas = [
+    const defaultPersonas = [
         {
             role: 'Security Expert',
             prompt: 'You are a Security Expert. Review this code strictly for security vulnerabilities, injection risks, and data handling issues. Be brief and list only high-severity concerns.'
@@ -54,6 +132,8 @@ async function runComprehensiveReview(request: ReviewRequest, provider: any): Pr
             prompt: 'You are a Senior Engineer focused on maintainability. Review naming, structure, and adherence to SOLID principles. Be brief.'
         }
     ];
+
+    const personas = request.customPersonas || defaultPersonas;
 
     const results = await Promise.all(personas.map(async (persona) => {
         try {
