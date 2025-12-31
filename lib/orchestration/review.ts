@@ -117,7 +117,7 @@ async function runStructuredReview(request: ReviewRequest, provider: any): Promi
     }
 }
 
-async function runComprehensiveReview(request: ReviewRequest, provider: any): Promise<string> {
+async function runComprehensiveReview(request: ReviewRequest, provider: any): Promise<string | ReviewResult> {
     const defaultPersonas = [
         {
             role: 'Security Expert',
@@ -149,5 +149,53 @@ async function runComprehensiveReview(request: ReviewRequest, provider: any): Pr
         }
     }));
 
-    return `# Comprehensive Code Review\n\n${results.join('\n\n')}`;
+    const compiledReview = `# Comprehensive Code Review\n\n${results.join('\n\n')}`;
+
+    // If output format is JSON, synthesize the individual reviews into a structured scorecard
+    if (request.outputFormat === 'json') {
+        try {
+            const synthesisPrompt = `You are a Lead Software Architect.
+            Synthesize the following specific reviews from different experts into a final, structured Code Review Scorecard.
+
+            Review Contents:
+            ${compiledReview}
+
+            Response Format (JSON):
+            {
+                "summary": "High-level executive summary of the code quality based on the experts' feedback.",
+                "score": 85, // 0-100 integer based on overall quality
+                "issues": [
+                    {
+                        "severity": "high" | "medium" | "low",
+                        "category": "Security" | "Performance" | "Style" | "Logic",
+                        "description": "Concise description of the issue",
+                        "suggestion": "Actionable fix",
+                        "line": 0 // Best guess if mentioned, else 0
+                    }
+                ]
+            }`;
+
+            const synthesis = await provider.complete({
+                messages: [{ role: 'user', content: "Synthesize the reviews." }],
+                model: request.model,
+                apiKey: request.apiKey,
+                systemPrompt: synthesisPrompt,
+                jsonMode: true
+            });
+
+            const parsed = JSON.parse(synthesis.content);
+            return {
+                summary: parsed.summary || "No summary provided.",
+                score: typeof parsed.score === 'number' ? parsed.score : 0,
+                issues: Array.isArray(parsed.issues) ? parsed.issues : [],
+                rawOutput: compiledReview
+            };
+        } catch (error) {
+            console.error("Failed to synthesize comprehensive review:", error);
+            // Fallback to unstructured text if synthesis fails
+            return compiledReview;
+        }
+    }
+
+    return compiledReview;
 }
