@@ -63,15 +63,13 @@ export function DebateDialog({
             content: h.content
         }));
 
-      // Call Supervisor API
-      const response = await fetch('/api/supervisor', {
+      // Call Debate API
+      const response = await fetch('/api/debate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'debate',
           topic: topic,
-          context: initialContext,
-          messages: messages,
+          history: messages,
           participants: [
             {
                 id: 'proposer',

@@ -674,4 +674,49 @@ export class JulesClient {
       method: 'DELETE',
     });
   }
+
+  // Filesystem (Local API)
+  async listFiles(path: string = '.'): Promise<{ name: string; isDirectory: boolean; path: string }[]> {
+    const res = await this.fetchLocal<{ files: { name: string; isDirectory: boolean; path: string }[] }>(
+      `/api/fs/list?path=${encodeURIComponent(path)}`
+    );
+    return res.files;
+  }
+
+  async readFile(path: string): Promise<string> {
+    const res = await this.fetchLocal<{ content: string }>(
+      `/api/fs/read?path=${encodeURIComponent(path)}`
+    );
+    return res.content;
+  }
+
+  async runDirectReview(request: any): Promise<any> {
+    return this.fetchLocal<any>('/api/review', {
+      method: 'POST',
+      body: JSON.stringify(request)
+    });
+  }
+
+  async gatherRepositoryContext(path: string = '.'): Promise<string> {
+    let contextStr = "Repository Context:\n";
+    try {
+      const files = await this.listFiles(path);
+      const tree = files.map(f => f.isDirectory ? `[DIR] ${f.path}` : f.path).slice(0, 50).join('\n');
+      contextStr += `\nFile Structure (partial):\n${tree}\n`;
+
+      // Try to read key config files
+      const keyFiles = ['package.json', 'README.md', 'tsconfig.json', 'pyproject.toml', 'Cargo.toml'];
+      for (const file of keyFiles) {
+        if (files.some(f => f.path === file)) {
+          const content = await this.readFile(file);
+          contextStr += `\n--- ${file} ---\n${content.slice(0, 2000)}\n`;
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to gather local context:", e);
+      contextStr += "\n(Could not auto-fetch local files, relying on agent knowledge)";
+    }
+    return contextStr;
+  }
 }
+

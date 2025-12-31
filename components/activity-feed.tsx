@@ -22,11 +22,7 @@ import { BashOutput } from '@/components/ui/bash-output';
 import { NewSessionDialog } from './new-session-dialog';
 import { DebateDialog } from './debate-dialog';
 import { DebateViewer } from './debate-viewer';
-import { PlanContent } from './plan-content'; // Assuming this exists or is needed based on origin usage logic, wait, origin uses PlanContent in formatContent? No, I need to check if PlanContent is imported in origin.
-// Looking at origin diff in previous turn, I don't see PlanContent imported. 
-// However, in the formatContent function in origin (lines 115-136 in the read output), it uses <PlanContent /> at line 133.
-// So I need to import it.
-
+import { PlanContent } from './plan-content';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -235,14 +231,50 @@ export function ActivityFeed({ session, onArchive, showCodeDiffs, onToggleCodeDi
 
   const handleQuickReview = async () => {
     if (!client || sending) return;
-    // Implementation from origin
     try {
         setSending(true);
         setError(null);
+
+        // Gather local context to make the review specific
+        let contextStr = "";
+        try {
+            if (typeof client.gatherRepositoryContext === 'function') {
+                contextStr = await client.gatherRepositoryContext('.');
+            }
+        } catch (e) {
+            console.warn("Could not gather local context for in-session review:", e);
+        }
+
+        const prompt = `Please perform a comprehensive code review of the repository.
+${contextStr}
+
+Analyze the code for:
+1. Correctness and logic bugs
+2. Security vulnerabilities
+3. Performance issues
+4. Code style and maintainability
+
+IMPORTANT: Provide the output in the following JSON format so I can visualize it:
+{
+    "summary": "Brief overall summary...",
+    "score": 85,
+    "issues": [
+        {
+            "severity": "high" | "medium" | "low",
+            "category": "Security" | "Performance" | "Style" | "Logic",
+            "description": "...",
+            "suggestion": "...",
+            "file": "filename.ts",
+            "line": 10
+        }
+    ]
+}`;
+
         const userMessage = await client.createActivity({
             sessionId: session.id,
-            content: 'Please perform a comprehensive code review of the repository. Look for bugs, security issues, and opportunities for refactoring. Provide a detailed summary of your findings.',
+            content: prompt,
         });
+        
         setActivities(prev => [...prev, userMessage]);
         setTimeout(async () => {
             try { await loadActivities(false); } catch (err) { console.error(err); }
